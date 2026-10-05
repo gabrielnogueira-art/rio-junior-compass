@@ -152,3 +152,106 @@ export const DIRETORIAS_SIGLAS: Record<string, string> = {
 };
 
 export type Diretoria = typeof DIRETORIAS[number];
+
+// ==========================================
+// RioJunior 2026 - Movimentações Financeiras
+// ==========================================
+export interface MovimentacaoRioJunior {
+  id: string;
+  tipo: 'Despesa' | 'Receita';
+  dataEfetiva: string;
+  valorEfetivo: number;
+  descricao: string;
+  categoria: string;
+  subcategoria: string;
+  projeto: string;
+  conta: 'ASAAS' | 'BANCO DO BRASIL' | 'BRADESCO' | 'CORA' | 'PAGBANK' | string;
+  contaTransferencia?: string;
+  centroCusto: string;
+  contato?: string;
+  observacoes?: string;
+  dataCompetencia?: string;
+  mesNum?: number;
+  mesComp?: string;
+  documento?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TaxonomyRioJunior {
+  tipos: string[];
+  contas: string[];
+  centrosCusto: string[];
+  projetos: string[];
+  categorias: string[];
+  subcategorias: string[];
+  meses: { num: number; nome: string }[];
+  initialBalances: Record<string, number>;
+  categoriesByType: {
+    Despesa: string[];
+    Receita: string[];
+  };
+  subcategoriesByCategory: Record<string, string[]>;
+  contacts: string[];
+}
+
+export interface MonthBankData {
+  mesNum: number;
+  mesNome: string;
+  entradas: number;
+  saidas: number;
+  resultado: number;
+  saldoAcumulado: number;
+}
+
+export interface BankAccountDetails {
+  saldoInicial: number;
+  totalEntradas: number;
+  totalSaidas: number;
+  resultadoTotal: number;
+  saldoAtual: number;
+  months: MonthBankData[];
+}
+
+export interface BankAccountsViewData {
+  initialTotal: number;
+  totalEntradas: number;
+  totalSaidas: number;
+  resultadoConsolidado: number;
+  saldoAtualConsolidado: number;
+  accounts: Record<string, BankAccountDetails>;
+  consolidatedMonthly: MonthBankData[];
+}
+
+export interface FinancialSummaryRioJunior {
+  saldoInicialTotal: number;
+  totalReceitas: number;
+  totalDespesas: number;
+  resultadoLiquido: number;
+  saldoAtualConsolidado: number;
+  totalMovimentacoes: number;
+  monthly: {
+    mesNum: number;
+    mesNome: string;
+    receitas: number;
+    despesas: number;
+    resultado: number;
+  }[];
+  accounts: Record<string, {
+    receitas: number;
+    despesas: number;
+    net: number;
+    saldoInicial: number;
+    saldoAtual: number;
+  }>;
+  costCenters: Record<string, number>;
+  topCategories: { name: string; value: number }[];
+}
+
+export interface DFCReport {
+  entradas: { categoria: string; total: number; percent: number }[];
+  despesas: { categoria: string; total: number; percent: number }[];
+  totalEntradas: number;
+  totalDespesas: number;
+  resultadoOperacional: number;
+}
