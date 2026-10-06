@@ -415,6 +415,50 @@ class MovimentacoesService {
     };
   }
 
+  public getAllTransactions(): MovimentacaoRioJunior[] {
+    return [...this.memoryTransactions];
+  }
+
+  public async createBatchTransactions(items: Partial<MovimentacaoRioJunior>[]): Promise<MovimentacaoRioJunior[]> {
+    const created: MovimentacaoRioJunior[] = [];
+    const baseTime = Date.now();
+
+    for (let i = 0; i < items.length; i++) {
+      const data = items[i];
+      const dateObj = new Date(data.dataEfetiva || new Date().toISOString().split('T')[0]);
+      const mesNum = isNaN(dateObj.getTime()) ? 1 : dateObj.getMonth() + 1;
+      const mesComp = MONTH_NAMES[mesNum - 1] || 'Jan';
+
+      const newTx: MovimentacaoRioJunior = {
+        id: `${data.conta || 'EXTRATO'}-${(baseTime + i).toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000).toString(36).toUpperCase()}`,
+        tipo: (data.tipo as 'Despesa' | 'Receita') || 'Despesa',
+        dataEfetiva: data.dataEfetiva || new Date().toISOString().split('T')[0],
+        valorEfetivo: Math.abs(Number(data.valorEfetivo) || 0),
+        descricao: data.descricao || '',
+        categoria: data.categoria || 'Outros',
+        subcategoria: data.subcategoria || '',
+        projeto: data.projeto || 'N/A',
+        conta: data.conta || 'Cora',
+        contaTransferencia: data.contaTransferencia || '',
+        centroCusto: data.centroCusto || 'Operações',
+        contato: data.contato || '',
+        observacoes: data.observacoes || (data.documento ? `Doc: ${data.documento}` : ''),
+        dataCompetencia: data.dataCompetencia || data.dataEfetiva || new Date().toISOString().split('T')[0],
+        mesNum,
+        mesComp,
+        documento: data.documento || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      created.push(newTx);
+    }
+
+    this.memoryTransactions.unshift(...created);
+    this.saveToStorage();
+    return created;
+  }
+
   public async createTransaction(data: Partial<MovimentacaoRioJunior>): Promise<MovimentacaoRioJunior> {
     const dateObj = new Date(data.dataEfetiva || new Date().toISOString().split('T')[0]);
     const mesNum = dateObj.getMonth() + 1;

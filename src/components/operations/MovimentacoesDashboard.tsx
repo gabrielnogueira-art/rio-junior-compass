@@ -7,7 +7,8 @@ import {
   Scale, 
   Building2, 
   Plus, 
-  ArrowRightLeft, 
+  ArrowRightLeft,
+  UploadCloud, 
   RefreshCw, 
   Download,
   Sparkles,
@@ -38,6 +39,7 @@ interface MovimentacoesDashboardProps {
   backendConnected: boolean;
   onOpenNewTx: () => void;
   onOpenTransfer: () => void;
+  onOpenImportStatement?: () => void;
   onSyncExcel: () => void;
   onExportCSV: () => void;
   onSelectAccountFilter: (acc: string) => void;
@@ -61,6 +63,7 @@ export const MovimentacoesDashboard = ({
   backendConnected,
   onOpenNewTx,
   onOpenTransfer,
+  onOpenImportStatement,
   onSyncExcel,
   onExportCSV,
   onSelectAccountFilter,
@@ -118,6 +121,17 @@ export const MovimentacoesDashboard = ({
             <Plus size={16} />
             <span>Nova Movimentação</span>
           </button>
+
+          {onOpenImportStatement && (
+            <button
+              onClick={onOpenImportStatement}
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm flex items-center justify-center gap-2 transition-all hover:shadow"
+              title="Importar extrato bancário (OFX, Excel ou CSV) com reconciliação inteligente"
+            >
+              <UploadCloud size={15} />
+              <span>Importar Extrato</span>
+            </button>
+          )}
 
           <button
             onClick={onOpenTransfer}

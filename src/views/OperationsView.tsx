@@ -34,6 +34,7 @@ import { IniciativasView } from '@/components/operations/IniciativasView';
 import { CaixaMinimoView } from '@/components/operations/CaixaMinimoView';
 import { PlanoContasView } from '@/components/operations/PlanoContasView';
 import { TransactionModal } from '@/components/operations/TransactionModal';
+import { BankStatementImportModal } from '@/components/operations/BankStatementImportModal';
 import { TransferModal } from '@/components/operations/TransferModal';
 import { TransactionDetailsModal } from '@/components/operations/TransactionDetailsModal';
 import FinancialProjectionChart from '@/components/operations/FinancialProjectionChart';
@@ -80,6 +81,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
 
   // Modals state
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<MovimentacaoRioJunior | null>(null);
@@ -177,6 +179,19 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
   };
 
   // Transaction CRUD handlers
+  const handleImportBankStatement = async (newTransactions: Partial<MovimentacaoRioJunior>[]) => {
+    try {
+      const created = await movimentacoesService.createBatchTransactions(newTransactions);
+      toast.success(`${created.length} movimentações importadas e reconciliadas com sucesso!`);
+      await loadData();
+      await loadTransactions();
+    } catch (err: any) {
+      toast.error('Erro ao importar movimentações do extrato: ' + (err.message || 'Falha desconhecida'));
+      throw err;
+    }
+  };
+
+
   const handleSaveTransaction = async (data: Partial<MovimentacaoRioJunior>) => {
     try {
       if (txToEdit && txToEdit.id) {
@@ -319,6 +334,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
               setIsTxModalOpen(true);
             }}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
+            onOpenImportStatement={() => setIsImportModalOpen(true)}
             onSyncExcel={() => {}}
             onExportCSV={handleExportCSV}
             onSelectAccountFilter={handleSelectAccountFilter}
@@ -358,6 +374,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
               setIsTxModalOpen(true);
             }}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
+            onOpenImportStatement={() => setIsImportModalOpen(true)}
           />
         </TabsContent>
 
@@ -393,6 +410,15 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
       </Tabs>
 
       {/* Modals */}
+      <BankStatementImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportConfirmed={handleImportBankStatement}
+        existingTransactions={movimentacoesService.getAllTransactions()}
+        taxonomy={taxonomy}
+        planoContas={planoContas}
+      />
+
       <TransactionModal
         isOpen={isTxModalOpen}
         onClose={() => {

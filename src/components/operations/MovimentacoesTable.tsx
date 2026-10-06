@@ -10,7 +10,8 @@ import {
   Edit, 
   Trash2, 
   Copy, 
-  Download, 
+  Download,
+  UploadCloud, 
   ChevronLeft, 
   ChevronRight,
   RotateCcw,
@@ -50,7 +51,9 @@ interface MovimentacoesTableProps {
   onDelete: (id: string) => void;
   onExportCSV: () => void;
   onOpenNewTx: () => void;
-  onOpenTransfer: () => void;
+  onOpenTransfer,
+  onOpenImportStatement: () => void;
+  onOpenImportStatement?: () => void;
 }
 
 const BANK_PILLS: Record<string, string> = {
@@ -123,6 +126,17 @@ export const MovimentacoesTable = ({
               >
                 <RotateCcw size={14} />
                 <span>Limpar Filtros</span>
+              </button>
+            )}
+
+            {onOpenImportStatement && (
+              <button
+                onClick={onOpenImportStatement}
+                className="px-3.5 py-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-semibold text-xs flex items-center gap-1.5 transition-colors"
+                title="Importar e conciliar extrato bancário (OFX, Excel ou CSV)"
+              >
+                <UploadCloud size={14} />
+                <span>Importar Extrato</span>
               </button>
             )}
 
