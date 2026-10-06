@@ -6,11 +6,9 @@ import {
   FileText, 
   LayoutDashboard, 
   Loader2, 
-  Plus, 
-  ArrowRightLeft, 
-  RefreshCw, 
-  Download,
-  AlertCircle
+  Target,
+  ShieldCheck,
+  BookOpen
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -20,7 +18,11 @@ import {
   TaxonomyRioJunior, 
   FinancialSummaryRioJunior, 
   BankAccountsViewData, 
-  DFCReport 
+  DFCReport,
+  IniciativaMetrica,
+  CaixaMinimoMonth,
+  AnaliseGeralData,
+  PlanoContaItem
 } from '@/types';
 
 import { movimentacoesService } from '@/services/movimentacoesService';
@@ -28,6 +30,9 @@ import { MovimentacoesDashboard } from '@/components/operations/MovimentacoesDas
 import { MovimentacoesTable } from '@/components/operations/MovimentacoesTable';
 import { BankAccountsView } from '@/components/operations/BankAccountsView';
 import { DFCReportsView } from '@/components/operations/DFCReportsView';
+import { IniciativasView } from '@/components/operations/IniciativasView';
+import { CaixaMinimoView } from '@/components/operations/CaixaMinimoView';
+import { PlanoContasView } from '@/components/operations/PlanoContasView';
 import { TransactionModal } from '@/components/operations/TransactionModal';
 import { TransferModal } from '@/components/operations/TransferModal';
 import { TransactionDetailsModal } from '@/components/operations/TransactionDetailsModal';
@@ -42,8 +47,12 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
   const [loading, setLoading] = useState(true);
   const [backendConnected, setBackendConnected] = useState(false);
 
-  // Data states
+  // Data states from updated spreadsheets
   const [summary, setSummary] = useState<FinancialSummaryRioJunior | null>(null);
+  const [analiseGeral, setAnaliseGeral] = useState<AnaliseGeralData | null>(null);
+  const [iniciativas, setIniciativas] = useState<IniciativaMetrica[]>([]);
+  const [caixaMinimo, setCaixaMinimo] = useState<CaixaMinimoMonth[]>([]);
+  const [planoContas, setPlanoContas] = useState<PlanoContaItem[]>([]);
   const [taxonomy, setTaxonomy] = useState<TaxonomyRioJunior>(movimentacoesService.getTaxonomy());
   const [bankData, setBankData] = useState<BankAccountsViewData | null>(null);
   const [dfcData, setDfcData] = useState<DFCReport | null>(null);
@@ -64,7 +73,9 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
     mes: 'ALL',
     centroCusto: 'ALL',
     categoria: 'ALL',
-    projeto: 'ALL'
+    iniciativa: 'ALL',
+    tipoIniciativa: 'ALL',
+    categoriaCaixaMinimo: 'ALL'
   });
 
   // Modals state
@@ -74,7 +85,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
   const [selectedTx, setSelectedTx] = useState<MovimentacaoRioJunior | null>(null);
   const [txToEdit, setTxToEdit] = useState<MovimentacaoRioJunior | null>(null);
 
-  // Load all initial data
+  // Load all data from service
   const loadData = useCallback(async () => {
     try {
       const isOnline = await movimentacoesService.checkBackend();
@@ -89,6 +100,11 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
       setSummary(sum);
       setBankData(bank);
       setDfcData(dfc);
+      setAnaliseGeral(movimentacoesService.getAnaliseGeral());
+      setIniciativas(movimentacoesService.getIniciativas());
+      setCaixaMinimo(movimentacoesService.getCaixaMinimo());
+      setPlanoContas(movimentacoesService.getPlanoContas());
+      setTaxonomy(movimentacoesService.getTaxonomy());
     } catch (err) {
       console.error('Error loading operations data:', err);
       toast.error('Erro ao carregar dados financeiros.');
@@ -105,7 +121,9 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
         mes: filters.mes,
         centroCusto: filters.centroCusto,
         categoria: filters.categoria,
-        projeto: filters.projeto,
+        iniciativa: filters.iniciativa,
+        tipoIniciativa: filters.tipoIniciativa,
+        categoriaCaixaMinimo: filters.categoriaCaixaMinimo,
         page,
         limit,
         sortBy: 'dataEfetiva',
@@ -146,7 +164,9 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
       mes: 'ALL',
       centroCusto: 'ALL',
       categoria: 'ALL',
-      projeto: 'ALL'
+      iniciativa: 'ALL',
+      tipoIniciativa: 'ALL',
+      categoriaCaixaMinimo: 'ALL'
     });
     setPage(1);
   };
@@ -214,20 +234,6 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
     }
   };
 
-  const handleSyncExcel = async () => {
-    const toastId = toast.loading('Sincronizando dados com o arquivo Excel...');
-    try {
-      const res = await movimentacoesService.syncToExcel();
-      if (res.ok) {
-        toast.success('Planilha Excel [2026] Movimentações - RioJunior.xlsx atualizada com sucesso no disco!', { id: toastId });
-      } else {
-        toast.error(res.message || 'Erro ao sincronizar com o Excel.', { id: toastId });
-      }
-    } catch (err: any) {
-      toast.error('Erro na sincronização: ' + err.message, { id: toastId });
-    }
-  };
-
   const handleExportCSV = () => {
     movimentacoesService.exportCSV(transactions);
     toast.success('Download da planilha CSV iniciado!');
@@ -237,7 +243,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
     return (
       <div className="flex flex-col items-center justify-center h-80 space-y-3">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-medium text-muted-foreground">Carregando dados financeiros da RioJunior...</p>
+        <p className="text-sm font-medium text-muted-foreground">Carregando dados financeiros da RioJunior 2026...</p>
       </div>
     );
   }
@@ -254,43 +260,58 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Fluxo de caixa, conciliação bancária, lançamentos contábeis e demonstrativos analíticos da Federação.
+            Classificações oficiais, análise de iniciativas, relatórios de caixa mínimo e fluxo de caixa consolidado.
           </p>
         </div>
       </div>
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:w-auto lg:inline-grid p-1 bg-muted/60 rounded-xl">
-          <TabsTrigger value="dashboard" className="flex items-center gap-2 text-xs font-bold">
-            <LayoutDashboard size={15} /> Visão Geral
-          </TabsTrigger>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="inline-flex h-auto p-1 bg-muted/60 rounded-xl space-x-1 whitespace-nowrap">
+            <TabsTrigger value="dashboard" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <LayoutDashboard size={14} /> Visão Geral
+            </TabsTrigger>
 
-          <TabsTrigger value="extrato" className="flex items-center gap-2 text-xs font-bold">
-            <DollarSign size={15} /> 
-            <span>Extrato</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/20 text-primary font-extrabold">
-              {summary?.totalMovimentacoes?.toLocaleString('pt-BR') || 0}
-            </span>
-          </TabsTrigger>
+            <TabsTrigger value="extrato" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <DollarSign size={14} /> 
+              <span>Extrato</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-primary/20 text-primary font-extrabold">
+                {summary?.totalMovimentacoes?.toLocaleString('pt-BR') || 0}
+              </span>
+            </TabsTrigger>
 
-          <TabsTrigger value="bancario" className="flex items-center gap-2 text-xs font-bold">
-            <Building2 size={15} /> Visão Bancária (Pág. 94)
-          </TabsTrigger>
+            <TabsTrigger value="iniciativas" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <Target size={14} /> Iniciativas & Eventos
+            </TabsTrigger>
 
-          <TabsTrigger value="dfc" className="flex items-center gap-2 text-xs font-bold">
-            <FileText size={15} /> DFC & Relatórios
-          </TabsTrigger>
+            <TabsTrigger value="caixaMinimo" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <ShieldCheck size={14} /> Caixa Mínimo
+            </TabsTrigger>
 
-          <TabsTrigger value="projecao" className="flex items-center gap-2 text-xs font-bold">
-            <BarChart3 size={15} /> Projeção
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="bancario" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <Building2 size={14} /> Visão Bancária
+            </TabsTrigger>
+
+            <TabsTrigger value="planoContas" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <BookOpen size={14} /> Plano de Contas
+            </TabsTrigger>
+
+            <TabsTrigger value="dfc" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <FileText size={14} /> DFC
+            </TabsTrigger>
+
+            <TabsTrigger value="projecao" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <BarChart3 size={14} /> Projeção
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Tab 1: Dashboard & KPIs */}
         <TabsContent value="dashboard" className="space-y-6">
           <MovimentacoesDashboard
             summary={summary}
+            analiseGeral={analiseGeral}
             recentTransactions={transactions}
             backendConnected={backendConnected}
             onOpenNewTx={() => {
@@ -298,7 +319,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
               setIsTxModalOpen(true);
             }}
             onOpenTransfer={() => setIsTransferModalOpen(true)}
-            onSyncExcel={handleSyncExcel}
+            onSyncExcel={() => {}}
             onExportCSV={handleExportCSV}
             onSelectAccountFilter={handleSelectAccountFilter}
             onViewAllTx={() => setActiveSubTab('extrato')}
@@ -340,17 +361,32 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
           />
         </TabsContent>
 
-        {/* Tab 3: Visão Bancária (Página 94) */}
+        {/* Tab 3: Análise das Iniciativas */}
+        <TabsContent value="iniciativas" className="space-y-6">
+          <IniciativasView iniciativas={iniciativas} />
+        </TabsContent>
+
+        {/* Tab 4: Relatório de Caixa Mínimo */}
+        <TabsContent value="caixaMinimo" className="space-y-6">
+          <CaixaMinimoView months={caixaMinimo} />
+        </TabsContent>
+
+        {/* Tab 5: Visão Bancária */}
         <TabsContent value="bancario" className="space-y-6">
           <BankAccountsView data={bankData} />
         </TabsContent>
 
-        {/* Tab 4: DFC & Relatórios */}
+        {/* Tab 6: Plano de Contas */}
+        <TabsContent value="planoContas" className="space-y-6">
+          <PlanoContasView planoContas={planoContas} />
+        </TabsContent>
+
+        {/* Tab 7: DFC & Relatórios */}
         <TabsContent value="dfc" className="space-y-6">
           <DFCReportsView dfc={dfcData} summary={summary} />
         </TabsContent>
 
-        {/* Tab 5: Projeção Financeira Original */}
+        {/* Tab 8: Projeção Financeira Original */}
         <TabsContent value="projecao" className="space-y-6">
           <FinancialProjectionChart />
         </TabsContent>

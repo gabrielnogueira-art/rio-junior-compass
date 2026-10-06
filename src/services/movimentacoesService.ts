@@ -1,5 +1,10 @@
 ﻿import rawTaxonomy from '@/data/taxonomy.json';
 import rawTransactions from '@/data/transactions.json';
+import rawIniciativas from '@/data/iniciativasData.json';
+import rawCaixaMinimo from '@/data/caixaMinimoData.json';
+import rawAnaliseGeral from '@/data/analiseGeralData.json';
+import rawPlanoContas from '@/data/planoContasData.json';
+
 import { 
   MovimentacaoRioJunior, 
   TaxonomyRioJunior, 
@@ -7,7 +12,11 @@ import {
   BankAccountsViewData,
   BankAccountDetails,
   MonthBankData,
-  DFCReport 
+  DFCReport,
+  IniciativaMetrica,
+  CaixaMinimoMonth,
+  AnaliseGeralData,
+  PlanoContaItem
 } from '@/types';
 
 const MONTH_NAMES = [
@@ -15,13 +24,17 @@ const MONTH_NAMES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
 
-const ACCOUNTS = ['CORA', 'ASAAS', 'PAGBANK', 'BANCO DO BRASIL', 'BRADESCO'];
+const ACCOUNTS = ['Cora', 'Asaas', 'PagBank', 'Banco do Brasil', 'Bradesco'];
 
-const STORAGE_KEY = 'riojunior_movimentacoes_2026';
+const STORAGE_KEY = 'riojunior_movimentacoes_2026_v3';
 
 class MovimentacoesService {
   private memoryTransactions: MovimentacaoRioJunior[] = [];
   private taxonomy: TaxonomyRioJunior = rawTaxonomy as unknown as TaxonomyRioJunior;
+  private iniciativas: IniciativaMetrica[] = rawIniciativas as unknown as IniciativaMetrica[];
+  private caixaMinimo: CaixaMinimoMonth[] = rawCaixaMinimo as unknown as CaixaMinimoMonth[];
+  private analiseGeral: AnaliseGeralData = rawAnaliseGeral as unknown as AnaliseGeralData;
+  private planoContas: PlanoContaItem[] = rawPlanoContas as unknown as PlanoContaItem[];
   private isBackendAvailable: boolean | null = null;
 
   constructor() {
@@ -71,28 +84,33 @@ class MovimentacoesService {
     return this.taxonomy;
   }
 
-  public async getSummary(): Promise<FinancialSummaryRioJunior> {
-    if (await this.checkBackend()) {
-      try {
-        const res = await fetch('/api/summary');
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.warn('API summary failed, using local calculations:', err);
-      }
-    }
+  public getIniciativas(): IniciativaMetrica[] {
+    return this.iniciativas;
+  }
 
+  public getCaixaMinimo(): CaixaMinimoMonth[] {
+    return this.caixaMinimo;
+  }
+
+  public getAnaliseGeral(): AnaliseGeralData {
+    return this.analiseGeral;
+  }
+
+  public getPlanoContas(): PlanoContaItem[] {
+    return this.planoContas;
+  }
+
+  public async getSummary(): Promise<FinancialSummaryRioJunior> {
     const txs = this.memoryTransactions;
     const initialBalances = this.taxonomy.initialBalances || {
-      'ASAAS': 4679.52,
-      'BANCO DO BRASIL': 13299.14,
-      'BRADESCO': 4813.15,
-      'CORA': 34011.18,
-      'PAGBANK': 65.10
+      'Asaas': 4679.52,
+      'Banco do Brasil': 13299.14,
+      'Bradesco': 4813.15,
+      'Cora': 34011.18,
+      'PagBank': 65.10
     };
 
-    let saldoInicialTotal = 0;
-    Object.values(initialBalances).forEach(b => saldoInicialTotal += b);
-
+    let saldoInicialTotal = 56868.09;
     let totalReceitas = 0;
     let totalDespesas = 0;
 
@@ -115,7 +133,7 @@ class MovimentacoesService {
       const mes = t.mesComp || MONTH_NAMES[(t.mesNum || 1) - 1];
       const acc = t.conta;
       const cc = t.centroCusto || 'Operações';
-      const cat = t.categoria || 'Outros';
+      const cat = (t as any).categoriaCaixaMinimo || t.categoria || 'Outros';
 
       if (t.tipo === 'Receita') {
         totalReceitas += val;
@@ -146,12 +164,23 @@ class MovimentacoesService {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
+    // If we have analiseGeral from spreadsheet, use official current balances
+    if (this.analiseGeral && this.analiseGeral.saldosContas) {
+      Object.entries(this.analiseGeral.saldosContas).forEach(([acc, val]) => {
+        if (accountsMap[acc]) {
+          accountsMap[acc].saldoAtual = val;
+        }
+      });
+    }
+
+    const saldoAtualConsolidado = this.analiseGeral?.saldoAtualConsolidado || (saldoInicialTotal + (totalReceitas - totalDespesas));
+
     return {
       saldoInicialTotal,
-      totalReceitas,
-      totalDespesas,
-      resultadoLiquido: totalReceitas - totalDespesas,
-      saldoAtualConsolidado: saldoInicialTotal + (totalReceitas - totalDespesas),
+      totalReceitas: this.analiseGeral?.indicadoresExecutivos?.receitaTotal || totalReceitas,
+      totalDespesas: this.analiseGeral?.indicadoresExecutivos?.despesaTotal || totalDespesas,
+      resultadoLiquido: this.analiseGeral?.indicadoresExecutivos?.resultadoTotal || (totalReceitas - totalDespesas),
+      saldoAtualConsolidado,
       totalMovimentacoes: txs.length,
       monthly: Object.values(monthlyMap),
       accounts: accountsMap,
@@ -165,9 +194,10 @@ class MovimentacoesService {
     tipo?: string;
     conta?: string;
     categoria?: string;
-    subcategoria?: string;
     centroCusto?: string;
-    projeto?: string;
+    iniciativa?: string;
+    tipoIniciativa?: string;
+    categoriaCaixaMinimo?: string;
     mes?: string;
     page?: number;
     limit?: number;
@@ -183,7 +213,8 @@ class MovimentacoesService {
         (t.contato && t.contato.toLowerCase().includes(q)) ||
         (t.documento && t.documento.toLowerCase().includes(q)) ||
         (t.observacoes && t.observacoes.toLowerCase().includes(q)) ||
-        (t.projeto && t.projeto.toLowerCase().includes(q))
+        ((t as any).planoConta && (t as any).planoConta.toLowerCase().includes(q)) ||
+        ((t as any).iniciativa && (t as any).iniciativa.toLowerCase().includes(q))
       );
     }
 
@@ -191,19 +222,22 @@ class MovimentacoesService {
       list = list.filter(t => t.tipo === filters.tipo);
     }
     if (filters.conta && filters.conta !== 'ALL') {
-      list = list.filter(t => t.conta === filters.conta);
+      list = list.filter(t => t.conta.toLowerCase() === filters.conta.toLowerCase());
     }
     if (filters.categoria && filters.categoria !== 'ALL') {
-      list = list.filter(t => t.categoria === filters.categoria);
-    }
-    if (filters.subcategoria && filters.subcategoria !== 'ALL') {
-      list = list.filter(t => t.subcategoria === filters.subcategoria);
+      list = list.filter(t => t.categoria === filters.categoria || (t as any).planoConta === filters.categoria);
     }
     if (filters.centroCusto && filters.centroCusto !== 'ALL') {
       list = list.filter(t => t.centroCusto === filters.centroCusto);
     }
-    if (filters.projeto && filters.projeto !== 'ALL') {
-      list = list.filter(t => t.projeto === filters.projeto);
+    if (filters.iniciativa && filters.iniciativa !== 'ALL') {
+      list = list.filter(t => (t as any).iniciativa === filters.iniciativa);
+    }
+    if (filters.tipoIniciativa && filters.tipoIniciativa !== 'ALL') {
+      list = list.filter(t => (t as any).tipoIniciativa === filters.tipoIniciativa);
+    }
+    if (filters.categoriaCaixaMinimo && filters.categoriaCaixaMinimo !== 'ALL') {
+      list = list.filter(t => (t as any).categoriaCaixaMinimo === filters.categoriaCaixaMinimo);
     }
     if (filters.mes && filters.mes !== 'ALL') {
       list = list.filter(t => t.mesComp === filters.mes || String(t.mesNum) === filters.mes);
@@ -243,26 +277,16 @@ class MovimentacoesService {
   }
 
   public async getBankAccountsView(): Promise<BankAccountsViewData> {
-    if (await this.checkBackend()) {
-      try {
-        const res = await fetch('/api/bank-accounts');
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.warn('API bank-accounts failed, using local matrix:', err);
-      }
-    }
-
     const txs = this.memoryTransactions;
     const initialBalances = this.taxonomy.initialBalances || {
-      'ASAAS': 4679.52,
-      'BANCO DO BRASIL': 13299.14,
-      'BRADESCO': 4813.15,
-      'CORA': 34011.18,
-      'PAGBANK': 65.10
+      'Asaas': 4679.52,
+      'Banco do Brasil': 13299.14,
+      'Bradesco': 4813.15,
+      'Cora': 34011.18,
+      'PagBank': 65.10
     };
 
-    let initialTotal = 0;
-    Object.values(initialBalances).forEach(b => initialTotal += b);
+    let initialTotal = 56868.09;
 
     const accountsData: Record<string, BankAccountDetails> = {};
     ACCOUNTS.forEach(acc => {
@@ -322,7 +346,7 @@ class MovimentacoesService {
         m.saldoAcumulado = runSaldo;
       });
       accountsData[acc].resultadoTotal = accountsData[acc].totalEntradas - accountsData[acc].totalSaidas;
-      accountsData[acc].saldoAtual = runSaldo;
+      accountsData[acc].saldoAtual = this.analiseGeral?.saldosContas?.[acc] || runSaldo;
     });
 
     let runConsolidado = initialTotal;
@@ -341,22 +365,13 @@ class MovimentacoesService {
       totalEntradas,
       totalSaidas,
       resultadoConsolidado: totalEntradas - totalSaidas,
-      saldoAtualConsolidado: runConsolidado,
+      saldoAtualConsolidado: this.analiseGeral?.saldoAtualConsolidado || runConsolidado,
       accounts: accountsData,
       consolidatedMonthly: consolidatedMonths
     };
   }
 
   public async getDFCReport(): Promise<DFCReport> {
-    if (await this.checkBackend()) {
-      try {
-        const res = await fetch('/api/reports/dfc');
-        if (res.ok) return await res.json();
-      } catch (err) {
-        console.warn('API DFC failed, using local calculations:', err);
-      }
-    }
-
     const txs = this.memoryTransactions;
     const entradasCat: Record<string, number> = {};
     const despesasCat: Record<string, number> = {};
@@ -365,7 +380,7 @@ class MovimentacoesService {
 
     txs.forEach(t => {
       const val = Number(t.valorEfetivo) || 0;
-      const cat = t.categoria || 'Outros';
+      const cat = (t as any).categoriaCaixaMinimo || t.categoria || 'Outros';
       if (t.tipo === 'Receita') {
         entradasCat[cat] = (entradasCat[cat] || 0) + val;
         totalEntradas += val;
@@ -414,7 +429,7 @@ class MovimentacoesService {
       categoria: data.categoria || 'Outros',
       subcategoria: data.subcategoria || '',
       projeto: data.projeto || 'N/A',
-      conta: data.conta || 'CORA',
+      conta: data.conta || 'Cora',
       contaTransferencia: data.contaTransferencia || '',
       centroCusto: data.centroCusto || 'Operações',
       contato: data.contato || '',
@@ -426,24 +441,6 @@ class MovimentacoesService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
-    if (await this.checkBackend()) {
-      try {
-        const res = await fetch('/api/transactions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newTx)
-        });
-        if (res.ok) {
-          const created = await res.json();
-          this.memoryTransactions.unshift(created);
-          this.saveToStorage();
-          return created;
-        }
-      } catch (err) {
-        console.warn('Backend create failed, storing locally:', err);
-      }
-    }
 
     this.memoryTransactions.unshift(newTx);
     this.saveToStorage();
@@ -471,32 +468,12 @@ class MovimentacoesService {
       updatedAt: new Date().toISOString()
     };
 
-    if (await this.checkBackend()) {
-      try {
-        await fetch(`/api/transactions/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated)
-        });
-      } catch (err) {
-        console.warn('Backend update failed:', err);
-      }
-    }
-
     this.memoryTransactions[idx] = updated;
     this.saveToStorage();
     return updated;
   }
 
   public async deleteTransaction(id: string): Promise<boolean> {
-    if (await this.checkBackend()) {
-      try {
-        await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-      } catch (err) {
-        console.warn('Backend delete failed:', err);
-      }
-    }
-
     this.memoryTransactions = this.memoryTransactions.filter(t => t.id !== id);
     this.saveToStorage();
     return true;
@@ -509,24 +486,6 @@ class MovimentacoesService {
     dataEfetiva: string;
     observacoes?: string;
   }): Promise<{ debit: MovimentacaoRioJunior; credit: MovimentacaoRioJunior }> {
-    if (await this.checkBackend()) {
-      try {
-        const res = await fetch('/api/transfer', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(params)
-        });
-        if (res.ok) {
-          const result = await res.json();
-          this.memoryTransactions.unshift(result.debit, result.credit);
-          this.saveToStorage();
-          return result;
-        }
-      } catch (err) {
-        console.warn('Backend transfer failed, executing locally:', err);
-      }
-    }
-
     const debit = await this.createTransaction({
       tipo: 'Despesa',
       dataEfetiva: params.dataEfetiva,
@@ -558,26 +517,12 @@ class MovimentacoesService {
     return { debit, credit };
   }
 
-  public async syncToExcel(): Promise<{ ok: boolean; message: string }> {
-    if (await this.checkBackend()) {
-      try {
-        const res = await fetch('/api/sync/excel', { method: 'POST' });
-        if (res.ok) {
-          return await res.json();
-        }
-      } catch (err: any) {
-        return { ok: false, message: 'Erro ao conectar ao servidor local: ' + err.message };
-      }
-    }
-    return { ok: false, message: 'Servidor local do sistema de movimentações não está acessível no momento.' };
-  }
-
   public exportCSV(filteredData?: MovimentacaoRioJunior[]) {
     const list = filteredData || this.memoryTransactions;
     const headers = [
-      'ID', 'Tipo', 'Data Efetiva', 'Valor Efetivo', 'Descrição', 'Categoria',
-      'Subcategoria', 'Projeto', 'Conta Bancária', 'Conta Transferência',
-      'Centro de Custo', 'Contato/Fornecedor', 'Observações', 'Mês Competência'
+      'ID', 'Tipo', 'Data Efetiva', 'Valor Efetivo', 'Descrição', 'Banco',
+      'Plano de Contas', 'Iniciativa', 'Tipo Iniciativa', 'Centro de Custo',
+      'Categoria Caixa Mínimo', 'Contato', 'Mês'
     ];
 
     const rows = list.map(t => [
@@ -586,14 +531,13 @@ class MovimentacoesService {
       t.dataEfetiva,
       (Number(t.valorEfetivo) || 0).toFixed(2).replace('.', ','),
       `"${(t.descricao || '').replace(/"/g, '""')}"`,
-      `"${(t.categoria || '').replace(/"/g, '""')}"`,
-      `"${(t.subcategoria || '').replace(/"/g, '""')}"`,
-      `"${(t.projeto || '').replace(/"/g, '""')}"`,
       t.conta,
-      t.contaTransferencia || '',
+      `"${((t as any).planoConta || t.categoria || '').replace(/"/g, '""')}"`,
+      `"${((t as any).iniciativa || t.projeto || '').replace(/"/g, '""')}"`,
+      `"${((t as any).tipoIniciativa || '').replace(/"/g, '""')}"`,
       `"${(t.centroCusto || '').replace(/"/g, '""')}"`,
+      `"${((t as any).categoriaCaixaMinimo || '').replace(/"/g, '""')}"`,
       `"${(t.contato || '').replace(/"/g, '""')}"`,
-      `"${(t.observacoes || '').replace(/"/g, '""')}"`,
       t.mesComp || ''
     ]);
 
@@ -602,7 +546,7 @@ class MovimentacoesService {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `movimentacoes_riojunior_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `movimentacoes_riojunior_2026_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

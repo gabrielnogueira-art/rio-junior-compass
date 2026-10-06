@@ -1,0 +1,326 @@
+[
+  {
+    "mesNum": 1,
+    "mesNome": "Janeiro",
+    "entradas": {
+      "anuidade": 0,
+      "vendaProduto": 0,
+      "parceriasPatrocinios": 0,
+      "eventos": 0,
+      "outrasReceitas": 160.07,
+      "total": 160.07
+    },
+    "saidas": {
+      "taxasImpostos": 394.81,
+      "custoProdutos": 178.53,
+      "custoEvento": 0,
+      "investimentoOrganizacao": 7099.84,
+      "investimentoMembro": 11809.01,
+      "investimentoRede": 1303.02,
+      "outrasDespesas": 324.15,
+      "total": 21109.36
+    },
+    "saldoInicial": 56868.09,
+    "resultado": -20949.29,
+    "saldoFinal": 35918.8,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 2,
+    "mesNome": "Fevereiro",
+    "entradas": {
+      "anuidade": 0,
+      "vendaProduto": 418,
+      "parceriasPatrocinios": 0,
+      "eventos": 4267.41,
+      "outrasReceitas": 1752.84,
+      "total": 6438.25
+    },
+    "saidas": {
+      "taxasImpostos": 247.65,
+      "custoProdutos": 0,
+      "custoEvento": 8729.55,
+      "investimentoOrganizacao": 2885.97,
+      "investimentoMembro": 2232.84,
+      "investimentoRede": 232.14,
+      "outrasDespesas": 710.81,
+      "total": 15038.96
+    },
+    "saldoInicial": 35918.8,
+    "resultado": -8600.71,
+    "saldoFinal": 27318.09,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 3,
+    "mesNome": "Março",
+    "entradas": {
+      "anuidade": 26166.55,
+      "vendaProduto": 222,
+      "parceriasPatrocinios": 0,
+      "eventos": 13058.26,
+      "outrasReceitas": 0.63,
+      "total": 39447.44
+    },
+    "saidas": {
+      "taxasImpostos": 306.16,
+      "custoProdutos": 8.95,
+      "custoEvento": 7513.58,
+      "investimentoOrganizacao": 3605.98,
+      "investimentoMembro": 827.66,
+      "investimentoRede": 370.58,
+      "outrasDespesas": 741.04,
+      "total": 13373.95
+    },
+    "saldoInicial": 27318.09,
+    "resultado": 26073.49,
+    "saldoFinal": 53391.58,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 4,
+    "mesNome": "Abril",
+    "entradas": {
+      "anuidade": 9286.99,
+      "vendaProduto": 385,
+      "parceriasPatrocinios": 0,
+      "eventos": 23684.98,
+      "outrasReceitas": 0.89,
+      "total": 33357.86
+    },
+    "saidas": {
+      "taxasImpostos": 544.13,
+      "custoProdutos": 0,
+      "custoEvento": 19334.64,
+      "investimentoOrganizacao": 7488.59,
+      "investimentoMembro": 1326.99,
+      "investimentoRede": 270,
+      "outrasDespesas": 559.4,
+      "total": 29523.75
+    },
+    "saldoInicial": 53391.58,
+    "resultado": 3834.11,
+    "saldoFinal": 57225.69,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 5,
+    "mesNome": "Maio",
+    "entradas": {
+      "anuidade": 7798.46,
+      "vendaProduto": 1053.75,
+      "parceriasPatrocinios": 0,
+      "eventos": 1108.79,
+      "outrasReceitas": 5.1,
+      "total": 9966.1
+    },
+    "saidas": {
+      "taxasImpostos": 883.82,
+      "custoProdutos": 141.44,
+      "custoEvento": 4215.71,
+      "investimentoOrganizacao": 11863.66,
+      "investimentoMembro": 2895.55,
+      "investimentoRede": 448.35,
+      "outrasDespesas": 875.18,
+      "total": 21323.71
+    },
+    "saldoInicial": 57225.69,
+    "resultado": -11357.61,
+    "saldoFinal": 45868.08,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 6,
+    "mesNome": "Junho",
+    "entradas": {
+      "anuidade": 9510.08,
+      "vendaProduto": 2422.85,
+      "parceriasPatrocinios": 0,
+      "eventos": 40623.89,
+      "outrasReceitas": 1901.49,
+      "total": 54458.31
+    },
+    "saidas": {
+      "taxasImpostos": 617.92,
+      "custoProdutos": 5412.57,
+      "custoEvento": 16890.58,
+      "investimentoOrganizacao": 4954.34,
+      "investimentoMembro": 2800.95,
+      "investimentoRede": 0,
+      "outrasDespesas": 1462.44,
+      "total": 32138.8
+    },
+    "saldoInicial": 45868.08,
+    "resultado": 22319.51,
+    "saldoFinal": 68187.59,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 7,
+    "mesNome": "Julho",
+    "entradas": {
+      "anuidade": 5206.22,
+      "vendaProduto": 399.96,
+      "parceriasPatrocinios": 12300,
+      "eventos": 15618.33,
+      "outrasReceitas": 901.44,
+      "total": 34425.95
+    },
+    "saidas": {
+      "taxasImpostos": 834.65,
+      "custoProdutos": 0,
+      "custoEvento": 907.84,
+      "investimentoOrganizacao": 4309.69,
+      "investimentoMembro": 12961.87,
+      "investimentoRede": 1640.97,
+      "outrasDespesas": 4521.63,
+      "total": 25176.65
+    },
+    "saldoInicial": 68187.59,
+    "resultado": 9249.3,
+    "saldoFinal": 77436.89,
+    "responsavel": "Miguel Ribeiro de Mello",
+    "cargo": "Diretor de Operações"
+  },
+  {
+    "mesNum": 8,
+    "mesNome": "Agosto",
+    "entradas": {
+      "anuidade": 6935.03,
+      "vendaProduto": 4225.7,
+      "parceriasPatrocinios": 1519.39,
+      "eventos": 36335,
+      "outrasReceitas": 543.12,
+      "total": 49558.24
+    },
+    "saidas": {
+      "taxasImpostos": 589.49,
+      "custoProdutos": 275,
+      "custoEvento": 18379.64,
+      "investimentoOrganizacao": 6585.71,
+      "investimentoMembro": 8750.91,
+      "investimentoRede": 160,
+      "outrasDespesas": 6822.43,
+      "total": 41563.18
+    },
+    "saldoInicial": 77436.89,
+    "resultado": 7995.06,
+    "saldoFinal": 85431.95,
+    "responsavel": "Gabriel Pinto Nogueira",
+    "cargo": "Presidente Executivo(a)"
+  },
+  {
+    "mesNum": 9,
+    "mesNome": "Setembro",
+    "entradas": {
+      "anuidade": 5399.37,
+      "vendaProduto": 74.83,
+      "parceriasPatrocinios": 33289.14,
+      "eventos": 0,
+      "outrasReceitas": 16.28,
+      "total": 38779.62
+    },
+    "saidas": {
+      "taxasImpostos": 336.15,
+      "custoProdutos": 0,
+      "custoEvento": 9317,
+      "investimentoOrganizacao": 6573.5,
+      "investimentoMembro": 380,
+      "investimentoRede": 3015,
+      "outrasDespesas": 2310.93,
+      "total": 21932.58
+    },
+    "saldoInicial": 85431.95,
+    "resultado": 16847.04,
+    "saldoFinal": 102278.99,
+    "responsavel": "Gabriel Pinto Nogueira",
+    "cargo": "Presidente Executivo(a)"
+  },
+  {
+    "mesNum": 10,
+    "mesNome": "Outubro",
+    "entradas": {
+      "anuidade": 222.22,
+      "vendaProduto": 0,
+      "parceriasPatrocinios": 33000,
+      "eventos": 0,
+      "outrasReceitas": 9.58,
+      "total": 33231.8
+    },
+    "saidas": {
+      "taxasImpostos": 74.99,
+      "custoProdutos": 0,
+      "custoEvento": 1576.25,
+      "investimentoOrganizacao": 614,
+      "investimentoMembro": 777.21,
+      "investimentoRede": 0,
+      "outrasDespesas": 0,
+      "total": 3042.45
+    },
+    "saldoInicial": 102278.99,
+    "resultado": 30189.35,
+    "saldoFinal": 132468.34,
+    "responsavel": "Gabriel Pinto Nogueira",
+    "cargo": "Presidente Executivo(a)"
+  },
+  {
+    "mesNum": 11,
+    "mesNome": "Novembro",
+    "entradas": {
+      "anuidade": 0,
+      "vendaProduto": 0,
+      "parceriasPatrocinios": 0,
+      "eventos": 0,
+      "outrasReceitas": 0,
+      "total": 0
+    },
+    "saidas": {
+      "taxasImpostos": 0,
+      "custoProdutos": 0,
+      "custoEvento": 0,
+      "investimentoOrganizacao": 0,
+      "investimentoMembro": 0,
+      "investimentoRede": 0,
+      "outrasDespesas": 0,
+      "total": 0
+    },
+    "saldoInicial": 132468.34,
+    "resultado": 0,
+    "saldoFinal": 132468.34,
+    "responsavel": "Gabriel Pinto Nogueira",
+    "cargo": "Presidente Executivo(a)"
+  },
+  {
+    "mesNum": 12,
+    "mesNome": "Dezembro",
+    "entradas": {
+      "anuidade": 0,
+      "vendaProduto": 0,
+      "parceriasPatrocinios": 0,
+      "eventos": 0,
+      "outrasReceitas": 0,
+      "total": 0
+    },
+    "saidas": {
+      "taxasImpostos": 0,
+      "custoProdutos": 0,
+      "custoEvento": 0,
+      "investimentoOrganizacao": 0,
+      "investimentoMembro": 0,
+      "investimentoRede": 0,
+      "outrasDespesas": 0,
+      "total": 0
+    },
+    "saldoInicial": 132468.34,
+    "resultado": 0,
+    "saldoFinal": 132468.34,
+    "responsavel": "Gabriel Pinto Nogueira",
+    "cargo": "Presidente Executivo(a)"
+  }
+]

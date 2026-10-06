@@ -1,0 +1,218 @@
+[
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "Captação",
+    "receitas": 33000,
+    "despesas": 753.06,
+    "resultado": 32246.94,
+    "margem": 0.97718,
+    "roi": 42.82120947
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "RJ74",
+    "receitas": 11632.54,
+    "despesas": 8804.38,
+    "resultado": 2828.16,
+    "margem": 0.2431248893,
+    "roi": 0.3212219373
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "ONDE",
+    "receitas": 25434.54,
+    "despesas": 18289.88,
+    "resultado": 7144.66,
+    "margem": 0.2809038418,
+    "roi": 0.3906346023
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "CentralRIO",
+    "receitas": 39249.87,
+    "despesas": 15071.65,
+    "resultado": 24178.22,
+    "margem": 0.6160076454,
+    "roi": 1.604218516
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "EFEJ",
+    "receitas": 64656.68,
+    "despesas": 27409.57,
+    "resultado": 37247.11,
+    "margem": 0.5760752021,
+    "roi": 1.35890895
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "Prêmio RioJunior",
+    "receitas": 0,
+    "despesas": 0,
+    "resultado": 0,
+    "margem": 0,
+    "roi": 0
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "InspiraRio",
+    "receitas": 0,
+    "despesas": 0,
+    "resultado": 0,
+    "margem": 0,
+    "roi": 0
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "Lojinha",
+    "receitas": 9161.09,
+    "despesas": 6076.67,
+    "resultado": 3084.42,
+    "margem": 0.33668701,
+    "roi": 0.5075839234
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "Plano de Comunicação",
+    "receitas": 0,
+    "despesas": 0,
+    "resultado": 0,
+    "margem": 0,
+    "roi": 0
+  },
+  {
+    "categoriaGrupo": "Produtos e Eventos da Rede",
+    "iniciativa": "Visita à Parceiros",
+    "receitas": 0,
+    "despesas": 93.9,
+    "resultado": -93.9,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Projetos da Rede",
+    "iniciativa": "Imersão do Conselho",
+    "receitas": 10077.85,
+    "despesas": 20861.35,
+    "resultado": -10783.5,
+    "margem": -1.070019895,
+    "roi": -0.5169128556
+  },
+  {
+    "categoriaGrupo": "Projetos da Rede",
+    "iniciativa": "Fábrica de Unicórnios/Pôneis",
+    "receitas": 0,
+    "despesas": 1877.93,
+    "resultado": -1877.93,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Projetos da Rede",
+    "iniciativa": "Visita às EJs",
+    "receitas": 32.85,
+    "despesas": 3611.59,
+    "resultado": -3578.74,
+    "margem": -108.94185692541856,
+    "roi": -0.9909042831550645
+  },
+  {
+    "categoriaGrupo": "Projetos da Rede",
+    "iniciativa": "RP do Conselho",
+    "receitas": 0,
+    "despesas": 0,
+    "resultado": 0,
+    "margem": 0,
+    "roi": 0
+  },
+  {
+    "categoriaGrupo": "Eventos Externos",
+    "iniciativa": "ENEJ",
+    "receitas": 1394.28,
+    "despesas": 12276.64,
+    "resultado": -10882.36,
+    "margem": -7.805003299193849,
+    "roi": -0.8864282083697169
+  },
+  {
+    "categoriaGrupo": "Eventos Externos",
+    "iniciativa": "EDL",
+    "receitas": 1285,
+    "despesas": 4632.01,
+    "resultado": -3347.01,
+    "margem": -2.6046770428015567,
+    "roi": -0.7225826369114057
+  },
+  {
+    "categoriaGrupo": "Eventos Externos",
+    "iniciativa": "EI",
+    "receitas": 0,
+    "despesas": 56.74,
+    "resultado": -56.74,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Eventos Externos",
+    "iniciativa": "CBJ",
+    "receitas": 160,
+    "despesas": 2469.48,
+    "resultado": -2309.48,
+    "margem": -14.43425,
+    "roi": -0.9352090318609586
+  },
+  {
+    "categoriaGrupo": "Eventos Externos",
+    "iniciativa": "Agenda Institucional",
+    "receitas": 0,
+    "despesas": 2790.48,
+    "resultado": -2790.48,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Projetos Internos",
+    "iniciativa": "Imersão do Time",
+    "receitas": 0,
+    "despesas": 20195.25,
+    "resultado": -20195.25,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Projetos Internos",
+    "iniciativa": "Imersão da DE",
+    "receitas": 0,
+    "despesas": 4182.96,
+    "resultado": -4182.96,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Projetos Internos",
+    "iniciativa": "Imersão de Cogestão",
+    "receitas": 0,
+    "despesas": 0,
+    "resultado": 0,
+    "margem": 0,
+    "roi": 0
+  },
+  {
+    "categoriaGrupo": "Projetos Internos",
+    "iniciativa": "Reunião do Conselho Consultivo",
+    "receitas": 0,
+    "despesas": 1488.96,
+    "resultado": -1488.96,
+    "margem": 0,
+    "roi": -1
+  },
+  {
+    "categoriaGrupo": "Projetos Internos",
+    "iniciativa": "Encontro de Gerações",
+    "receitas": 0,
+    "despesas": 1838.4,
+    "resultado": -1838.4,
+    "margem": 0,
+    "roi": -1
+  }
+]

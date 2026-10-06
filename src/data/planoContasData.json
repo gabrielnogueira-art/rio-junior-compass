@@ -1,0 +1,428 @@
+[
+  {
+    "conta": "0. Receitas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.1 Receitas de Iniciativas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.1.1 Venda de Ingressos",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.1.2 Patrocínios",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.1.3 Receita da Lojinha",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.1.4 Revenda de Ingressos",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.1.5 Transfer",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.2 Receitas Operacionais",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.2.1 Anuidade",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.2.2 Parcerias Comerciais",
+    "centroCusto": "Vice-Presidência de Negócios",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.3 Receitas Financeiras",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.3.1 Rendimentos Bancários",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "0.4 Outras Receitas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Receita"
+  },
+  {
+    "conta": "1. Despesas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1 Despesas com Iniciativas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.1 Alimentação",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.2 Coffee Break",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.3 Transporte",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.4 Hospedagem",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.5 Infraestrutura",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.6 Audiovisual",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.7 Papelaria",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.8 Credenciamento",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.9 Kit Congressista",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.10 Premiação",
+    "centroCusto": "Desenvolvimento da Rede",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.11 Acessibilidade",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.12 Experiência do Congressista",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.13 Experiência do Parceiro",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.14 Experiência do Membro",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.15 Custos da Lojinha",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.16 Regulamentação Legal",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.17 Descartáveis",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.1.18 Frete de Itens",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2 Despesas Operacionais",
+    "centroCusto": "Formação Empreendedora",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.1 Despesas Contábeis",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.1.1 Contabilidade",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.2 Despesas Jurídicas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.2.1 Jurídico",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.3 Despesas de Comunicação",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.3.1 Comunicação",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.4 Softwares e Plataformas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.5 Hospedagem de Site",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.2.6 Materiais e Acessórios",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.3 Despesas Administrativas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.3.1 Certificado Digital",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.3.2 Serviços Terceirizados",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.3.3 Cartório",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.3.4 Anuidade da BJ",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.4 Despesas com Pessoas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.4.1 Benefícios",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.4.1.1 Plano de Saúde",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.4.1.2 Uniformes",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.4.1.3 Capacitações",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.4.1.4 Compra de Ingressos",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.5 Despesas Institucionais",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.5.1 Representações",
+    "centroCusto": "Desenvolvimento da Rede",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.5.2 Relações Institucionais",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.6 Impostos",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.6.1 ISS",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.6.2 Alvará da Vigilância Sanitária",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.7 Despesas Financeiras",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.7.1 Taxas Bancárias",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.7.2 Tarifas de Plataforma",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.7.3 Tarifas de Cartão de Crédito",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.7.4 Multas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "1.8 Outras Despesas",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "2. Transferências",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "2.1 Transferência Interna",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "3. Ajustes Financeiros",
+    "centroCusto": "Operações",
+    "isCategoriaPai": true,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "3.1 Estorno de Receita",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  },
+  {
+    "conta": "3.2 Estorno de Despesa",
+    "centroCusto": "Operações",
+    "isCategoriaPai": false,
+    "tipo": "Despesa"
+  }
+]

@@ -15,7 +15,9 @@ import {
   ChevronRight,
   RotateCcw,
   Plus,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Tag,
+  Target
 } from 'lucide-react';
 
 interface MovimentacoesTableProps {
@@ -35,7 +37,9 @@ interface MovimentacoesTableProps {
     mes: string;
     centroCusto: string;
     categoria: string;
-    projeto: string;
+    iniciativa?: string;
+    tipoIniciativa?: string;
+    categoriaCaixaMinimo?: string;
   };
   onFilterChange: (key: string, value: string) => void;
   onResetFilters: () => void;
@@ -50,11 +54,11 @@ interface MovimentacoesTableProps {
 }
 
 const BANK_PILLS: Record<string, string> = {
-  'CORA': 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30',
-  'ASAAS': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30',
-  'PAGBANK': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30',
-  'BANCO DO BRASIL': 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30',
-  'BRADESCO': 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30',
+  'Cora': 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/30',
+  'Asaas': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30',
+  'PagBank': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30',
+  'Banco do Brasil': 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30',
+  'Bradesco': 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30',
 };
 
 export const MovimentacoesTable = ({
@@ -88,7 +92,9 @@ export const MovimentacoesTable = ({
     filters.mes !== 'ALL' || 
     filters.centroCusto !== 'ALL' || 
     filters.categoria !== 'ALL' || 
-    filters.projeto !== 'ALL';
+    (filters.iniciativa && filters.iniciativa !== 'ALL') ||
+    (filters.tipoIniciativa && filters.tipoIniciativa !== 'ALL') ||
+    (filters.categoriaCaixaMinimo && filters.categoriaCaixaMinimo !== 'ALL');
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -100,7 +106,7 @@ export const MovimentacoesTable = ({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
             <input
               type="text"
-              placeholder="Buscar por descrição, contato, documento, observação..."
+              placeholder="Buscar por descrição, contato, documento, conta do plano ou iniciativa..."
               value={filters.search}
               onChange={e => onFilterChange('search', e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-muted-foreground"
@@ -140,7 +146,7 @@ export const MovimentacoesTable = ({
         </div>
 
         {/* Filter Dropdowns Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 pt-2 border-t border-border/50 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2.5 pt-2 border-t border-border/50 text-xs">
           {/* Tipo */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
@@ -168,7 +174,7 @@ export const MovimentacoesTable = ({
               className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-foreground text-xs font-medium focus:ring-1 focus:ring-primary outline-none"
             >
               <option value="ALL">Todas as Contas</option>
-              {(taxonomy?.contas || ['CORA', 'ASAAS', 'PAGBANK', 'BANCO DO BRASIL', 'BRADESCO']).map(acc => (
+              {(taxonomy?.contas || ['Cora', 'Asaas', 'PagBank', 'Banco do Brasil', 'Bradesco']).map(acc => (
                 <option key={acc} value={acc}>{acc}</option>
               ))}
             </select>
@@ -208,36 +214,53 @@ export const MovimentacoesTable = ({
             </select>
           </div>
 
-          {/* Categoria */}
+          {/* Iniciativa */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-              Categoria
+              Iniciativa
             </label>
             <select
-              value={filters.categoria}
-              onChange={e => onFilterChange('categoria', e.target.value)}
+              value={filters.iniciativa || 'ALL'}
+              onChange={e => onFilterChange('iniciativa', e.target.value)}
               className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-foreground text-xs font-medium focus:ring-1 focus:ring-primary outline-none"
             >
-              <option value="ALL">Todas as Categorias</option>
-              {(taxonomy?.categorias || []).map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+              <option value="ALL">Todas Iniciativas</option>
+              {((taxonomy as any)?.iniciativas || []).map((ini: string) => (
+                <option key={ini} value={ini}>{ini}</option>
               ))}
             </select>
           </div>
 
-          {/* Projeto */}
+          {/* Tipo de Iniciativa */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-              Projeto / Evento
+              Tipo de Iniciativa
             </label>
             <select
-              value={filters.projeto}
-              onChange={e => onFilterChange('projeto', e.target.value)}
+              value={filters.tipoIniciativa || 'ALL'}
+              onChange={e => onFilterChange('tipoIniciativa', e.target.value)}
               className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-foreground text-xs font-medium focus:ring-1 focus:ring-primary outline-none"
             >
-              <option value="ALL">Todos os Projetos</option>
-              {(taxonomy?.projetos || []).map(proj => (
-                <option key={proj} value={proj}>{proj}</option>
+              <option value="ALL">Todos os Tipos</option>
+              {((taxonomy as any)?.tiposIniciativa || []).map((tipo: string) => (
+                <option key={tipo} value={tipo}>{tipo}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Categoria Caixa Mínimo */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+              Caixa Mínimo
+            </label>
+            <select
+              value={filters.categoriaCaixaMinimo || 'ALL'}
+              onChange={e => onFilterChange('categoriaCaixaMinimo', e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded-lg border border-input bg-background text-foreground text-xs font-medium focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="ALL">Todas Categorias</option>
+              {((taxonomy as any)?.categoriasCaixaMinimo || []).map((cm: string) => (
+                <option key={cm} value={cm}>{cm}</option>
               ))}
             </select>
           </div>
@@ -281,21 +304,22 @@ export const MovimentacoesTable = ({
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border bg-muted/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-                <th className="py-3 px-4">Data Efetiva</th>
+                <th className="py-3 px-4">Data</th>
                 <th className="py-3 px-3">Tipo</th>
-                <th className="py-3 px-4">Descrição & Fornecedor</th>
-                <th className="py-3 px-3">Conta</th>
-                <th className="py-3 px-3">Diretoria / Centro</th>
-                <th className="py-3 px-3">Categoria / Subcategoria</th>
-                <th className="py-3 px-3">Projeto</th>
-                <th className="py-3 px-4 text-right">Valor Efetivo</th>
+                <th className="py-3 px-4">Descrição & Contato</th>
+                <th className="py-3 px-3">Banco</th>
+                <th className="py-3 px-3">Plano de Contas</th>
+                <th className="py-3 px-3">Iniciativa / Projeto</th>
+                <th className="py-3 px-3">Centro de Custo</th>
+                <th className="py-3 px-3">Caixa Mínimo</th>
+                <th className="py-3 px-4 text-right">Valor</th>
                 <th className="py-3 px-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     Nenhuma movimentação encontrada para os filtros selecionados.
                   </td>
                 </tr>
@@ -334,16 +358,37 @@ export const MovimentacoesTable = ({
                         </div>
                         {t.contato && (
                           <div className="text-[11px] text-muted-foreground truncate" title={t.contato}>
-                            {t.contato} {t.documento ? `• Doc: ${t.documento}` : ''}
+                            {t.contato}
                           </div>
                         )}
                       </td>
 
-                      {/* Conta */}
+                      {/* Banco */}
                       <td className="py-3 px-3 whitespace-nowrap">
                         <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${bankClass}`}>
                           {t.conta}
                         </span>
+                      </td>
+
+                      {/* Plano de Contas */}
+                      <td className="py-3 px-3 max-w-[150px]">
+                        <span className="font-medium text-foreground truncate block" title={(t as any).planoConta || t.categoria}>
+                          {(t as any).planoConta || t.categoria}
+                        </span>
+                      </td>
+
+                      {/* Iniciativa & Tipo */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-foreground truncate max-w-[130px]">
+                            {(t as any).iniciativa || (t as any).projeto || 'N/A'}
+                          </span>
+                          {(t as any).tipoIniciativa && (
+                            <span className="text-[10px] text-muted-foreground truncate max-w-[130px]">
+                              {(t as any).tipoIniciativa}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Centro de Custo */}
@@ -351,18 +396,10 @@ export const MovimentacoesTable = ({
                         <span className="font-medium text-foreground">{t.centroCusto || 'Operações'}</span>
                       </td>
 
-                      {/* Categoria & Subcategoria */}
-                      <td className="py-3 px-3 max-w-[160px]">
-                        <div className="font-medium text-foreground truncate">{t.categoria}</div>
-                        {t.subcategoria && (
-                          <div className="text-[10px] text-muted-foreground truncate">{t.subcategoria}</div>
-                        )}
-                      </td>
-
-                      {/* Projeto */}
+                      {/* Caixa Mínimo */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
-                          {t.projeto || 'N/A'}
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
+                          {(t as any).categoriaCaixaMinimo || '-'}
                         </span>
                       </td>
 

@@ -255,3 +255,88 @@ export interface DFCReport {
   totalDespesas: number;
   resultadoOperacional: number;
 }
+
+export interface IniciativaMetrica {
+  categoriaGrupo: string;
+  iniciativa: string;
+  receitas: number;
+  despesas: number;
+  resultado: number;
+  margem: number;
+  roi: number;
+}
+
+export interface CaixaMinimoMonth {
+  mesNum: number;
+  mesNome: string;
+  entradas: {
+    anuidade: number;
+    vendaProduto: number;
+    parceriasPatrocinios: number;
+    eventos: number;
+    outrasReceitas: number;
+    total: number;
+  };
+  saidas: {
+    taxasImpostos: number;
+    custoProdutos: number;
+    custoEvento: number;
+    investimentoOrganizacao: number;
+    investimentoMembro: number;
+    investimentoRede: number;
+    outrasDespesas: number;
+    total: number;
+  };
+  saldoInicial: number;
+  resultado: number;
+  saldoFinal: number;
+  responsavel?: string;
+  cargo?: string;
+}
+
+export interface AnaliseGeralData {
+  saldoInicialTotal: number;
+  saldoAtualConsolidado: number;
+  variacaoTotal: number;
+  caixaSeparado: {
+    rioJunior: number;
+    efej: number;
+    outrasIniciativas: number;
+  };
+  saldosContas: Record<string, number>;
+  indicadoresExecutivos: {
+    receitaTotal: number;
+    despesaTotal: number;
+    resultadoTotal: number;
+    receitaMediaMensal: number;
+    despesaMediaMensal: number;
+    despesasOperacionais: number;
+    mediaMensalDespesasOperacionais: number;
+    composicaoReceitas: {
+      anuidade: { valor: number; percent: number };
+      vendaIngressos: { valor: number; percent: number };
+      outrasReceitas: { valor: number; percent: number };
+      receitasRecorrentes: { valor: number; percent: number };
+    };
+    sustentabilidade: {
+      coberturaDespesasOperacionais: number;
+      reservaOperacionalMeses: number;
+      runwayMeses: number;
+      margemOperacional: number;
+    };
+  };
+  fluxoCaixaResumido: {
+    mes: string;
+    entradas: number;
+    saidas: number;
+    resultado: number;
+    saldo: number;
+  }[];
+}
+
+export interface PlanoContaItem {
+  conta: string;
+  centroCusto: string;
+  isCategoriaPai: boolean;
+  tipo: 'Receita' | 'Despesa';
+}

@@ -1,0 +1,136 @@
+{
+  "saldoInicialTotal": 56868.09,
+  "saldoAtualConsolidado": 115022.75,
+  "variacaoTotal": 1.0226,
+  "caixaSeparado": {
+    "rioJunior": 77775.64,
+    "efej": 37247.11,
+    "outrasIniciativas": 0
+  },
+  "saldosContas": {
+    "Asaas": 11121.69,
+    "Cora": 37697.26,
+    "PagBank": 64610.86,
+    "Bradesco": 415.81,
+    "Banco do Brasil": 1177.13
+  },
+  "indicadoresExecutivos": {
+    "receitaTotal": 299823.64,
+    "despesaTotal": 224223.39,
+    "resultadoTotal": 75600.25,
+    "receitaMediaMensal": 33313.74,
+    "despesaMediaMensal": 24913.71,
+    "despesasOperacionais": 78718.04,
+    "mediaMensalDespesasOperacionais": 8746.45,
+    "composicaoReceitas": {
+      "anuidade": {
+        "valor": 70524.92,
+        "percent": 23.52
+      },
+      "vendaIngressos": {
+        "valor": 133035.71,
+        "percent": 44.37
+      },
+      "outrasReceitas": {
+        "valor": 96263.01,
+        "percent": 32.11
+      },
+      "receitasRecorrentes": {
+        "valor": 139511.12,
+        "percent": 46.53
+      }
+    },
+    "sustentabilidade": {
+      "coberturaDespesasOperacionais": 1.77,
+      "reservaOperacionalMeses": 8,
+      "runwayMeses": 4,
+      "margemOperacional": 0.2521
+    }
+  },
+  "fluxoCaixaResumido": [
+    {
+      "mes": "Janeiro",
+      "entradas": 160.07,
+      "saidas": 21109.36,
+      "resultado": -20949.29,
+      "saldo": 35918.8
+    },
+    {
+      "mes": "Fevereiro",
+      "entradas": 6438.25,
+      "saidas": 15038.96,
+      "resultado": -8600.71,
+      "saldo": 27318.09
+    },
+    {
+      "mes": "Março",
+      "entradas": 49126.95,
+      "saidas": 23053.46,
+      "resultado": 26073.49,
+      "saldo": 53391.58
+    },
+    {
+      "mes": "Abril",
+      "entradas": 43357.84,
+      "saidas": 39523.73,
+      "resultado": 3834.11,
+      "saldo": 57225.69
+    },
+    {
+      "mes": "Maio",
+      "entradas": 29966.06,
+      "saidas": 41323.67,
+      "resultado": -11357.61,
+      "saldo": 45868.08
+    },
+    {
+      "mes": "Junho",
+      "entradas": 59458.3,
+      "saidas": 37138.79,
+      "resultado": 22319.51,
+      "saldo": 68187.59
+    },
+    {
+      "mes": "Julho",
+      "entradas": 53745.13,
+      "saidas": 44495.83,
+      "resultado": 9249.3,
+      "saldo": 77436.89
+    },
+    {
+      "mes": "Agosto",
+      "entradas": 85722.05,
+      "saidas": 79526.43,
+      "resultado": 6195.62,
+      "saldo": 83632.51
+    },
+    {
+      "mes": "Setembro",
+      "entradas": 72352.56,
+      "saidas": 35377,
+      "resultado": 36975.56,
+      "saldo": 120608.07
+    },
+    {
+      "mes": "Outubro",
+      "entradas": 35375.88,
+      "saidas": 40961.2,
+      "resultado": -5585.32,
+      "saldo": 115022.75
+    },
+    {
+      "mes": "Novembro",
+      "entradas": 0,
+      "saidas": 0,
+      "resultado": 0,
+      "saldo": 115022.75
+    },
+    {
+      "mes": "Dezembro",
+      "entradas": 0,
+      "saidas": 0,
+      "resultado": 0,
+      "saldo": 115022.75
+    }
+  ]
+}
