@@ -8,7 +8,9 @@ import {
   Loader2, 
   Target,
   ShieldCheck,
-  BookOpen
+  BookOpen,
+  FolderTree,
+  Settings2
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -35,6 +37,7 @@ import { CaixaMinimoView } from '@/components/operations/CaixaMinimoView';
 import { PlanoContasView } from '@/components/operations/PlanoContasView';
 import { TransactionModal } from '@/components/operations/TransactionModal';
 import { BankStatementImportModal } from '@/components/operations/BankStatementImportModal';
+import { ManageTaxonomyModal } from '@/components/operations/ManageTaxonomyModal';
 import { TransferModal } from '@/components/operations/TransferModal';
 import { TransactionDetailsModal } from '@/components/operations/TransactionDetailsModal';
 import FinancialProjectionChart from '@/components/operations/FinancialProjectionChart';
@@ -82,6 +85,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
   // Modals state
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isManageTaxonomyOpen, setIsManageTaxonomyOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTx, setSelectedTx] = useState<MovimentacaoRioJunior | null>(null);
@@ -178,6 +182,19 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
     setActiveSubTab('extrato');
   };
 
+  // Taxonomy handlers
+  const handleSaveTaxonomy = (updatedTax: TaxonomyRioJunior) => {
+    const saved = movimentacoesService.updateTaxonomy(updatedTax);
+    setTaxonomy({ ...saved });
+    toast.success('Opções de categorias e subcategorias atualizadas com sucesso!');
+  };
+
+  const handleResetTaxonomy = () => {
+    const reset = movimentacoesService.resetTaxonomy();
+    setTaxonomy({ ...reset });
+    toast.success('Categorias restauradas para o padrão oficial da planilha!');
+  };
+
   // Transaction CRUD handlers
   const handleImportBankStatement = async (newTransactions: Partial<MovimentacaoRioJunior>[]) => {
     try {
@@ -268,8 +285,16 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Operações — Gestão Financeira</h2>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Operações - Gestão Financeira</h2>
+            <button
+              onClick={() => setIsManageTaxonomyOpen(true)}
+              className="px-2.5 py-1 rounded-lg border border-border bg-card hover:bg-muted text-foreground font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-sm"
+              title="Gerenciar categorias e subcategorias (adicionar, editar ou excluir)"
+            >
+              <Settings2 size={13} className="text-primary" />
+              <span>Gerenciar Categorias</span>
+            </button>
             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
               Exercício {selectedYear}
             </span>
@@ -419,6 +444,14 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
         planoContas={planoContas}
       />
 
+      <ManageTaxonomyModal
+        isOpen={isManageTaxonomyOpen}
+        onClose={() => setIsManageTaxonomyOpen(false)}
+        taxonomy={taxonomy}
+        onSaveTaxonomy={handleSaveTaxonomy}
+        onResetTaxonomy={handleResetTaxonomy}
+      />
+
       <TransactionModal
         isOpen={isTxModalOpen}
         onClose={() => {
@@ -428,6 +461,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
         onSave={handleSaveTransaction}
         transactionToEdit={txToEdit}
         taxonomy={taxonomy}
+        onManageTaxonomy={() => setIsManageTaxonomyOpen(true)}
       />
 
       <TransferModal

@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { MovimentacaoRioJunior, TaxonomyRioJunior } from '@/types';
-import { X, ArrowUpCircle, ArrowDownCircle, Check, Calendar, DollarSign, Tag, Building, Briefcase } from 'lucide-react';
+import { X, ArrowUpCircle, ArrowDownCircle, Check, Calendar, DollarSign, Tag, Building, Briefcase, Settings2 } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface TransactionModalProps {
   onSave: (data: Partial<MovimentacaoRioJunior>) => Promise<void>;
   transactionToEdit?: MovimentacaoRioJunior | null;
   taxonomy: TaxonomyRioJunior;
+  onManageTaxonomy?: () => void;
 }
 
 export const TransactionModal = ({
@@ -15,7 +16,8 @@ export const TransactionModal = ({
   onClose,
   onSave,
   transactionToEdit,
-  taxonomy
+  taxonomy,
+  onManageTaxonomy
 }: TransactionModalProps) => {
   const isEditing = !!transactionToEdit;
 
@@ -55,8 +57,8 @@ export const TransactionModal = ({
       setConta('CORA');
       setCentroCusto('Operações');
       setProjeto('N/A');
-      const defaultCats = taxonomy?.categoriesByType?.Despesa || [];
-      const firstCat = defaultCats[0] || 'Despesas Administrativas';
+      const defaultCats = taxonomy?.categoriesByType?.Despesa || taxonomy?.categorias || [];
+      const firstCat = defaultCats[0] || 'Investimento no membro';
       setCategoria(firstCat);
       const defaultSub = taxonomy?.subcategoriesByCategory?.[firstCat] || [];
       setSubcategoria(defaultSub[0] || '');
@@ -266,14 +268,28 @@ export const TransactionModal = ({
           {/* Categoria & Subcategoria (Cascata) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                Categoria *
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  Categoria *
+                </label>
+                {onManageTaxonomy && (
+                  <button
+                    type="button"
+                    onClick={onManageTaxonomy}
+                    className="text-[11px] text-primary hover:underline font-semibold flex items-center gap-1"
+                    title="Adicionar, editar ou excluir categorias e subcategorias"
+                  >
+                    <Settings2 size={12} />
+                    <span>Gerenciar opções</span>
+                  </button>
+                )}
+              </div>
               <select
                 value={categoria}
                 onChange={e => handleCategoriaChange(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all font-medium"
               >
+                {availableCategories.length === 0 && <option value="">Nenhuma categoria cadastrada</option>}
                 {availableCategories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
@@ -281,9 +297,22 @@ export const TransactionModal = ({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                Subcategoria
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+                  Subcategoria
+                </label>
+                {onManageTaxonomy && (
+                  <button
+                    type="button"
+                    onClick={onManageTaxonomy}
+                    className="text-[11px] text-muted-foreground hover:text-primary font-medium flex items-center gap-1"
+                    title="Editar ou adicionar novas subcategorias"
+                  >
+                    <Settings2 size={12} />
+                    <span>Editar</span>
+                  </button>
+                )}
+              </div>
               <select
                 value={subcategoria}
                 onChange={e => setSubcategoria(e.target.value)}

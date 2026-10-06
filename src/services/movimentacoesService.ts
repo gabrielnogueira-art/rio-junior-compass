@@ -27,6 +27,7 @@ const MONTH_NAMES = [
 const ACCOUNTS = ['Cora', 'Asaas', 'PagBank', 'Banco do Brasil', 'Bradesco'];
 
 const STORAGE_KEY = 'riojunior_movimentacoes_2026_v3';
+const TAXONOMY_STORAGE_KEY = 'riojunior_taxonomy_2026_custom_v1';
 
 class MovimentacoesService {
   private memoryTransactions: MovimentacaoRioJunior[] = [];
@@ -41,7 +42,19 @@ class MovimentacoesService {
     this.initStore();
   }
 
+  private loadTaxonomyFromStorage() {
+    try {
+      const storedTax = localStorage.getItem(TAXONOMY_STORAGE_KEY);
+      if (storedTax) {
+        this.taxonomy = JSON.parse(storedTax);
+      }
+    } catch (e) {
+      console.warn('Failed to load custom taxonomy from localStorage:', e);
+    }
+  }
+
   private initStore() {
+    this.loadTaxonomyFromStorage();
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -78,6 +91,26 @@ class MovimentacoesService {
       this.isBackendAvailable = false;
       return false;
     }
+  }
+
+  public updateTaxonomy(updated: TaxonomyRioJunior): TaxonomyRioJunior {
+    this.taxonomy = updated;
+    try {
+      localStorage.setItem(TAXONOMY_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Failed to save taxonomy to localStorage:', e);
+    }
+    return this.taxonomy;
+  }
+
+  public resetTaxonomy(): TaxonomyRioJunior {
+    this.taxonomy = rawTaxonomy as unknown as TaxonomyRioJunior;
+    try {
+      localStorage.removeItem(TAXONOMY_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Failed to clear taxonomy storage:', e);
+    }
+    return this.taxonomy;
   }
 
   public getTaxonomy(): TaxonomyRioJunior {
