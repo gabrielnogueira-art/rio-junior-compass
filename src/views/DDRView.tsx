@@ -157,7 +157,11 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
   const totalMeta = ejs.reduce((acc, ej) => acc + ej.faturamentoMeta, 0);
   const avgProgress = formatPercentage(totalFaturamento, totalMeta);
   const totalMembros = ejs.reduce((acc, ej) => acc + (ej.membros?.total_ativos || ej.membros_ativos || 0), 0);
-  const ejsNoVerde = ejs.filter(e => e.farol === 'verde' || e.farol === 'protagonista').length;
+  const ejsNoAzul = ejs.filter(e => e.farol === 'azul').length;
+  const ejsNoVerde = ejs.filter(e => e.farol === 'verde').length;
+  const ejsNoAmarelo = ejs.filter(e => e.farol === 'amarelo').length;
+  const ejsNoVermelho = ejs.filter(e => e.farol === 'vermelho').length;
+  const ejsNoPreto = ejs.filter(e => e.farol === 'preto').length;
 
   if (loading) {
     return (
@@ -433,7 +437,7 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
                 </div>
                 <div>
                   <p className="text-2xl font-extrabold text-foreground">{avgProgress}%</p>
-                  <p className="text-xs text-muted-foreground">Progresso Global ({ejsNoVerde} EJs no Verde)</p>
+                  <p className="text-xs text-muted-foreground">Progresso Global ({ejsNoAzul + ejsNoVerde} EJs na Meta)</p>
                 </div>
               </div>
             </div>
@@ -467,13 +471,14 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
               <select 
                 value={filterFarol} 
                 onChange={(e) => setFilterFarol(e.target.value)}
-                className="input-field md:w-44"
+                className="input-field md:w-60"
               >
-                <option value="">Todos os Faróis</option>
-                <option value="protagonista">⭐ Protagonista</option>
-                <option value="verde">🟢 Verde</option>
-                <option value="amarelo">🟡 Amarelo</option>
-                <option value="vermelho">🔴 Atenção / Zerada</option>
+                <option value="">Todos os Faróis ({totalEjs})</option>
+                <option value="azul">🔵 Azul - Meta do Ano ({ejsNoAzul})</option>
+                <option value="verde">🟢 Verde - Até Outubro ({ejsNoVerde})</option>
+                <option value="amarelo">🟡 Amarelo - Até Setembro ({ejsNoAmarelo})</option>
+                <option value="vermelho">🔴 Vermelho - Até Agosto ou menos ({ejsNoVermelho})</option>
+                <option value="preto">⚫ Preto - Zerada ({ejsNoPreto})</option>
               </select>
 
               <select 
@@ -521,6 +526,89 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
               <div className="ml-auto text-xs text-muted-foreground">
                 Exibindo <strong>{filteredEjs.length}</strong> de {totalEjs} Empresas Juniores
               </div>
+            </div>
+
+            {/* Farol Pills (Referência: Outubro) */}
+            <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/40">
+              <span className="text-xs text-muted-foreground font-semibold">Farol (Ref. Outubro):</span>
+              <button
+                onClick={() => setFilterFarol('')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors ${
+                  filterFarol === '' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Todos ({totalEjs})
+              </button>
+
+              <button
+                onClick={() => setFilterFarol(filterFarol === 'azul' ? '' : 'azul')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors flex items-center gap-1.5 border ${
+                  filterFarol === 'azul' 
+                    ? 'bg-blue-600 text-white border-blue-700 shadow-sm shadow-blue-500/20' 
+                    : 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/20'
+                }`}
+                title="Bateu a meta anual (100%+)"
+              >
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <span>Azul (Meta Ano)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/50 font-bold">{ejsNoAzul}</span>
+              </button>
+
+              <button
+                onClick={() => setFilterFarol(filterFarol === 'verde' ? '' : 'verde')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors flex items-center gap-1.5 border ${
+                  filterFarol === 'verde' 
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm shadow-emerald-500/20' 
+                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                }`}
+                title="Bateu faturamento proporcional acumulado até Outubro"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Verde (Até Outubro)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/50 font-bold">{ejsNoVerde}</span>
+              </button>
+
+              <button
+                onClick={() => setFilterFarol(filterFarol === 'amarelo' ? '' : 'amarelo')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors flex items-center gap-1.5 border ${
+                  filterFarol === 'amarelo' 
+                    ? 'bg-amber-600 text-white border-amber-700 shadow-sm shadow-amber-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20'
+                }`}
+                title="Bateu faturamento proporcional acumulado até Setembro"
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span>Amarelo (Até Setembro)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/50 font-bold">{ejsNoAmarelo}</span>
+              </button>
+
+              <button
+                onClick={() => setFilterFarol(filterFarol === 'vermelho' ? '' : 'vermelho')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors flex items-center gap-1.5 border ${
+                  filterFarol === 'vermelho' 
+                    ? 'bg-rose-600 text-white border-rose-700 shadow-sm shadow-rose-500/20' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+                }`}
+                title="Faturamento acumulado correspondente a Agosto ou menos"
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                <span>Vermelho (Agosto ou menos)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/50 font-bold">{ejsNoVermelho}</span>
+              </button>
+
+              <button
+                onClick={() => setFilterFarol(filterFarol === 'preto' ? '' : 'preto')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors flex items-center gap-1.5 border ${
+                  filterFarol === 'preto' 
+                    ? 'bg-zinc-700 text-white border-zinc-600 shadow-sm' 
+                    : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
+                }`}
+                title="Faturamento zerado no ano"
+              >
+                <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                <span>Preto (Zerada)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/50 font-bold">{ejsNoPreto}</span>
+              </button>
             </div>
           </div>
 
@@ -576,7 +664,24 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
                           <td className="p-3.5 font-bold text-emerald-500">{formatCurrency(ej.faturamentoAtual)}</td>
                           <td className="p-3.5 font-bold">{prog}%</td>
                           <td className="p-3.5">{ej.membros?.total_ativos || ej.membros_ativos || 18}</td>
-                          <td className="p-3.5 font-bold">{ej.farol_original || ej.farol || 'Amarelo'}</td>
+                          <td className="p-3.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                              ej.farol === 'azul' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                              ej.farol === 'verde' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                              ej.farol === 'amarelo' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                              ej.farol === 'vermelho' ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' :
+                              'bg-zinc-800 text-zinc-300 border-zinc-700'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                ej.farol === 'azul' ? 'bg-blue-400' :
+                                ej.farol === 'verde' ? 'bg-emerald-400' :
+                                ej.farol === 'amarelo' ? 'bg-amber-400' :
+                                ej.farol === 'vermelho' ? 'bg-rose-400' :
+                                'bg-zinc-400'
+                              }`} />
+                              Farol {ej.farol_original || ej.farol}
+                            </span>
+                          </td>
                           <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
                               <button 

@@ -112,7 +112,7 @@ export interface EJ {
   email?: string;
   website?: string;
   membros_ativos?: number;
-  farol?: 'protagonista' | 'verde' | 'amarelo' | 'vermelho';
+  farol?: FarolStatus;
   farol_original?: string;
   guardiao_ddr?: string;
   batalha?: string;

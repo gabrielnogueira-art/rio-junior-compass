@@ -89,9 +89,22 @@ export default function EJProfileModal({ ej, onClose }: EJProfileModalProps) {
                 <span className="text-xs px-2.5 py-0.5 rounded-full font-medium border border-border bg-secondary text-muted-foreground">
                   {ej.regiao}
                 </span>
-                {ej.farol_original && (
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-secondary text-foreground">
-                    Farol {ej.farol_original}
+                {ej.farol && (
+                  <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 border ${
+                    ej.farol === 'azul' ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                    ej.farol === 'verde' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' :
+                    ej.farol === 'amarelo' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                    ej.farol === 'vermelho' ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' :
+                    'bg-zinc-800 text-zinc-300 border-zinc-700'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      ej.farol === 'azul' ? 'bg-blue-400' :
+                      ej.farol === 'verde' ? 'bg-emerald-400' :
+                      ej.farol === 'amarelo' ? 'bg-amber-400' :
+                      ej.farol === 'vermelho' ? 'bg-rose-400' :
+                      'bg-zinc-400'
+                    }`} />
+                    Farol {ej.farol_original || ej.farol}
                   </span>
                 )}
               </div>

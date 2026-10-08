@@ -33,14 +33,15 @@ export default function EJBlockCard({ ej, onClick, onEdit, onDelete }: EJBlockCa
 
   const currentStyle = clusterStyles[ej.cluster] || clusterStyles[1];
 
-  const farolConfig = {
-    protagonista: { label: 'Protagonista', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/10' },
-    verde: { label: 'Verde', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    amarelo: { label: 'Amarelo', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/10' },
-    vermelho: { label: 'Atenção', dot: 'bg-rose-400', text: 'text-rose-400', bg: 'bg-rose-500/10' }
+  const farolConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
+    azul: { label: 'Meta Batida', dot: 'bg-blue-400', text: 'text-blue-400', bg: 'bg-blue-500/15' },
+    verde: { label: 'Outubro', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+    amarelo: { label: 'Setembro', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/15' },
+    vermelho: { label: 'Agosto ou Menos', dot: 'bg-rose-400', text: 'text-rose-400', bg: 'bg-rose-500/15' },
+    preto: { label: 'Zerada', dot: 'bg-zinc-400', text: 'text-zinc-300', bg: 'bg-zinc-800' }
   };
 
-  const farol = farolConfig[ej.farol || 'amarelo'] || farolConfig.amarelo;
+  const farol = (ej.farol && farolConfig[ej.farol]) || farolConfig.vermelho;
 
   const initials = ej.nome
     .split(' ')
@@ -128,7 +129,7 @@ export default function EJBlockCard({ ej, onClick, onEdit, onDelete }: EJBlockCa
 
           <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ml-auto ${farol.bg} ${farol.text}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${farol.dot}`} />
-            {ej.farol_original || farol.label}
+            Farol {ej.farol_original || farol.label}
           </span>
         </div>
 
