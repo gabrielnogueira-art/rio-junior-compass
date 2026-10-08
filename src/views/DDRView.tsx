@@ -1,5 +1,23 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, MapPin, Building2, TrendingUp, Search, Loader2, FileText, Award } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  MapPin, 
+  Building2, 
+  TrendingUp, 
+  Search, 
+  Loader2, 
+  FileText, 
+  Award,
+  Users,
+  Grid,
+  List,
+  ArrowUpDown,
+  Filter,
+  CheckCircle2,
+  DollarSign
+} from 'lucide-react';
 import { EJ } from '@/types';
 import { REGIOES } from '@/data/mockData';
 import { formatCurrency, formatPercentage, formatCNPJ } from '@/utils/formatters';
@@ -8,6 +26,8 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useEJs } from '@/hooks/useEJs';
 import ContratosSection from '@/components/ddr/ContratosSection';
 import ProdutosConexoesSection from '@/components/ddr/ProdutosConexoesSection';
+import EJBlockCard from '@/components/ddr/EJBlockCard';
+import EJProfileModal from '@/components/ddr/EJProfileModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface DDRViewProps {
@@ -17,9 +37,15 @@ interface DDRViewProps {
 const DDRView = ({ selectedYear }: DDRViewProps) => {
   const { ejs, loading, createEJ, updateEJ, deleteEJ } = useEJs();
   const [ejToDelete, setEjToDelete] = useState<string | null>(null);
+  const [selectedEJForProfile, setSelectedEJForProfile] = useState<EJ | null>(null);
+  
+  // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegiao, setFilterRegiao] = useState<string>('');
   const [filterCluster, setFilterCluster] = useState<string>('');
+  const [filterFarol, setFilterFarol] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('faturamento_desc');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -88,41 +114,50 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
     }
   };
 
-  const getClusterBadgeClass = (cluster: number) => {
-    const classes: Record<number, string> = {
-      1: 'badge-cluster-1',
-      2: 'badge-cluster-2',
-      3: 'badge-cluster-3',
-      4: 'badge-cluster-4',
-      5: 'badge-cluster-5'
-    };
-    return classes[cluster] || 'bg-secondary';
-  };
+  const filteredEjs = useMemo(() => {
+    let result = ejs.filter(ej => {
+      const term = searchTerm.toLowerCase().trim();
+      const matchesSearch = !term || 
+        ej.nome.toLowerCase().includes(term) ||
+        (ej.localizacao && ej.localizacao.toLowerCase().includes(term)) ||
+        (ej.ies && ej.ies.toLowerCase().includes(term)) ||
+        (ej.cidade && ej.cidade.toLowerCase().includes(term)) ||
+        (ej.cursos_admitidos && ej.cursos_admitidos.toLowerCase().includes(term));
+      
+      const matchesRegiao = !filterRegiao || ej.regiao === filterRegiao;
+      const matchesCluster = !filterCluster || ej.cluster === Number(filterCluster);
+      const matchesFarol = !filterFarol || ej.farol === filterFarol;
 
-  const getRegiaoBadgeClass = (regiao: string) => {
-    const classes: Record<string, string> = {
-      'Norte': 'region-norte',
-      'Centro Norte': 'region-centro-norte',
-      'Centro Sul 1': 'region-centro-sul-1',
-      'Centro Sul 2': 'region-centro-sul-2',
-      'Sul': 'region-sul'
-    };
-    return classes[regiao] || 'bg-secondary';
-  };
+      return matchesSearch && matchesRegiao && matchesCluster && matchesFarol;
+    });
 
-  const filteredEjs = ejs.filter(ej => {
-    const matchesSearch = ej.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ej.localizacao.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRegiao = !filterRegiao || ej.regiao === filterRegiao;
-    const matchesCluster = !filterCluster || ej.cluster === Number(filterCluster);
-    return matchesSearch && matchesRegiao && matchesCluster;
-  });
+    result.sort((a, b) => {
+      if (sortBy === 'faturamento_desc') return b.faturamentoAtual - a.faturamentoAtual;
+      if (sortBy === 'meta_desc') return b.faturamentoMeta - a.faturamentoMeta;
+      if (sortBy === 'percentual_desc') {
+        const pA = a.faturamentoMeta > 0 ? (a.faturamentoAtual / a.faturamentoMeta) : 0;
+        const pB = b.faturamentoMeta > 0 ? (b.faturamentoAtual / b.faturamentoMeta) : 0;
+        return pB - pA;
+      }
+      if (sortBy === 'membros_desc') {
+        const mA = a.membros?.total_ativos || a.membros_ativos || 0;
+        const mB = b.membros?.total_ativos || b.membros_ativos || 0;
+        return mB - mA;
+      }
+      if (sortBy === 'nome_asc') return a.nome.localeCompare(b.nome);
+      return 0;
+    });
 
-  // Stats
+    return result;
+  }, [ejs, searchTerm, filterRegiao, filterCluster, filterFarol, sortBy]);
+
+  // Stats consolidadas
   const totalEjs = ejs.length;
   const totalFaturamento = ejs.reduce((acc, ej) => acc + ej.faturamentoAtual, 0);
   const totalMeta = ejs.reduce((acc, ej) => acc + ej.faturamentoMeta, 0);
   const avgProgress = formatPercentage(totalFaturamento, totalMeta);
+  const totalMembros = ejs.reduce((acc, ej) => acc + (ej.membros?.total_ativos || ej.membros_ativos || 0), 0);
+  const ejsNoVerde = ejs.filter(e => e.farol === 'verde' || e.farol === 'protagonista').length;
 
   if (loading) {
     return (
@@ -135,17 +170,53 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
   return (
     <div className="space-y-6 animate-slide-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-secondary/20 p-5 rounded-2xl border border-border">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">DDR - Empresas Juniores</h2>
-          <p className="text-muted-foreground">Gestão das EJs, contratos e produtos de conexões.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs uppercase font-extrabold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+              DDR RioJunior 2026
+            </span>
+            <span className="text-xs text-muted-foreground">• Planejamento Estratégico da Rede 2025/2027</span>
+          </div>
+          <h2 className="text-2xl font-extrabold text-foreground">Diretoria de Desenvolvimento da Rede (DDR)</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Acompanhamento das <strong>{totalEjs} Empresas Juniores do Estado do Rio de Janeiro</strong>, metas de faturamento executado mês a mês e indicadores PE Brasil Júnior.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <div className="flex bg-secondary p-1 rounded-xl border border-border">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                viewMode === 'grid' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Grid size={14} /> Bloquinhos
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                viewMode === 'table' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <List size={14} /> Tabela Geral
+            </button>
+          </div>
+
+          <button 
+            onClick={() => openForm()} 
+            className="btn-primary flex items-center gap-2 text-xs py-2 px-3.5"
+          >
+            <Plus size={16} /> Nova EJ
+          </button>
         </div>
       </div>
 
       <Tabs defaultValue="ejs" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
           <TabsTrigger value="ejs" className="flex items-center gap-2">
-            <Building2 size={16} /> EJs
+            <Building2 size={16} /> EJs ({totalEjs})
           </TabsTrigger>
           <TabsTrigger value="contratos" className="flex items-center gap-2">
             <FileText size={16} /> Contratos
@@ -202,7 +273,7 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
                     <label className="label-sm">Região</label>
                     <select 
                       value={formData.regiao} 
-                      onChange={e => setFormData({...formData, regiao: e.target.value as EJ['regiao']})} 
+                      onChange={e => setFormData({...formData, regiao: e.target.value})} 
                       className="input-field"
                     >
                       {REGIOES.map(regiao => (
@@ -305,214 +376,250 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
             </Modal>
           )}
 
-          {/* EJs Header */}
-          <div className="flex justify-end">
-            <button 
-              onClick={() => openForm()} 
-              className="btn-primary flex items-center gap-2"
-            >
-              <Plus size={18} /> Nova EJ
-            </button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stats Cards Consolidados */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
             <div className="card-elevated p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Building2 size={20} className="text-primary" />
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Building2 size={20} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{totalEjs}</p>
+                  <p className="text-2xl font-extrabold text-foreground">{totalEjs}</p>
                   <p className="text-xs text-muted-foreground">EJs Federadas</p>
                 </div>
               </div>
             </div>
+
             <div className="card-elevated p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <TrendingUp size={20} className="text-accent" />
+                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                  <DollarSign size={20} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{formatCurrency(totalFaturamento)}</p>
-                  <p className="text-xs text-muted-foreground">Faturamento Total</p>
+                  <p className="text-xl font-extrabold text-emerald-500">{formatCurrency(totalFaturamento)}</p>
+                  <p className="text-xs text-muted-foreground">Faturamento da Rede</p>
                 </div>
               </div>
             </div>
+
             <div className="card-elevated p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-rio-gold/10 flex items-center justify-center">
-                  <TrendingUp size={20} className="text-rio-gold" />
+                <div className="h-10 w-10 rounded-xl bg-rio-gold/10 flex items-center justify-center text-rio-gold">
+                  <TrendingUp size={20} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{formatCurrency(totalMeta)}</p>
-                  <p className="text-xs text-muted-foreground">Meta Total</p>
+                  <p className="text-xl font-extrabold text-foreground">{formatCurrency(totalMeta)}</p>
+                  <p className="text-xs text-muted-foreground">Meta Global RJ</p>
                 </div>
               </div>
             </div>
+
             <div className="card-elevated p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-rio-purple/10 flex items-center justify-center">
-                  <TrendingUp size={20} className="text-rio-purple" />
+                <div className="h-10 w-10 rounded-xl bg-rio-purple/10 flex items-center justify-center text-rio-purple">
+                  <Users size={20} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{avgProgress}%</p>
-                  <p className="text-xs text-muted-foreground">Progresso Médio</p>
+                  <p className="text-2xl font-extrabold text-foreground">{totalMembros.toLocaleString('pt-BR')}</p>
+                  <p className="text-xs text-muted-foreground">Membros Ativos</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card-elevated p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <p className="text-2xl font-extrabold text-foreground">{avgProgress}%</p>
+                  <p className="text-xs text-muted-foreground">Progresso Global ({ejsNoVerde} EJs no Verde)</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="card-elevated p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+          {/* Filter Bar */}
+          <div className="card-elevated p-4 space-y-3">
+            <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1 relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Buscar EJ..."
+                  placeholder="Buscar por nome da EJ, IES (UFRJ, UFF, UERJ...), cidade ou curso..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="input-field pl-10"
                 />
               </div>
+
               <select 
                 value={filterRegiao} 
                 onChange={(e) => setFilterRegiao(e.target.value)}
-                className="input-field sm:w-48"
+                className="input-field md:w-52"
               >
                 <option value="">Todas as Regiões</option>
                 {REGIOES.map(r => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
+
               <select 
-                value={filterCluster} 
-                onChange={(e) => setFilterCluster(e.target.value)}
-                className="input-field sm:w-40"
+                value={filterFarol} 
+                onChange={(e) => setFilterFarol(e.target.value)}
+                className="input-field md:w-44"
               >
-                <option value="">Todos os Clusters</option>
-                {[1, 2, 3, 4, 5].map(c => (
-                  <option key={c} value={c}>Cluster {c}</option>
-                ))}
+                <option value="">Todos os Faróis</option>
+                <option value="protagonista">⭐ Protagonista</option>
+                <option value="verde">🟢 Verde</option>
+                <option value="amarelo">🟡 Amarelo</option>
+                <option value="vermelho">🔴 Atenção / Zerada</option>
+              </select>
+
+              <select 
+                value={sortBy} 
+                onChange={(e) => setSortBy(e.target.value)}
+                className="input-field md:w-52"
+              >
+                <option value="faturamento_desc">Maior Faturamento Realizado</option>
+                <option value="meta_desc">Maior Meta Anual</option>
+                <option value="percentual_desc">Maior % de Meta Batida</option>
+                <option value="membros_desc">Mais Membros Ativos</option>
+                <option value="nome_asc">Nome da EJ (A-Z)</option>
               </select>
             </div>
+
+            {/* Cluster Pills */}
+            <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border/40">
+              <span className="text-xs text-muted-foreground font-semibold">Cluster:</span>
+              <button
+                onClick={() => setFilterCluster('')}
+                className={`text-xs px-3 py-1 rounded-full font-bold transition-colors ${
+                  filterCluster === '' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Todos ({totalEjs})
+              </button>
+
+              {[5, 4, 3, 2, 1].map(c => {
+                const count = ejs.filter(e => e.cluster === c).length;
+                const isSelected = filterCluster === String(c);
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setFilterCluster(isSelected ? '' : String(c))}
+                    className={`text-xs px-3 py-1 rounded-full font-bold transition-colors flex items-center gap-1.5 ${
+                      isSelected ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span>Cluster {c}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-background/50">{count}</span>
+                  </button>
+                );
+              })}
+
+              <div className="ml-auto text-xs text-muted-foreground">
+                Exibindo <strong>{filteredEjs.length}</strong> de {totalEjs} Empresas Juniores
+              </div>
+            </div>
           </div>
 
-          {/* EJ Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredEjs.map((ej) => {
-              const progress = formatPercentage(ej.faturamentoAtual, ej.faturamentoMeta);
-              
-              return (
-                <div 
-                  key={ej.id} 
-                  className="card-elevated p-5 group relative hover:border-primary/30"
-                >
-                  {/* Actions */}
-                  <div className="absolute top-4 right-4 flex gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => openForm(ej)} 
-                      className="p-1.5 text-muted-foreground hover:text-rio-gold hover:bg-rio-gold/10 rounded-lg transition-colors"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteClick(ej.id)} 
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-
-                  {/* Header */}
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
-                      {ej.nome.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-bold text-foreground text-lg truncate">{ej.nome}</h3>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <MapPin size={12} />
-                        <span className="truncate">{ej.localizacao}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${getClusterBadgeClass(ej.cluster)}`}>
-                      Cluster {ej.cluster}
-                    </span>
-                    <span className={`text-[10px] px-2 py-1 rounded-full font-medium border ${getRegiaoBadgeClass(ej.regiao)}`}>
-                      {ej.regiao}
-                    </span>
-                  </div>
-
-                  {/* CNPJ */}
-                  <div className="text-xs text-muted-foreground mb-4">
-                    <span className="font-medium">CNPJ:</span> {ej.cnpj}
-                  </div>
-
-                  {/* Faturamento Progress */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Faturamento</span>
-                      <span className="font-bold text-foreground">{progress}%</span>
-                    </div>
-                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-accent to-accent-glow rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(Number(progress), 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{formatCurrency(ej.faturamentoAtual)}</span>
-                      <span>Meta: {formatCurrency(ej.faturamentoMeta)}</span>
-                    </div>
-                  </div>
-
-                  {/* Quarters breakdown */}
-                  <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-border">
-                    {[
-                      { label: 'Q1', value: ej.faturamentoQ1 },
-                      { label: 'Q2', value: ej.faturamentoQ2 },
-                      { label: 'Q3', value: ej.faturamentoQ3 },
-                      { label: 'Q4', value: ej.faturamentoQ4 }
-                    ].map(q => (
-                      <div key={q.label} className="text-center">
-                        <p className="text-[10px] text-muted-foreground font-medium">{q.label}</p>
-                        <p className="text-xs font-bold text-foreground">
-                          {formatCurrency(q.value || 0).replace('R$', '').trim()}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredEjs.length === 0 && (
-            <div className="text-center py-12 bg-secondary/50 rounded-xl border border-dashed border-border">
-              <Building2 className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-              <p className="text-muted-foreground">Nenhuma EJ encontrada.</p>
+          {/* EJ Grid (Bloquinhos) */}
+          {viewMode === 'grid' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredEjs.map((ej) => (
+                <EJBlockCard
+                  key={ej.id}
+                  ej={ej}
+                  onClick={(selected) => setSelectedEJForProfile(selected)}
+                  onEdit={(selected) => openForm(selected)}
+                  onDelete={(id) => handleDeleteClick(id)}
+                />
+              ))}
             </div>
           )}
+
+          {/* Tabela Geral Comparativa */}
+          {viewMode === 'table' && (
+            <div className="card-elevated overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-secondary/40 text-muted-foreground uppercase font-semibold">
+                    <tr>
+                      <th className="p-3.5">Empresa Júnior</th>
+                      <th className="p-3.5">Cluster</th>
+                      <th className="p-3.5">Região</th>
+                      <th className="p-3.5">Meta Anual</th>
+                      <th className="p-3.5">Realizado</th>
+                      <th className="p-3.5">% Atingido</th>
+                      <th className="p-3.5">Membros</th>
+                      <th className="p-3.5">Farol</th>
+                      <th className="p-3.5 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredEjs.map((ej) => {
+                      const prog = formatPercentage(ej.faturamentoAtual, ej.faturamentoMeta);
+                      return (
+                        <tr 
+                          key={ej.id} 
+                          onClick={() => setSelectedEJForProfile(ej)}
+                          className="hover:bg-secondary/20 cursor-pointer"
+                        >
+                          <td className="p-3.5">
+                            <strong className="text-sm text-foreground block">{ej.nome}</strong>
+                            <span className="text-muted-foreground">{ej.ies || ej.localizacao}</span>
+                          </td>
+                          <td className="p-3.5 font-bold">Cluster {ej.cluster}</td>
+                          <td className="p-3.5 text-muted-foreground">{ej.regiao}</td>
+                          <td className="p-3.5 text-muted-foreground font-semibold">{formatCurrency(ej.faturamentoMeta)}</td>
+                          <td className="p-3.5 font-bold text-emerald-500">{formatCurrency(ej.faturamentoAtual)}</td>
+                          <td className="p-3.5 font-bold">{prog}%</td>
+                          <td className="p-3.5">{ej.membros?.total_ativos || ej.membros_ativos || 18}</td>
+                          <td className="p-3.5 font-bold">{ej.farol_original || ej.farol || 'Amarelo'}</td>
+                          <td className="p-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1">
+                              <button 
+                                onClick={() => setSelectedEJForProfile(ej)}
+                                className="px-2.5 py-1 bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground rounded text-[11px] font-bold transition-colors"
+                              >
+                                Perfil
+                              </button>
+                              <button 
+                                onClick={() => openForm(ej)}
+                                className="p-1 text-muted-foreground hover:text-rio-gold rounded"
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de Perfil Completo da EJ */}
+          {selectedEJForProfile && (
+            <EJProfileModal 
+              ej={selectedEJForProfile}
+              onClose={() => setSelectedEJForProfile(null)}
+            />
+          )}
+
         </TabsContent>
 
         {/* Contratos Tab */}
         <TabsContent value="contratos">
-          <div className="card-elevated p-6">
-            <ContratosSection selectedYear={selectedYear} />
-          </div>
+          <ContratosSection />
         </TabsContent>
 
-        {/* Conexões Tab */}
+        {/* Conexoes Tab */}
         <TabsContent value="conexoes">
-          <div className="card-elevated p-6">
-            <ProdutosConexoesSection selectedYear={selectedYear} />
-          </div>
+          <ProdutosConexoesSection />
         </TabsContent>
       </Tabs>
     </div>

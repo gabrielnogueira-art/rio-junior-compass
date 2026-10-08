@@ -8,19 +8,140 @@ export interface Evento {
   diretorias: string[];
 }
 
+export interface MesExecutado {
+  mes: number;
+  nome_mes: string;
+  faturamento_mes: number;
+  faturamento_acumulado: number;
+  meta_mes: number;
+  percentual_meta: number;
+  contratos: number;
+  membros_executores: number;
+}
+
+export interface IndicadoresPEBrasilJunior {
+  essenciais: {
+    faturamento_total: {
+      nome: string;
+      meta: number;
+      realizado: number;
+      percentual: number;
+      status: string;
+    };
+    projetos_solucoes: {
+      nome: string;
+      meta: number;
+      realizado: number;
+      percentual: number;
+      status: string;
+    };
+    membros_que_executam: {
+      nome: string;
+      meta_percentual: number;
+      realizado_percentual: number;
+      quantidade_executores: number;
+      status: string;
+    };
+    satisfacao_cliente: {
+      nome: string;
+      csat: number;
+      meta_csat: number;
+      nps: number;
+      meta_nps: number;
+      coleta_percentual: number;
+      status: string;
+    };
+    selo_ej: {
+      nome: string;
+      status: string;
+      regular: boolean;
+      descricao: string;
+    };
+  };
+  complementares: {
+    faturamento_por_membro: {
+      nome: string;
+      valor: number;
+      unidade: string;
+    };
+    rede_colaborativa: {
+      nome: string;
+      meta_percentual: number;
+      realizado_percentual: number;
+      faturamento_colaborativo: number;
+      parceiros: string;
+    };
+    diversidade_inclusao: {
+      nome: string;
+      membros_minorizados_percentual: number;
+      politicas_di_adotadas: string;
+    };
+    tempo_medio_contrato: {
+      nome: string;
+      dias: number;
+      unidade: string;
+    };
+    engajamento_mej: {
+      nome: string;
+      percentual: number;
+      membros: number;
+    };
+    solucoes_inovadoras: {
+      nome: string;
+      ods_contempladas: number;
+      solucoes_inovadoras: number;
+    };
+  };
+}
+
 export interface EJ {
   id: string;
+  id_ej?: string;
   nome: string;
+  slug?: string;
+  logo_url?: string;
   cluster: 1 | 2 | 3 | 4 | 5;
   cnpj: string;
-  regiao: 'Norte' | 'Centro Norte' | 'Centro Sul 1' | 'Centro Sul 2' | 'Sul';
+  regiao: string;
   localizacao: string;
+  cidade?: string;
+  ies?: string;
+  cursos_admitidos?: string;
+  ano_fundacao?: number;
+  ano_federacao?: number;
+  email?: string;
+  website?: string;
+  membros_ativos?: number;
+  farol?: 'protagonista' | 'verde' | 'amarelo' | 'vermelho';
+  farol_original?: string;
+  guardiao_ddr?: string;
+  batalha?: string;
+  classificacao?: string;
   faturamentoMeta: number;
   faturamentoAtual: number;
   faturamentoQ1?: number;
   faturamentoQ2?: number;
   faturamentoQ3?: number;
   faturamentoQ4?: number;
+  financeiro?: {
+    meta_anual: number;
+    faturamento_realizado: number;
+    percentual_alcance: number;
+    ticket_medio: number;
+    faturamento_por_membro: number;
+    meses_executados: MesExecutado[];
+  };
+  membros?: {
+    total_ativos: number;
+    executores_mes: number;
+    percentual_executores: number;
+    faturamento_por_membro_mes: number;
+    retencao_1_ano_percentual: number;
+    diversidade_minorizados_percentual: number;
+    engajamento_mej_quantidade: number;
+    engajamento_mej_percentual: number;
+  };
+  indicadores_pe_brasil_junior?: IndicadoresPEBrasilJunior;
 }
 
 export interface Transacao {

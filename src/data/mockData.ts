@@ -1,9 +1,10 @@
+import { DDR_EMPRESAS_JUNIORES } from './ddrDatabase';
 import { Evento, EJ, Transacao } from '@/types';
 
 // These are only used as fallback/initial data - the app now uses Supabase
 export const INITIAL_EVENTS: Evento[] = [];
 
-export const MOCK_EJS: EJ[] = [];
+export const MOCK_EJS: EJ[] = DDR_EMPRESAS_JUNIORES;
 
 export const MOCK_TRANSACOES: Transacao[] = [];
 
