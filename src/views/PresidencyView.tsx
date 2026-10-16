@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Crown, CalendarIcon } from 'lucide-react';
+import { Crown, CalendarIcon, GraduationCap } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import AbatimentosTab from '@/components/presidency/AbatimentosTab';
 import ArticulacoesTab from '@/components/presidency/ArticulacoesTab';
 import CalendarioEstrategicoTab from '@/components/presidency/CalendarioEstrategicoTab';
+import COEJSection from '@/components/presidency/coej/COEJSection';
 import { usePresidenciaEventos } from '@/hooks/usePresidenciaEventos';
 import { useConfiguracaoPresidencia } from '@/hooks/useConfiguracaoPresidencia';
 
@@ -32,7 +33,7 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">Presidência Executiva</h1>
-          <p className="text-sm text-muted-foreground">Gerenciamento de eventos com cronograma reverso</p>
+          <p className="text-sm text-muted-foreground">Gerenciamento de eventos estratégicos e governança acadêmica COEJ</p>
         </div>
       </div>
 
@@ -62,10 +63,14 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
       </div>
 
       <Tabs defaultValue="abatimentos" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
           <TabsTrigger value="abatimentos">Abatimentos em Andamento</TabsTrigger>
           <TabsTrigger value="articulacoes">Articulações</TabsTrigger>
           <TabsTrigger value="calendario">Calendário Estratégico</TabsTrigger>
+          <TabsTrigger value="coej" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <GraduationCap className="h-4 w-4 text-amber-400" />
+            <span>COEJ (Orientadores)</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="abatimentos">
@@ -85,6 +90,10 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
 
         <TabsContent value="calendario">
           <CalendarioEstrategicoTab eventos={eventos} loading={loading || configLoading} dataReferenciaStatus={dataReferenciaStatus} />
+        </TabsContent>
+
+        <TabsContent value="coej">
+          <COEJSection selectedYear={selectedYear} />
         </TabsContent>
       </Tabs>
     </div>
