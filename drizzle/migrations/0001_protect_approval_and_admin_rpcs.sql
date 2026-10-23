@@ -12,9 +12,9 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'nome', NEW.raw_user_meta_data->>'full_name'),
     NEW.raw_user_meta_data->>'tipo_solicitado',
     NULLIF(NEW.raw_user_meta_data->>'ej_id', '')::uuid,
-    CASE WHEN lower(NEW.email) = 'presidecia@riojunior.com.br' THEN 'aprovado' ELSE 'pendente' END
+    CASE WHEN lower(NEW.email) = 'presidencia@riojunior.com.br' THEN 'aprovado' ELSE 'pendente' END
   );
-  IF lower(NEW.email) = 'presidecia@riojunior.com.br' THEN
+  IF lower(NEW.email) = 'presidencia@riojunior.com.br' THEN
     INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, 'admin') ON CONFLICT DO NOTHING;
   END IF;
   RETURN NEW;
