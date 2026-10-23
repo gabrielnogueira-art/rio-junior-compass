@@ -23,7 +23,8 @@ export function useEventos() {
         dataFim: e.data_fim,
         tipo: e.tipo,
         pauta: e.pauta || '',
-        diretorias: e.diretorias || []
+        diretorias: e.diretorias || [],
+        momentoPalco: e.momento_palco ?? false
       }));
 
       setEventos(mapped);
@@ -49,7 +50,8 @@ export function useEventos() {
           data_fim: evento.dataFim || evento.dataInicio,
           tipo: evento.tipo,
           pauta: evento.pauta,
-          diretorias: evento.diretorias
+          diretorias: evento.diretorias,
+          momento_palco: evento.momentoPalco ?? false
         })
         .select()
         .single();
@@ -76,7 +78,8 @@ export function useEventos() {
           data_fim: evento.dataFim,
           tipo: evento.tipo,
           pauta: evento.pauta,
-          diretorias: evento.diretorias
+          diretorias: evento.diretorias,
+          momento_palco: evento.momentoPalco ?? false
         })
         .eq('id', id);
 

@@ -20,7 +20,7 @@ const CalendarView = ({ selectedYear }: CalendarViewProps) => {
   const { tiposEvento, loading: loadingTipos, createTipoEvento, updateTipoEvento, deleteTipoEvento } = useTiposEvento();
   
   const [formData, setFormData] = useState<Omit<Evento, 'id'> & { id?: string }>({ 
-    nome: '', dataInicio: '', dataFim: '', tipo: '', pauta: '', diretorias: [] 
+    nome: '', dataInicio: '', dataFim: '', tipo: '', pauta: '', diretorias: [], momentoPalco: false 
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -40,7 +40,7 @@ const CalendarView = ({ selectedYear }: CalendarViewProps) => {
   });
 
   const resetForm = () => {
-    setFormData({ nome: '', dataInicio: '', dataFim: '', tipo: '', pauta: '', diretorias: [] });
+    setFormData({ nome: '', dataInicio: '', dataFim: '', tipo: '', pauta: '', diretorias: [], momentoPalco: false });
     setIsEditing(false);
     setShowCalendar(false);
   };
@@ -351,6 +351,18 @@ const CalendarView = ({ selectedYear }: CalendarViewProps) => {
                 ))}
               </div>
             </div>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.momentoPalco ?? false}
+                onChange={(e) => setFormData({ ...formData, momentoPalco: e.target.checked })}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="text-sm text-foreground">
+                Evento com <strong>momento de palco</strong> (reconhecimento de EJs com certificado)
+              </span>
+            </label>
 
             <div>
               <label className="label-sm">Pauta / Descrição</label>

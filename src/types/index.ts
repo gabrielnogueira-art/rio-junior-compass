@@ -6,6 +6,7 @@ export interface Evento {
   tipo: string;
   pauta?: string;
   diretorias: string[];
+  momentoPalco?: boolean;
 }
 
 export interface MesExecutado {
