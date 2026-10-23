@@ -68,7 +68,7 @@ const UsersAdmin = () => {
     fetchData();
   }, [fetchData]);
 
-  const runAction = async (userId: string, fn: () => Promise<{ error: unknown }>) => {
+  const runAction = async (userId: string, fn: () => PromiseLike<{ error: unknown }>) => {
     setActionLoading(userId);
     const { error } = await fn();
     setActionLoading(null);
