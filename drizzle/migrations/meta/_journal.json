@@ -36,6 +36,13 @@
       "when": 1792799402160,
       "tag": "0004_fases_2_a_5_certificados_anuidades_visitas_acessibilidade",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792799416789,
+      "tag": "0005_storage_policies_assinaturas",
+      "breakpoints": true
     }
   ]
 }
