@@ -83,7 +83,8 @@ export const MovimentacoesTable = ({
   onDelete,
   onExportCSV,
   onOpenNewTx,
-  onOpenTransfer
+  onOpenTransfer,
+  onOpenImportStatement
 }: MovimentacoesTableProps) => {
   const totalPages = Math.ceil(total / limit) || 1;
 
