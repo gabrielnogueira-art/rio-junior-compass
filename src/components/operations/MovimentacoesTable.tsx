@@ -51,8 +51,7 @@ interface MovimentacoesTableProps {
   onDelete: (id: string) => void;
   onExportCSV: () => void;
   onOpenNewTx: () => void;
-  onOpenTransfer,
-  onOpenImportStatement: () => void;
+  onOpenTransfer: () => void;
   onOpenImportStatement?: () => void;
 }
 

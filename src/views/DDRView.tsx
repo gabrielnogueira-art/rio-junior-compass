@@ -719,12 +719,12 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
 
         {/* Contratos Tab */}
         <TabsContent value="contratos">
-          <ContratosSection />
+          <ContratosSection selectedYear={selectedYear} />
         </TabsContent>
 
         {/* Conexoes Tab */}
         <TabsContent value="conexoes">
-          <ProdutosConexoesSection />
+          <ProdutosConexoesSection selectedYear={selectedYear} />
         </TabsContent>
       </Tabs>
     </div>
