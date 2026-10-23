@@ -29,6 +29,7 @@ import ProdutosConexoesSection from '@/components/ddr/ProdutosConexoesSection';
 import EJBlockCard from '@/components/ddr/EJBlockCard';
 import EJProfileModal from '@/components/ddr/EJProfileModal';
 import VisitasGuardioesSection from '@/components/shared/VisitasGuardioesSection';
+import ReconhecimentoSection from '@/components/ddr/ReconhecimentoSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface DDRViewProps {
@@ -219,7 +220,7 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
       </div>
 
       <Tabs defaultValue="ejs" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="ejs" className="flex items-center gap-2">
             <Building2 size={16} /> EJs ({totalEjs})
           </TabsTrigger>
@@ -231,6 +232,9 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
           </TabsTrigger>
           <TabsTrigger value="visitas" className="flex items-center gap-2">
             <MapPin size={16} /> Visitas
+          </TabsTrigger>
+          <TabsTrigger value="reconhecimento" className="flex items-center gap-2">
+            <Award size={16} /> Reconhecimento
           </TabsTrigger>
         </TabsList>
 
@@ -734,6 +738,11 @@ const DDRView = ({ selectedYear }: DDRViewProps) => {
         {/* Visitas dos Guardiões Tab */}
         <TabsContent value="visitas">
           <VisitasGuardioesSection selectedYear={selectedYear} modo="ddr" />
+        </TabsContent>
+
+        {/* Reconhecimento de EJs Tab */}
+        <TabsContent value="reconhecimento">
+          <ReconhecimentoSection selectedYear={selectedYear} />
         </TabsContent>
       </Tabs>
     </div>
