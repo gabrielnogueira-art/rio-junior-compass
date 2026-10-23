@@ -1,6 +1,6 @@
 # Roadmap — RioJunior
 
-## Fase 1 — Login e controle de acesso (EM ANDAMENTO)
+## Fase 1 — Login e controle de acesso (CONCLUÍDA)
 - Tela de login como tela inicial, com opção de conta Google
 - Usuário solicita acesso e passa por aprovação de um administrador
 - Tipos de usuário: Time RioJunior, Professor Orientador, Diretor de EJ, Membro de EJ
