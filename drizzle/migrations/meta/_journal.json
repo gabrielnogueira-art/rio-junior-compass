@@ -29,6 +29,13 @@
       "when": 1792798602590,
       "tag": "0003_approve_presidencia_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792799402160,
+      "tag": "0004_fases_2_a_5_certificados_anuidades_visitas_acessibilidade",
+      "breakpoints": true
     }
   ]
 }

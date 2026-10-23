@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      abatimentos_pf: {
+        Row: {
+          created_at: string
+          evento_id: string
+          id: string
+          item: string
+          parceiro_nome: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          evento_id: string
+          id?: string
+          item: string
+          parceiro_nome?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          evento_id?: string
+          id?: string
+          item?: string
+          parceiro_nome?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abatimentos_pf_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "presidencia_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anuidades: {
         Row: {
           ano: number
@@ -23,7 +61,10 @@ export type Database = {
           ej_id: string
           id: string
           juros_percentual: number | null
+          parcela_numero: number | null
           status: string
+          suporte_anuidade: boolean
+          total_parcelas: number | null
           valor: number
           valor_juros: number | null
         }
@@ -35,7 +76,10 @@ export type Database = {
           ej_id: string
           id?: string
           juros_percentual?: number | null
+          parcela_numero?: number | null
           status: string
+          suporte_anuidade?: boolean
+          total_parcelas?: number | null
           valor: number
           valor_juros?: number | null
         }
@@ -47,7 +91,10 @@ export type Database = {
           ej_id?: string
           id?: string
           juros_percentual?: number | null
+          parcela_numero?: number | null
           status?: string
+          suporte_anuidade?: boolean
+          total_parcelas?: number | null
           valor?: number
           valor_juros?: number | null
         }
@@ -57,6 +104,135 @@ export type Database = {
             columns: ["ej_id"]
             isOneToOne: false
             referencedRelation: "ejs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assinaturas_certificado: {
+        Row: {
+          cargo: string
+          created_at: string
+          id: string
+          nome: string
+          png_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo: string
+          created_at?: string
+          id?: string
+          nome?: string
+          png_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          png_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      caravanas: {
+        Row: {
+          created_at: string
+          ej_id: string | null
+          evento_id: string
+          id: string
+          ies: string | null
+          num_pessoas: number
+          regiao: string | null
+          updated_at: string
+          valor_medio_ingresso: number
+        }
+        Insert: {
+          created_at?: string
+          ej_id?: string | null
+          evento_id: string
+          id?: string
+          ies?: string | null
+          num_pessoas?: number
+          regiao?: string | null
+          updated_at?: string
+          valor_medio_ingresso?: number
+        }
+        Update: {
+          created_at?: string
+          ej_id?: string | null
+          evento_id?: string
+          id?: string
+          ies?: string | null
+          num_pessoas?: number
+          regiao?: string | null
+          updated_at?: string
+          valor_medio_ingresso?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caravanas_ej_id_fkey"
+            columns: ["ej_id"]
+            isOneToOne: false
+            referencedRelation: "ejs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caravanas_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "presidencia_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificados: {
+        Row: {
+          config_editor: Json
+          created_at: string
+          ej_id: string
+          emitido_em: string
+          evento_id: string
+          id: string
+          indicador: string
+          texto_certificado: string | null
+          updated_at: string
+        }
+        Insert: {
+          config_editor?: Json
+          created_at?: string
+          ej_id: string
+          emitido_em?: string
+          evento_id: string
+          id?: string
+          indicador?: string
+          texto_certificado?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config_editor?: Json
+          created_at?: string
+          ej_id?: string
+          emitido_em?: string
+          evento_id?: string
+          id?: string
+          indicador?: string
+          texto_certificado?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_ej_id_fkey"
+            columns: ["ej_id"]
+            isOneToOne: false
+            referencedRelation: "ejs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos"
             referencedColumns: ["id"]
           },
         ]
@@ -337,6 +513,7 @@ export type Database = {
           data_inicio: string
           diretorias: string[] | null
           id: string
+          momento_palco: boolean
           nome: string
           pauta: string | null
           tipo: string
@@ -348,6 +525,7 @@ export type Database = {
           data_inicio: string
           diretorias?: string[] | null
           id?: string
+          momento_palco?: boolean
           nome: string
           pauta?: string | null
           tipo: string
@@ -359,6 +537,7 @@ export type Database = {
           data_inicio?: string
           diretorias?: string[] | null
           id?: string
+          momento_palco?: boolean
           nome?: string
           pauta?: string | null
           tipo?: string
@@ -794,6 +973,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      visitas_guardioes: {
+        Row: {
+          created_at: string
+          data: string
+          ej_id: string
+          gasto: number | null
+          horario: string | null
+          id: string
+          local: string | null
+          motivo: string | null
+          observacoes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          ej_id: string
+          gasto?: number | null
+          horario?: string | null
+          id?: string
+          local?: string | null
+          motivo?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          ej_id?: string
+          gasto?: number | null
+          horario?: string | null
+          id?: string
+          local?: string | null
+          motivo?: string | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitas_guardioes_ej_id_fkey"
+            columns: ["ej_id"]
+            isOneToOne: false
+            referencedRelation: "ejs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
