@@ -51,8 +51,7 @@ interface MovimentacoesTableProps {
   onDelete: (id: string) => void;
   onExportCSV: () => void;
   onOpenNewTx: () => void;
-  onOpenTransfer,
-  onOpenImportStatement: () => void;
+  onOpenTransfer: () => void;
   onOpenImportStatement?: () => void;
 }
 
@@ -84,7 +83,8 @@ export const MovimentacoesTable = ({
   onDelete,
   onExportCSV,
   onOpenNewTx,
-  onOpenTransfer
+  onOpenTransfer,
+  onOpenImportStatement
 }: MovimentacoesTableProps) => {
   const totalPages = Math.ceil(total / limit) || 1;
 

@@ -1,4 +1,4 @@
-import { X, Calendar, Building2, Settings, Briefcase, GraduationCap, Crown, TrendingUp, Target, Users } from 'lucide-react';
+import { X, Calendar, Building2, Settings, GraduationCap, Crown, TrendingUp, Target, Users, ShieldCheck, LogOut } from 'lucide-react';
 import { TabType } from '@/types';
 
 interface MobileMenuProps {
@@ -6,9 +6,11 @@ interface MobileMenuProps {
   onClose: () => void;
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
+  isAdmin?: boolean;
+  onLogout?: () => void;
 }
 
-const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab }: MobileMenuProps) => {
+const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab, isAdmin, onLogout }: MobileMenuProps) => {
   if (!isOpen) return null;
 
   const handleTabClick = (tab: TabType) => {
@@ -51,7 +53,7 @@ const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab }: MobileMenuProp
           </button>
         </div>
         
-        <nav className="space-y-1 flex-1">
+        <nav className="space-y-1 flex-1 overflow-y-auto">
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 mb-3">Principal</p>
           <MenuItem icon={Calendar} label="Calendarização" tab="calendar" />
           <MenuItem icon={Target} label="Painel Estratégico" tab="strategic" />
@@ -63,7 +65,27 @@ const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab }: MobileMenuProp
           <MenuItem icon={Settings} label="Operações" tab="operations" />
           <MenuItem icon={Building2} label="DDR (EJs)" tab="ddr" />
           <MenuItem icon={GraduationCap} label="Formação Empreendedora" tab="formation" badge="Em breve" />
+
+          {isAdmin && (
+            <>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 mb-3 mt-6">Administração</p>
+              <MenuItem icon={ShieldCheck} label="Usuários" tab="users" />
+            </>
+          )}
         </nav>
+
+        {onLogout && (
+          <button
+            onClick={() => {
+              onLogout();
+              onClose();
+            }}
+            className="mt-4 w-full flex items-center gap-3 px-4 py-3 rounded-xl text-foreground/70 hover:bg-secondary font-medium transition-colors"
+          >
+            <LogOut size={20} />
+            <span>Sair da conta</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -250,7 +250,7 @@ export interface FaturamentoMensal {
 // Faróis de faturamento
 export type FarolStatus = 'azul' | 'verde' | 'amarelo' | 'vermelho' | 'preto';
 
-export type TabType = 'calendar' | 'ddr' | 'operations' | 'presidency' | 'business' | 'formation' | 'council' | 'strategic';
+export type TabType = 'calendar' | 'ddr' | 'operations' | 'presidency' | 'business' | 'formation' | 'council' | 'strategic' | 'users';
 
 export type ViewMode = 'list' | 'month' | 'year';
 

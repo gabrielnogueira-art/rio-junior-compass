@@ -430,7 +430,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
 
         {/* Tab 8: Projeção Financeira Original */}
         <TabsContent value="projecao" className="space-y-6">
-          <FinancialProjectionChart />
+          <FinancialProjectionChart selectedYear={selectedYear} />
         </TabsContent>
       </Tabs>
 

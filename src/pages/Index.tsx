@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Menu, ChevronDown } from 'lucide-react';
 import { TabType } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/layout/Sidebar';
 import MobileMenu from '@/components/layout/MobileMenu';
 import CalendarView from '@/views/CalendarView';
@@ -10,11 +11,13 @@ import StrategicPanelView from '@/views/StrategicPanelView';
 import PlaceholderView from '@/views/PlaceholderView';
 import PresidencyView from '@/views/PresidencyView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
+import UsersAdmin from '@/components/admin/UsersAdmin';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { profile, isAdmin, signOut } = useAuth();
 
   const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
 
@@ -30,6 +33,8 @@ const Index = () => {
         return <StrategicPanelView selectedYear={selectedYear} />;
       case 'presidency':
         return <PresidencyView selectedYear={selectedYear} />;
+      case 'users':
+        return isAdmin ? <UsersAdmin /> : <CalendarView selectedYear={selectedYear} />;
       case 'council':
         return (
           <PlaceholderView 
@@ -54,7 +59,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar - Desktop */}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isAdmin={isAdmin}
+        userName={profile?.nome ?? undefined}
+        userEmail={profile?.email ?? undefined}
+        onLogout={signOut}
+      />
 
       {/* Mobile Menu */}
       <MobileMenu 
@@ -62,6 +74,8 @@ const Index = () => {
         onClose={() => setIsMobileMenuOpen(false)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        isAdmin={isAdmin}
+        onLogout={signOut}
       />
 
       {/* Main Content */}
