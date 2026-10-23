@@ -38,27 +38,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfileAndRoles = useCallback(async (userId: string) => {
-    const [{ data: profileData }, { data: rolesData }] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-      supabase.from('user_roles').select('role').eq('user_id', userId),
-    ]);
-    setProfile(profileData as Profile | null);
-    setRoles((rolesData ?? []).map((r) => r.role as string));
+    try {
+      const [{ data: profileData }, { data: rolesData }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId),
+      ]);
+      setProfile(profileData as Profile | null);
+      setRoles((rolesData ?? []).map((r) => r.role as string));
+    } catch {
+      setProfile(null);
+      setRoles([]);
+    }
   }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
       setSession(newSession);
+      // Never await supabase calls inside onAuthStateChange: the auth client
+      // holds an internal lock while this callback runs, so awaiting a query
+      // here deadlocks and the app hangs on the loading screen.
       if (newSession?.user) {
-        await fetchProfileAndRoles(newSession.user.id);
+        const userId = newSession.user.id;
+        setTimeout(() => {
+          if (!mounted) return;
+          fetchProfileAndRoles(userId).finally(() => {
+            if (mounted) setLoading(false);
+          });
+        }, 0);
       } else {
         setProfile(null);
         setRoles([]);
+        setLoading(false);
       }
-      if (mounted) setLoading(false);
     });
 
     supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
