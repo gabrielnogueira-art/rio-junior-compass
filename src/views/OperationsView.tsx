@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   BookOpen,
   FolderTree,
-  Settings2
+  Settings2,
+  HandCoins
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -41,6 +42,7 @@ import { ManageTaxonomyModal } from '@/components/operations/ManageTaxonomyModal
 import { TransferModal } from '@/components/operations/TransferModal';
 import { TransactionDetailsModal } from '@/components/operations/TransactionDetailsModal';
 import FinancialProjectionChart from '@/components/operations/FinancialProjectionChart';
+import AnuidadesSection from '@/components/operations/AnuidadesSection';
 
 interface OperationsViewProps {
   selectedYear: number;
@@ -344,6 +346,10 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
             <TabsTrigger value="projecao" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
               <BarChart3 size={14} /> Projeção
             </TabsTrigger>
+
+            <TabsTrigger value="anuidades" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
+              <HandCoins size={14} /> Anuidades
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -431,6 +437,11 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
         {/* Tab 8: Projeção Financeira Original */}
         <TabsContent value="projecao" className="space-y-6">
           <FinancialProjectionChart selectedYear={selectedYear} />
+        </TabsContent>
+
+        {/* Tab 9: Anuidades das EJs */}
+        <TabsContent value="anuidades" className="space-y-6">
+          <AnuidadesSection selectedYear={selectedYear} />
         </TabsContent>
       </Tabs>
 
