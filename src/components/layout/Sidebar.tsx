@@ -2,13 +2,14 @@ import {
   Calendar, 
   Building2, 
   Settings, 
-  Briefcase, 
   GraduationCap, 
   Crown,
   TrendingUp,
   User,
   Target,
-  Users
+  Users,
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 import { TabType } from '@/types';
 
@@ -42,9 +43,13 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: SidebarItemP
 interface SidebarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
+  isAdmin?: boolean;
+  userName?: string;
+  userEmail?: string;
+  onLogout?: () => void;
 }
 
-const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
+const Sidebar = ({ activeTab, setActiveTab, isAdmin, userName, userEmail, onLogout }: SidebarProps) => {
   return (
     <aside className="hidden lg:flex w-72 flex-col fixed h-full z-20 bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
@@ -113,18 +118,39 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
           active={activeTab === 'formation'} 
           onClick={() => setActiveTab('formation')}
         />
+
+        {isAdmin && (
+          <>
+            <p className="text-[10px] font-bold text-sidebar-foreground/40 uppercase tracking-wider px-4 mb-3 mt-6">Administração</p>
+            <SidebarItem 
+              icon={ShieldCheck} 
+              label="Usuários" 
+              active={activeTab === 'users'} 
+              onClick={() => setActiveTab('users')}
+            />
+          </>
+        )}
       </nav>
 
       {/* User Section */}
       <div className="p-4 m-4 bg-sidebar-accent rounded-xl border border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-sidebar-primary/20 flex items-center justify-center">
+          <div className="h-10 w-10 rounded-full bg-sidebar-primary/20 flex items-center justify-center shrink-0">
             <User size={18} className="text-sidebar-primary" />
           </div>
           <div className="overflow-hidden flex-1">
-            <p className="text-sm font-bold text-sidebar-foreground truncate">Admin Federação</p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">admin@riojunior.com.br</p>
+            <p className="text-sm font-bold text-sidebar-foreground truncate">{userName ?? 'Usuário'}</p>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{userEmail ?? ''}</p>
           </div>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              title="Sair da conta"
+              className="p-2 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-border transition-colors shrink-0"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </div>
       </div>
     </aside>
