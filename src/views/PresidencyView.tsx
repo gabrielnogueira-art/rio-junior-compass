@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Crown, CalendarIcon, GraduationCap } from 'lucide-react';
+import { Crown, CalendarIcon, GraduationCap, Accessibility } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import AbatimentosTab from '@/components/presidency/AbatimentosTab';
 import ArticulacoesTab from '@/components/presidency/ArticulacoesTab';
 import CalendarioEstrategicoTab from '@/components/presidency/CalendarioEstrategicoTab';
 import COEJSection from '@/components/presidency/coej/COEJSection';
+import AcessibilidadeSection from '@/components/presidency/AcessibilidadeSection';
 import { usePresidenciaEventos } from '@/hooks/usePresidenciaEventos';
 import { useConfiguracaoPresidencia } from '@/hooks/useConfiguracaoPresidencia';
 
@@ -63,13 +64,17 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
       </div>
 
       <Tabs defaultValue="abatimentos" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
           <TabsTrigger value="abatimentos">Abatimentos em Andamento</TabsTrigger>
           <TabsTrigger value="articulacoes">Articulações</TabsTrigger>
           <TabsTrigger value="calendario">Calendário Estratégico</TabsTrigger>
           <TabsTrigger value="coej" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <GraduationCap className="h-4 w-4 text-amber-400" />
             <span>COEJ (Orientadores)</span>
+          </TabsTrigger>
+          <TabsTrigger value="acessibilidade" className="flex items-center gap-2">
+            <Accessibility className="h-4 w-4" />
+            <span>Acessibilidade</span>
           </TabsTrigger>
         </TabsList>
 
@@ -94,6 +99,10 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
 
         <TabsContent value="coej">
           <COEJSection selectedYear={selectedYear} />
+        </TabsContent>
+
+        <TabsContent value="acessibilidade">
+          <AcessibilidadeSection eventos={eventos} />
         </TabsContent>
       </Tabs>
     </div>
