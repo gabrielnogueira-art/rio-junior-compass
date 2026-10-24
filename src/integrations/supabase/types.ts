@@ -586,6 +586,41 @@ export type Database = {
           },
         ]
       }
+      grade_evento_config: {
+        Row: {
+          created_at: string
+          evento_id: string
+          id: string
+          magnas_vendaveis: number
+          paralelas_vendaveis: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evento_id: string
+          id?: string
+          magnas_vendaveis?: number
+          paralelas_vendaveis?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evento_id?: string
+          id?: string
+          magnas_vendaveis?: number
+          paralelas_vendaveis?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_evento_config_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: true
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       key_results: {
         Row: {
           atual: number
@@ -720,6 +755,116 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pautas_evento: {
+        Row: {
+          created_at: string
+          csat: number | null
+          dia: string | null
+          evento_id: string
+          horario: string | null
+          id: string
+          ministrante_nome: string | null
+          ministrante_tipo: string | null
+          ordem: number
+          parceiro_nome: string | null
+          tematica_macro: string | null
+          tipo: string
+          titulo: string | null
+          updated_at: string
+          venda_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          csat?: number | null
+          dia?: string | null
+          evento_id: string
+          horario?: string | null
+          id?: string
+          ministrante_nome?: string | null
+          ministrante_tipo?: string | null
+          ordem?: number
+          parceiro_nome?: string | null
+          tematica_macro?: string | null
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          csat?: number | null
+          dia?: string | null
+          evento_id?: string
+          horario?: string | null
+          id?: string
+          ministrante_nome?: string | null
+          ministrante_tipo?: string | null
+          ordem?: number
+          parceiro_nome?: string | null
+          tematica_macro?: string | null
+          tipo?: string
+          titulo?: string | null
+          updated_at?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pautas_evento_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pautas_evento_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "pautas_vendidas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pautas_vendidas: {
+        Row: {
+          created_at: string
+          evento_id: string
+          id: string
+          parceiro_nome: string
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string
+          evento_id: string
+          id?: string
+          parceiro_nome: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string
+          evento_id?: string
+          id?: string
+          parceiro_nome?: string
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pautas_vendidas_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       presidencia_eventos: {
         Row: {

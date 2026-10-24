@@ -2,8 +2,10 @@ import { GraduationCap, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePresidenciaEventos } from '@/hooks/usePresidenciaEventos';
 import { useDemandasFormacao, KanbanStatus, DemandaFormacao } from '@/hooks/useDemandasFormacao';
+import GradeConteudoSection from '@/components/formation/GradeConteudoSection';
 import { differenceInHours, isBefore } from 'date-fns';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -106,38 +108,51 @@ const FormacaoEmpreendedoraView = ({ selectedYear }: FormacaoEmpreendedoraViewPr
         </Button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Carregando demandas...</div>
-      ) : demandas.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <GraduationCap size={40} className="mx-auto mb-3 opacity-40" />
-            <p>Nenhuma demanda gerada.</p>
-            <p className="text-sm">Crie eventos com fluxos de IDV ou PF na aba de Presidência para gerar demandas aqui.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {COLUMNS.map(col => {
-            const colDemandas = demandas.filter(d => d.status === col.status);
-            return (
-              <div key={col.status} className="space-y-2">
-                <div className={`rounded-lg p-3 ${col.color}`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-foreground">{col.label}</h3>
-                    <Badge variant="secondary" className="text-[10px]">{colDemandas.length}</Badge>
+      <Tabs defaultValue="kanban" className="w-full">
+        <TabsList>
+          <TabsTrigger value="kanban">Demandas (Kanban)</TabsTrigger>
+          <TabsTrigger value="grade">Grade de Conteúdo</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="kanban" className="mt-4">
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">Carregando demandas...</div>
+          ) : demandas.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <GraduationCap size={40} className="mx-auto mb-3 opacity-40" />
+                <p>Nenhuma demanda gerada.</p>
+                <p className="text-sm">Crie eventos com fluxos de IDV ou PF na aba de Presidência para gerar demandas aqui.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {COLUMNS.map(col => {
+                const colDemandas = demandas.filter(d => d.status === col.status);
+                return (
+                  <div key={col.status} className="space-y-2">
+                    <div className={`rounded-lg p-3 ${col.color}`}>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-foreground">{col.label}</h3>
+                        <Badge variant="secondary" className="text-[10px]">{colDemandas.length}</Badge>
+                      </div>
+                    </div>
+                    <div className="min-h-[200px]">
+                      {colDemandas.map(d => (
+                        <KanbanCard key={d.id} demanda={d} onMove={updateStatus} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="min-h-[200px]">
-                  {colDemandas.map(d => (
-                    <KanbanCard key={d.id} demanda={d} onMove={updateStatus} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="grade" className="mt-4">
+          <GradeConteudoSection selectedYear={selectedYear} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -43,6 +43,13 @@
       "when": 1792799416789,
       "tag": "0005_storage_policies_assinaturas",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792885836350,
+      "tag": "0006_grade_conteudo_pautas_vendas",
+      "breakpoints": true
     }
   ]
 }

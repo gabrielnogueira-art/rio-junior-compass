@@ -98,7 +98,6 @@ const Sidebar = ({ activeTab, setActiveTab, isAdmin, userName, userEmail, onLogo
           label="VP Negócios" 
           active={activeTab === 'business'} 
           onClick={() => setActiveTab('business')}
-          badge="Em breve"
         />
         <SidebarItem 
           icon={Settings} 

@@ -11,6 +11,7 @@ import StrategicPanelView from '@/views/StrategicPanelView';
 import PlaceholderView from '@/views/PlaceholderView';
 import PresidencyView from '@/views/PresidencyView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
+import BusinessView from '@/views/BusinessView';
 import UsersAdmin from '@/components/admin/UsersAdmin';
 
 const Index = () => {
@@ -43,12 +44,7 @@ const Index = () => {
           />
         );
       case 'business':
-        return (
-          <PlaceholderView 
-            title="VP de Negócios" 
-            description="Esta seção será desenvolvida em breve. Aqui você encontrará gestão de parcerias, pipeline comercial e indicadores de negócios." 
-          />
-        );
+        return <BusinessView selectedYear={selectedYear} />;
       case 'formation':
         return <FormacaoEmpreendedoraView selectedYear={selectedYear} />;
       default:
