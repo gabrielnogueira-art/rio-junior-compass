@@ -11,6 +11,7 @@ import StrategicPanelView from '@/views/StrategicPanelView';
 import PlaceholderView from '@/views/PlaceholderView';
 import PresidencyView from '@/views/PresidencyView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
+import BusinessView from '@/views/BusinessView';
 import UsersAdmin from '@/components/admin/UsersAdmin';
 
 const Index = () => {

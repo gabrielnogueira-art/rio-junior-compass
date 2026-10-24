@@ -28,6 +28,14 @@
 - Valor médio de ingresso × pessoas da caravana = receita gerada pela acessibilidade
 - Itens do PF abatidos por parceiros (backdrop, folder etc.) = economia em R$
 
+## Fase 6 — FE: Grade de Conteúdo + Interface VPNeg (CONCLUÍDA)
+- Visualização dos eventos do ano na aba de Formação Empreendedora
+- Grade de conteúdo por evento: credenciamento, check-in, abertura, pautas magnas e paralelas
+- Pautas com temática macro (vendas, gestão de pessoas, cultura, marketing, financeiro), pauta específica, ministrante (parceiro VPNeg, parceiro PresEx, pós-júnior, interno), nome e CSAT
+- FE define quantas pautas magnas/paralelas podem ser vendidas por evento
+- Painel da VPNeg mostra cotas, registra vendas (parceiro, valor) e acompanha alocação
+- Pauta vendida pela VPNeg aparece para a FE alocar na grade; controle de disponíveis atualiza automaticamente
+
 ## Pendências futuras
 - Presidência do Conselho (diretoria ainda placeholder)
 - Integração Google Calendar (requer credenciais OAuth do Google Cloud Console)
