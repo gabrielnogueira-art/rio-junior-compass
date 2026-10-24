@@ -43,12 +43,7 @@ const Index = () => {
           />
         );
       case 'business':
-        return (
-          <PlaceholderView 
-            title="VP de Negócios" 
-            description="Esta seção será desenvolvida em breve. Aqui você encontrará gestão de parcerias, pipeline comercial e indicadores de negócios." 
-          />
-        );
+        return <BusinessView selectedYear={selectedYear} />;
       case 'formation':
         return <FormacaoEmpreendedoraView selectedYear={selectedYear} />;
       default:
