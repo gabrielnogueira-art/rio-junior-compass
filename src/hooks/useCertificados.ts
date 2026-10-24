@@ -116,7 +116,7 @@ export function useCertificados() {
           evento_id: cert.eventoId,
           indicador: cert.indicador,
           texto_certificado: cert.textoCertificado || null,
-          config_editor: cert.configEditor || CONFIG_PADRAO,
+          config_editor: (cert.configEditor || CONFIG_PADRAO) as any,
         },
         { onConflict: 'ej_id,evento_id,indicador' }
       );
@@ -137,7 +137,7 @@ export function useCertificados() {
     try {
       const updateData: any = {};
       if (campos.textoCertificado !== undefined) updateData.texto_certificado = campos.textoCertificado;
-      if (campos.configEditor !== undefined) updateData.config_editor = campos.configEditor;
+      if (campos.configEditor !== undefined) updateData.config_editor = campos.configEditor as any;
       const { error } = await supabase.from('certificados').update(updateData).eq('id', id);
       if (error) throw error;
       await fetchDados();
