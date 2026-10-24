@@ -61,10 +61,10 @@ const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab, isAdmin, onLogou
           <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-4 mb-3 mt-6">Diretorias</p>
           <MenuItem icon={Crown} label="Presidência Executiva" tab="presidency" />
           <MenuItem icon={Users} label="Presidência do Conselho" tab="council" badge="Em breve" />
-          <MenuItem icon={TrendingUp} label="VP Negócios" tab="business" badge="Em breve" />
+          <MenuItem icon={TrendingUp} label="VP Negócios" tab="business" />
           <MenuItem icon={Settings} label="Operações" tab="operations" />
           <MenuItem icon={Building2} label="DDR (EJs)" tab="ddr" />
-          <MenuItem icon={GraduationCap} label="Formação Empreendedora" tab="formation" badge="Em breve" />
+          <MenuItem icon={GraduationCap} label="Formação Empreendedora" tab="formation" />
 
           {isAdmin && (
             <>
