@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Mail, Lock, User as UserIcon, Building2, Loader2, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, Building2, Loader2, CheckCircle2, Sparkles, Terminal } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
-import { TIPOS_USUARIO } from '@/hooks/useAuth';
+import { useAuth, TIPOS_USUARIO } from '@/hooks/useAuth';
 
 interface EJOption {
   id: string;
@@ -10,6 +10,7 @@ interface EJOption {
 }
 
 const Auth = () => {
+  const { loginAsLocalDev, isLocalhost } = useAuth();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -34,16 +35,38 @@ const Auth = () => {
   const handleGoogle = async () => {
     setError(null);
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth('google', {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      setError('Não foi possível entrar com o Google. Tente novamente.');
+
+    try {
+      if (isLocalhost) {
+        // No localhost, o broker do Lovable /~oauth/initiate não existe.
+        // Chamamos diretamente o Supabase OAuth com o provider google:
+        const { error: supaError } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin,
+          },
+        });
+        if (supaError) {
+          setError(`Google OAuth no localhost: ${supaError.message}. Recomendamos usar o botão de acesso rápido dev abaixo.`);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        setError('Não foi possível entrar com o Google. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+      if (result.redirected) return;
       setLoading(false);
-      return;
+    } catch (err: any) {
+      setError(err?.message || 'Erro ao autenticar com o Google.');
+      setLoading(false);
     }
-    if (result.redirected) return;
-    setLoading(false);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -60,45 +83,67 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!nome.trim() || !email.trim() || !senha) {
+      setError('Preencha todos os campos obrigatórios.');
+      return;
+    }
+    if (senha.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (needsEJ && !ejId) {
+      setError('Selecione a sua Empresa Júnior.');
+      return;
+    }
+
     setLoading(true);
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,
       password: senha,
       options: {
-        emailRedirectTo: window.location.origin,
         data: {
-          nome,
+          nome: nome.trim(),
           tipo_solicitado: tipoSolicitado,
-          ej_id: needsEJ && ejId ? ejId : null,
+          ej_id: needsEJ ? ejId : null,
         },
       },
     });
-    setLoading(false);
+
     if (signUpError) {
-      setError(
-        signUpError.message.includes('already registered')
-          ? 'Este e-mail já está cadastrado. Faça login.'
-          : 'Não foi possível criar a conta. Tente novamente.'
-      );
+      setError(signUpError.message);
+      setLoading(false);
       return;
     }
+
+    if (signUpData.user) {
+      await supabase.from('profiles').upsert({
+        id: signUpData.user.id,
+        nome: nome.trim(),
+        email: email.trim(),
+        tipo_solicitado: tipoSolicitado,
+        ej_id: needsEJ ? ejId : null,
+        status: 'pendente',
+      });
+    }
+
+    setLoading(false);
     setSignupDone(true);
   };
 
   const inputClass =
-    'w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm';
+    'w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50';
 
   if (signupDone) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 text-center shadow-xl">
-          <div className="h-16 w-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle2 size={32} className="text-primary" />
+        <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 shadow-xl text-center space-y-4">
+          <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+            <CheckCircle2 size={36} />
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-2">Confirme seu e-mail</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Enviamos um link de confirmação para <strong>{email}</strong>. Depois de confirmar, seu
-            acesso passará pela aprovação de um administrador.
+          <h2 className="text-xl font-bold text-foreground">Solicitação Enviada!</h2>
+          <p className="text-sm text-muted-foreground">
+            Seu cadastro foi recebido com sucesso. Um administrador da RioJunior analisará seu pedido em breve.
           </p>
           <button
             onClick={() => {
@@ -131,6 +176,27 @@ const Auth = () => {
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-8 shadow-xl">
+          {/* Botão de Bypass Dev no Localhost */}
+          {isLocalhost && (
+            <div className="mb-6 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                <Terminal size={14} className="text-emerald-600" />
+                <span>Ambiente de Desenvolvimento Localhost</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                Como o broker OAuth do Lovable funciona apenas na nuvem, use o acesso rápido abaixo para testar tudo localmente como Administrador:
+              </p>
+              <button
+                type="button"
+                onClick={loginAsLocalDev}
+                className="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+              >
+                <Sparkles size={14} />
+                Entrar no Localhost (Admin Completo)
+              </button>
+            </div>
+          )}
+
           {/* Mode tabs */}
           <div className="flex bg-secondary rounded-xl p-1 mb-6">
             <button

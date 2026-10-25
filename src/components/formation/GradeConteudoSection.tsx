@@ -1,62 +1,37 @@
 import { useState, useMemo } from 'react';
-import { CalendarRange, Plus, Pencil, Trash2, AlertCircle, Star, Save } from 'lucide-react';
+import {
+  CalendarRange,
+  Plus,
+  AlertCircle,
+  Save,
+  Table,
+  Calendar,
+  Briefcase,
+  Sparkles,
+  RefreshCw,
+  CheckCircle2,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEventos } from '@/hooks/useEventos';
 import {
   useGradeConteudo,
   TIPO_MOMENTO_LABELS,
-  TEMATICAS_MACRO,
-  MINISTRANTE_TIPO_LABELS,
-  TipoMomento,
-  MinistranteTipo,
   PautaEvento,
   PautaVendida,
 } from '@/hooks/useGradeConteudo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MomentoDialog, MomentoFormValues } from './MomentoDialog';
+import { GradeCronologicaTable } from './GradeCronologicaTable';
 import GradeLivreEditor from './GradeLivreEditor';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const TIPO_COLORS: Record<string, string> = {
-  credenciamento: 'bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-300',
-  checkin: 'bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-300',
-  abertura: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  magna: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  paralela: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
-  outro: 'bg-muted text-muted-foreground',
-};
-
-interface PautaFormState {
-  tipo: TipoMomento;
-  titulo: string;
-  tematicaMacro: string;
-  dia: string;
-  horario: string;
-  ministranteTipo: MinistranteTipo | '';
-  ministranteNome: string;
-  parceiroNome: string;
-  csat: string;
-  vendaId: string | null;
-}
-
-const EMPTY_FORM: PautaFormState = {
-  tipo: 'paralela',
-  titulo: '',
-  tematicaMacro: '',
-  dia: '',
-  horario: '',
-  ministranteTipo: '',
-  ministranteNome: '',
-  parceiroNome: '',
-  csat: '',
-  vendaId: null,
-};
 
 interface GradeConteudoSectionProps {
   selectedYear: number;
@@ -64,7 +39,17 @@ interface GradeConteudoSectionProps {
 
 const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
   const { eventos, loading: eventosLoading } = useEventos();
-  const { pautas, vendas, loading, getConfig, saveConfig, addPauta, updatePauta, deletePauta } = useGradeConteudo();
+  const {
+    pautas,
+    vendas,
+    loading,
+    getConfig,
+    saveConfig,
+    syncCotasComGrade,
+    addPauta,
+    updatePauta,
+    deletePauta,
+  } = useGradeConteudo();
 
   const eventosAno = useMemo(
     () => eventos.filter(e => new Date(e.dataInicio + 'T12:00:00').getFullYear() === selectedYear),
@@ -75,74 +60,124 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
   const eventoId = eventoSelecionado || eventosAno[0]?.id || '';
   const evento = eventosAno.find(e => e.id === eventoId);
 
+  // Configuração e pautas conectadas do evento
   const config = eventoId ? getConfig(eventoId) : undefined;
   const pautasEvento = pautas.filter(p => p.eventoId === eventoId);
   const vendasEvento = vendas.filter(v => v.eventoId === eventoId);
   const vendasPendentes = vendasEvento.filter(v => v.status === 'vendida');
 
+  // Pautas comerciais (Magnas e Paralelas) presentes na grade deste evento
+  const pautasComerciaisNaGrade = useMemo(() => {
+    return pautasEvento.filter(p => p.tipo === 'magna' || p.tipo === 'paralela');
+  }, [pautasEvento]);
+
   const vendidasMagnas = vendasEvento.filter(v => v.tipo === 'magna').length;
   const vendidasParalelas = vendasEvento.filter(v => v.tipo === 'paralela').length;
 
-  // Cotas (edição)
-  const [cotasForm, setCotasForm] = useState<{ magnas: string; paralelas: string } | null>(null);
-  const cotasMagnas = cotasForm?.magnas ?? String(config?.magnasVendaveis ?? 0);
-  const cotasParalelas = cotasForm?.paralelas ?? String(config?.paralelasVendaveis ?? 0);
+  const magnasNaGrade = config?.magnasNaGrade ?? 0;
+  const paralelasNaGrade = config?.paralelasNaGrade ?? 0;
 
-  // Modal de pauta
+  // Cotas vendáveis totais (sempre >= quantidade na grade)
+  const cotasMagnasTotal = config?.magnasVendaveis ?? 0;
+  const cotasParalelasTotal = config?.paralelasVendaveis ?? 0;
+
+  const dispMagnas = Math.max(0, cotasMagnasTotal - vendidasMagnas);
+  const dispParalelas = Math.max(0, cotasParalelasTotal - vendidasParalelas);
+
+  // Estado do formulário de cotas
+  const [cotasForm, setCotasForm] = useState<{ magnas: string; paralelas: string } | null>(null);
+  const cotasMagnasInput = cotasForm?.magnas ?? String(cotasMagnasTotal);
+  const cotasParalelasInput = cotasForm?.paralelas ?? String(cotasParalelasTotal);
+
+  // Modal de Adicionar / Editar momento
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<PautaEvento | null>(null);
-  const [form, setForm] = useState<PautaFormState>(EMPTY_FORM);
+  const [vendaParaAlocar, setVendaParaAlocar] = useState<PautaVendida | null>(null);
+  const [sugestaoInicio, setSugestaoInicio] = useState<string>('09:00');
+  const [diaPadraoModal, setDiaPadraoModal] = useState<string>('');
 
-  const abrirNova = (venda?: PautaVendida) => {
+  // Sub-visão dentro da Planilha da Grade (Tabela Dinâmica vs Planilha Matricial)
+  const [subVisaoPlanilha, setSubVisaoPlanilha] = useState<'tabela' | 'matricial'>('tabela');
+
+  const abrirNovoMomento = (sugestaoHora?: string, diaPre?: string, tipoPre?: string) => {
     setEditando(null);
-    setForm(venda
-      ? { ...EMPTY_FORM, tipo: venda.tipo, parceiroNome: venda.parceiroNome, ministranteTipo: 'parceiro_vpneg', vendaId: venda.id }
-      : EMPTY_FORM
-    );
+    setVendaParaAlocar(null);
+    if (sugestaoHora) setSugestaoInicio(sugestaoHora);
+    if (diaPre) setDiaPadraoModal(diaPre);
+    else if (evento?.dataInicio) setDiaPadraoModal(evento.dataInicio);
     setModalOpen(true);
   };
 
-  const abrirEdicao = (p: PautaEvento) => {
+  const abrirNovaPautaComercial = (tipo: 'magna' | 'paralela') => {
+    setEditando(null);
+    setVendaParaAlocar(null);
+    if (evento?.dataInicio) setDiaPadraoModal(evento.dataInicio);
+    setModalOpen(true);
+  };
+
+  const abrirEdicaoMomento = (p: PautaEvento) => {
     setEditando(p);
-    setForm({
-      tipo: p.tipo,
-      titulo: p.titulo,
-      tematicaMacro: p.tematicaMacro,
-      dia: p.dia || '',
-      horario: p.horario,
-      ministranteTipo: p.ministranteTipo || '',
-      ministranteNome: p.ministranteNome,
-      parceiroNome: p.parceiroNome,
-      csat: p.csat !== null ? String(p.csat) : '',
-      vendaId: p.vendaId,
-    });
+    setVendaParaAlocar(null);
     setModalOpen(true);
   };
 
-  const salvar = async () => {
+  const abrirAlocarVenda = (venda: PautaVendida) => {
+    setEditando(null);
+    setVendaParaAlocar(venda);
+    setModalOpen(true);
+  };
+
+  const salvarMomento = async (values: MomentoFormValues) => {
     const input = {
       eventoId,
-      tipo: form.tipo,
-      titulo: form.titulo,
-      tematicaMacro: form.tematicaMacro,
-      dia: form.dia || null,
-      horario: form.horario,
-      ministranteTipo: (form.ministranteTipo || null) as MinistranteTipo | null,
-      ministranteNome: form.ministranteNome,
-      parceiroNome: form.parceiroNome,
-      csat: form.csat !== '' ? Number(form.csat) : null,
-      vendaId: form.vendaId,
+      tipo: values.tipo as any,
+      titulo: values.titulo,
+      tematicaMacro: values.tematicaMacro,
+      dia: values.dia || null,
+      horario: values.horario,
+      ministranteTipo: (values.ministranteTipo || null) as any,
+      ministranteNome: values.ministranteNome,
+      parceiroNome: values.parceiroNome,
+      csat: values.csat !== '' ? Number(values.csat) : null,
+      vendaId: values.vendaId,
     };
+
     if (editando) {
       await updatePauta(editando.id, input);
     } else {
       await addPauta(input);
     }
-    setModalOpen(false);
+  };
+
+  const handleDuplicar = async (pauta: PautaEvento) => {
+    const input = {
+      eventoId: pauta.eventoId,
+      tipo: pauta.tipo,
+      titulo: `${pauta.titulo || 'Pauta'} (Trilha Paralela)`,
+      tematicaMacro: pauta.tematicaMacro,
+      dia: pauta.dia,
+      horario: pauta.horario,
+      ministranteTipo: pauta.ministranteTipo,
+      ministranteNome: pauta.ministranteNome,
+      parceiroNome: pauta.parceiroNome,
+      csat: null,
+      vendaId: null,
+      ordem: pauta.ordem + 1,
+    };
+    await addPauta(input);
+  };
+
+  const handleQuickUpdateTitulo = async (id: string, novoTitulo: string) => {
+    await updatePauta(id, { titulo: novoTitulo });
   };
 
   const salvarCotas = async () => {
-    await saveConfig(eventoId, Number(cotasMagnas) || 0, Number(cotasParalelas) || 0);
+    await saveConfig(eventoId, Number(cotasMagnasInput) || 0, Number(cotasParalelasInput) || 0);
+    setCotasForm(null);
+  };
+
+  const handleSincronizarComGrade = async () => {
+    await syncCotasComGrade(eventoId);
     setCotasForm(null);
   };
 
@@ -164,258 +199,373 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Seletor de evento */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <Label className="text-sm font-medium shrink-0">Evento:</Label>
-        <Select value={eventoId} onValueChange={id => {
-          if (id !== eventoId && !window.confirm('Trocar de evento? Salve antes as alterações da grade que deseja manter.')) return;
-          setEventoSelecionado(id);
-          setCotasForm(null);
-        }}>
-          <SelectTrigger className="w-full sm:w-96">
-            <SelectValue placeholder="Selecione o evento" />
-          </SelectTrigger>
-          <SelectContent>
-            {eventosAno.map(e => (
-              <SelectItem key={e.id} value={e.id}>
-                {e.nome} — {format(new Date(e.dataInicio + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {evento && (
-          <Badge variant="outline" className="w-fit">
-            {format(new Date(evento.dataInicio + 'T12:00:00'), "dd/MM", { locale: ptBR })}
-            {evento.dataFim !== evento.dataInicio && ` a ${format(new Date(evento.dataFim + 'T12:00:00'), "dd/MM", { locale: ptBR })}`}
-          </Badge>
-        )}
+      {/* Seletor de Evento */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <Label className="text-sm font-semibold shrink-0">Evento:</Label>
+          <Select
+            value={eventoId}
+            onValueChange={id => {
+              setEventoSelecionado(id);
+              setCotasForm(null);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-96 font-medium">
+              <SelectValue placeholder="Selecione o evento" />
+            </SelectTrigger>
+            <SelectContent>
+              {eventosAno.map(e => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.nome} — {format(new Date(e.dataInicio + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {evento && (
+            <Badge variant="outline" className="w-fit text-xs font-medium">
+              {format(new Date(evento.dataInicio + 'T12:00:00'), "dd/MM", { locale: ptBR })}
+              {evento.dataFim !== evento.dataInicio &&
+                ` a ${format(new Date(evento.dataFim + 'T12:00:00'), "dd/MM", { locale: ptBR })}`}
+            </Badge>
+          )}
+        </div>
+
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Grade & VPNeg 100% conectadas</span>
+        </div>
       </div>
 
-      <Tabs defaultValue="livre">
-        <TabsList className="mb-4"><TabsTrigger value="livre">Planilha da grade</TabsTrigger><TabsTrigger value="comercial">Pautas e vendas VPNeg</TabsTrigger></TabsList>
-        <TabsContent value="livre" forceMount className="data-[state=inactive]:hidden min-w-0">
-          <GradeLivreEditor key={eventoId} eventoId={eventoId} pautas={pautasEvento} />
-        </TabsContent>
-        <TabsContent value="comercial" className="space-y-6">
-      {/* Cotas de pautas vendáveis (interface com VPNeg) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Pautas vendáveis (interface com VPNeg)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Pautas magnas vendáveis</Label>
-              <Input
-                type="number"
-                min={0}
-                value={cotasMagnas}
-                onChange={e => setCotasForm({ magnas: e.target.value, paralelas: cotasParalelas })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Vendidas: {vendidasMagnas} · Disponíveis: {Math.max(0, (Number(cotasMagnas) || 0) - vendidasMagnas)}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Pautas paralelas vendáveis</Label>
-              <Input
-                type="number"
-                min={0}
-                value={cotasParalelas}
-                onChange={e => setCotasForm({ magnas: cotasMagnas, paralelas: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                Vendidas: {vendidasParalelas} · Disponíveis: {Math.max(0, (Number(cotasParalelas) || 0) - vendidasParalelas)}
-              </p>
-            </div>
-          </div>
-          <Button size="sm" onClick={salvarCotas} disabled={!cotasForm}>
-            <Save size={14} className="mr-1" /> Salvar cotas
-          </Button>
-        </CardContent>
-      </Card>
+      {/* ABAS: 1ª Pautas e Vendas VPNeg | 2ª Planilha da Grade (Ordem exata pedida pelo usuário) */}
+      <Tabs defaultValue="comercial" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="comercial" className="gap-2">
+            <Briefcase size={14} />
+            <span>Pautas e Vendas VPNeg</span>
+            {(vendidasMagnas + vendidasParalelas > 0 || vendasPendentes.length > 0) && (
+              <Badge variant="secondary" className="text-[10px] ml-1 px-1.5 py-0 h-4">
+                {vendidasMagnas + vendidasParalelas} vendidas
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="planilha" className="gap-2">
+            <Calendar size={14} />
+            <span>Planilha da Grade</span>
+            <Badge variant="secondary" className="text-[10px] ml-1 px-1.5 py-0 h-4">
+              {pautasEvento.length} momentos
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Pautas vendidas pela VPNeg aguardando alocação */}
-      {vendasPendentes.length > 0 && (
-        <Card className="border-amber-400/50 bg-amber-50/50 dark:bg-amber-900/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle size={16} className="text-amber-500" />
-              Pautas vendidas pela VPNeg aguardando alocação
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {vendasPendentes.map(v => (
-              <div key={v.id} className="flex items-center justify-between gap-2 bg-card rounded-lg border border-border p-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={TIPO_COLORS[v.tipo]}>{TIPO_MOMENTO_LABELS[v.tipo]}</Badge>
-                  <span className="text-sm font-medium text-foreground">{v.parceiroNome}</span>
-                  {v.valor !== null && (
-                    <span className="text-xs text-muted-foreground">
-                      R$ {v.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        {/* ========================================================
+            ABA 1: PAUTAS E VENDAS VPNEG
+            ======================================================== */}
+        <TabsContent value="comercial" className="space-y-6">
+          {/* Card de Cotas Vendáveis (Sincronizado automaticamente com a Grade) */}
+          <Card>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Briefcase size={16} className="text-primary" />
+                  Cotas de pautas vendáveis (interface com VPNeg)
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  As pautas magnas e paralelas adicionadas à grade contam automaticamente como vendáveis na VPNeg.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs gap-1.5"
+                onClick={handleSincronizarComGrade}
+                title="Ajusta as cotas vendáveis para igualar exatamente às pautas cadastradas na grade"
+              >
+                <RefreshCw size={12} /> Sincronizar com a grade
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Pautas Magnas */}
+                <div className="rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-500/5 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-purple-900 dark:text-purple-300">
+                      Pautas magnas vendáveis
+                    </Label>
+                    <Badge variant="outline" className="text-[10px] text-purple-700 border-purple-300">
+                      {magnasNaGrade} na grade
+                    </Badge>
+                  </div>
+                  <Input
+                    type="number"
+                    min={magnasNaGrade}
+                    value={cotasMagnasInput}
+                    onChange={e => setCotasForm({ magnas: e.target.value, paralelas: cotasParalelasInput })}
+                    className="h-9 font-semibold"
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                    <span>Vendidas VPNeg: <strong>{vendidasMagnas}</strong></span>
+                    <span className={`font-semibold ${dispMagnas > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
+                      Disponíveis: {dispMagnas}
                     </span>
-                  )}
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => abrirNova(v)}>
-                  Alocar na grade
+
+                {/* Pautas Paralelas */}
+                <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-500/5 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-emerald-900 dark:text-emerald-300">
+                      Pautas paralelas vendáveis
+                    </Label>
+                    <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-300">
+                      {paralelasNaGrade} na grade
+                    </Badge>
+                  </div>
+                  <Input
+                    type="number"
+                    min={paralelasNaGrade}
+                    value={cotasParalelasInput}
+                    onChange={e => setCotasForm({ magnas: cotasMagnasInput, paralelas: e.target.value })}
+                    className="h-9 font-semibold"
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-0.5">
+                    <span>Vendidas VPNeg: <strong>{vendidasParalelas}</strong></span>
+                    <span className={`font-semibold ${dispParalelas > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
+                      Disponíveis: {dispParalelas}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <Button size="sm" onClick={salvarCotas} disabled={!cotasForm}>
+                  <Save size={14} className="mr-1.5" /> Salvar cotas
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Total de vagas comerciais: <strong>{cotasMagnasTotal + cotasParalelasTotal}</strong>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pautas vendidas pela VPNeg aguardando alocação */}
+          {vendasPendentes.length > 0 && (
+            <Card className="border-amber-400/50 bg-amber-50/50 dark:bg-amber-900/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-500" />
+                  Pautas vendidas pela VPNeg aguardando alocação na grade
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Estas vendas foram registradas no painel comercial da VPNeg e precisam ser posicionadas no horário do evento.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {vendasPendentes.map(v => (
+                  <div
+                    key={v.id}
+                    className="flex items-center justify-between gap-2 bg-card rounded-lg border border-border p-3 shadow-xs"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={v.tipo === 'magna' ? 'bg-purple-100 text-purple-800' : 'bg-emerald-100 text-emerald-800'}>
+                        {v.tipo === 'magna' ? 'Pauta Magna' : 'Pauta Paralela'}
+                      </Badge>
+                      <span className="text-sm font-semibold text-foreground">{v.parceiroNome}</span>
+                      {v.valor !== null && (
+                        <span className="text-xs text-muted-foreground font-medium">
+                          R$ {v.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                    <Button size="sm" variant="default" onClick={() => abrirAlocarVenda(v)}>
+                      <Plus size={13} className="mr-1" /> Alocar na grade
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pautas Magnas e Paralelas Cadastradas no Evento */}
+          <Card>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base font-semibold">
+                  Pautas Magnas e Paralelas da Grade ({pautasComerciaisNaGrade.length})
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Momentos com potencial comercial cadastrados na grade. Ao adicionar aqui, eles aparecem automaticamente na Planilha da Grade.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => abrirNovoMomento(undefined, undefined, 'magna')}>
+                  <Plus size={13} /> Pauta Magna
+                </Button>
+                <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => abrirNovoMomento(undefined, undefined, 'paralela')}>
+                  <Plus size={13} /> Pauta Paralela
                 </Button>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Grade de conteúdo */}
-      <Card>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Grade de conteúdo{evento ? ` — ${evento.nome}` : ''}</CardTitle>
-          <Button size="sm" onClick={() => abrirNova()}>
-            <Plus size={14} className="mr-1" /> Adicionar momento
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {pautasEvento.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum momento cadastrado. Monte a grade com credenciamento, check-in, abertura, pautas magnas e paralelas.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {pautasEvento.map(p => (
-                <div key={p.id} className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-border p-3">
-                  <div className="flex items-center gap-2 flex-wrap flex-1">
-                    <Badge className={TIPO_COLORS[p.tipo]}>{TIPO_MOMENTO_LABELS[p.tipo]}</Badge>
-                    {p.titulo && <span className="text-sm font-semibold text-foreground">{p.titulo}</span>}
-                    {p.tematicaMacro && <Badge variant="outline" className="text-[10px]">{p.tematicaMacro}</Badge>}
-                  </div>
-                  <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-                    {p.dia && <span>📅 {format(new Date(p.dia + 'T12:00:00'), "dd/MM", { locale: ptBR })}</span>}
-                    {p.horario && <span>🕐 {p.horario}</span>}
-                    {p.ministranteNome && (
-                      <span>
-                        🎤 {p.ministranteNome}
-                        {p.ministranteTipo && ` (${MINISTRANTE_TIPO_LABELS[p.ministranteTipo]})`}
-                      </span>
-                    )}
-                    {p.parceiroNome && <span>🤝 {p.parceiroNome}</span>}
-                    {p.csat !== null && (
-                      <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
-                        <Star size={12} /> {p.csat.toFixed(1)}
-                      </span>
-                    )}
-                    {p.vendaId && <Badge variant="secondary" className="text-[10px]">Vendida VPNeg</Badge>}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEdicao(p)}>
-                      <Pencil size={13} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deletePauta(p.id)}>
-                      <Trash2 size={13} />
-                    </Button>
-                  </div>
+            </CardHeader>
+            <CardContent>
+              {pautasComerciaisNaGrade.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground border border-dashed rounded-lg">
+                  <Sparkles size={32} className="mx-auto mb-2 opacity-30 text-primary" />
+                  <p className="text-sm font-semibold">Nenhuma pauta magna ou paralela cadastrada ainda.</p>
+                  <p className="text-xs mt-1">
+                    Adicione pautas magnas ou paralelas para alimentar a interface comercial da VPNeg.
+                  </p>
+                  <Button size="sm" className="mt-3 text-xs" onClick={() => abrirNovoMomento()}>
+                    <Plus size={13} className="mr-1" /> Adicionar momento à grade
+                  </Button>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="space-y-2">
+                  {pautasComerciaisNaGrade.map(p => {
+                    const isVendida = !!p.vendaId || !!p.parceiroNome;
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <Badge
+                            className={
+                              p.tipo === 'magna'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                            }
+                          >
+                            {p.tipo === 'magna' ? 'Pauta Magna' : 'Pauta Paralela'}
+                          </Badge>
+                          <span className="text-sm font-semibold text-foreground">{p.titulo || 'Pauta sem título'}</span>
+                          {p.tematicaMacro && (
+                            <Badge variant="outline" className="text-[10px]">{p.tematicaMacro}</Badge>
+                          )}
+                          {p.horario && (
+                            <span className="text-xs text-muted-foreground">⏱️ {p.horario}</span>
+                          )}
+                        </div>
 
+                        <div className="flex items-center gap-3">
+                          {isVendida ? (
+                            <Badge variant="secondary" className="text-xs gap-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300">
+                              <CheckCircle2 size={12} /> Vendida: {p.parceiroNome || 'Parceiro'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-500/5">
+                              Disponível para venda
+                            </Badge>
+                          )}
+
+                          <div className="flex gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => abrirEdicaoMomento(p)}
+                              title="Editar"
+                            >
+                              <Pencil size={13} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => deletePauta(p.id)}
+                              title="Excluir"
+                            >
+                              <Trash2 size={13} />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========================================================
+            ABA 2: PLANILHA DA GRADE (Grade Completa Cronológica)
+            ======================================================== */}
+        <TabsContent value="planilha" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Calendar size={18} className="text-primary" />
+                  Planilha da grade{evento ? ` — ${evento.nome}` : ''}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Organização cronológica de todos os momentos. Qualquer alteração feita aqui reflete instantaneamente nas cotas da VPNeg.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Alternador de visualização Tabela Cronológica vs Matricial */}
+                <div className="hidden sm:flex items-center gap-1 bg-muted p-1 rounded-lg">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={subVisaoPlanilha === 'tabela' ? 'default' : 'ghost'}
+                    className="h-7 text-xs gap-1.5"
+                    onClick={() => setSubVisaoPlanilha('tabela')}
+                  >
+                    <Calendar size={12} />
+                    <span>Tabela Cronológica</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={subVisaoPlanilha === 'matricial' ? 'default' : 'ghost'}
+                    className="h-7 text-xs gap-1.5"
+                    onClick={() => setSubVisaoPlanilha('matricial')}
+                    title="Modo matricial de células"
+                  >
+                    <Table size={12} />
+                    <span>Planilha Matricial</span>
+                  </Button>
+                </div>
+
+                <Button size="sm" onClick={() => abrirNovoMomento()}>
+                  <Plus size={14} className="mr-1" /> Adicionar momento
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              {subVisaoPlanilha === 'tabela' ? (
+                <GradeCronologicaTable
+                  pautas={pautasEvento}
+                  evento={evento}
+                  cotasMagnas={cotasMagnasTotal}
+                  cotasParalelas={cotasParalelasTotal}
+                  onAdicionar={abrirNovoMomento}
+                  onEditar={abrirEdicaoMomento}
+                  onExcluir={deletePauta}
+                  onDuplicar={handleDuplicar}
+                  onQuickUpdateTitulo={handleQuickUpdateTitulo}
+                />
+              ) : (
+                <GradeLivreEditor key={eventoId} eventoId={eventoId} pautas={pautasEvento} />
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
-      {/* Modal de momento/pauta */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editando ? 'Editar momento' : form.vendaId ? 'Alocar pauta vendida na grade' : 'Adicionar momento à grade'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Tipo de momento</Label>
-                <Select value={form.tipo} onValueChange={v => setForm({ ...form, tipo: v as TipoMomento })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TIPO_MOMENTO_LABELS).map(([k, label]) => (
-                      <SelectItem key={k} value={k}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Temática macro</Label>
-                <Select value={form.tematicaMacro} onValueChange={v => setForm({ ...form, tematicaMacro: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {TEMATICAS_MACRO.map(t => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs">Pauta específica (título / direcionamento)</Label>
-              <Input
-                value={form.titulo}
-                onChange={e => setForm({ ...form, titulo: e.target.value })}
-                placeholder="Ex.: Liderança de times de alta performance"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Dia</Label>
-                <Input type="date" value={form.dia} onChange={e => setForm({ ...form, dia: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Horário</Label>
-                <Input value={form.horario} onChange={e => setForm({ ...form, horario: e.target.value })} placeholder="Ex.: 14h às 15h30" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Quem ministra</Label>
-                <Select value={form.ministranteTipo} onValueChange={v => setForm({ ...form, ministranteTipo: v as MinistranteTipo })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(MINISTRANTE_TIPO_LABELS).map(([k, label]) => (
-                      <SelectItem key={k} value={k}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Nome do ministrante</Label>
-                <Input value={form.ministranteNome} onChange={e => setForm({ ...form, ministranteNome: e.target.value })} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Parceiro (se houver)</Label>
-                <Input value={form.parceiroNome} onChange={e => setForm({ ...form, parceiroNome: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">CSAT da pauta (0 a 5)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={5}
-                  step={0.1}
-                  value={form.csat}
-                  onChange={e => setForm({ ...form, csat: e.target.value })}
-                  placeholder="Ex.: 4.5"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={salvar}>{editando ? 'Salvar alterações' : 'Adicionar'}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal Inteligente de Adicionar / Editar Momento */}
+      <MomentoDialog
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onSave={salvarMomento}
+        editando={editando}
+        vendaParaAlocar={vendaParaAlocar}
+        evento={evento}
+        sugestaoHorarioInicio={sugestaoInicio}
+        diaPadrao={diaPadraoModal}
+      />
     </div>
   );
 };

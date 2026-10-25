@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Briefcase, Plus, Trash2, CalendarRange } from 'lucide-react';
+import { Briefcase, Plus, Trash2, CalendarRange, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ interface BusinessViewProps {
 
 const BusinessView = ({ selectedYear }: BusinessViewProps) => {
   const { eventos, loading: eventosLoading } = useEventos();
-  const { vendas, loading, getConfig, registrarVenda, deleteVenda } = useGradeConteudo();
+  const { pautas, vendas, loading, getConfig, registrarVenda, deleteVenda } = useGradeConteudo();
 
   const eventosAno = useMemo(
     () => eventos.filter(e => new Date(e.dataInicio + 'T12:00:00').getFullYear() === selectedYear),
@@ -55,7 +55,9 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">VP de Negócios</h1>
-          <p className="text-sm text-muted-foreground">Venda de pautas dos eventos — cotas definidas pela Formação Empreendedora</p>
+          <p className="text-sm text-muted-foreground">
+            Venda de pautas dos eventos — cotas sincronizadas com a grade da Formação Empreendedora
+          </p>
         </div>
         <Button size="sm" onClick={() => abrirModal()} disabled={eventosAno.length === 0}>
           <Plus size={14} className="mr-1" /> Registrar venda
@@ -106,8 +108,13 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
             const vendasEvento = vendas.filter(v => v.eventoId === e.id);
             const vendidasMagnas = vendasEvento.filter(v => v.tipo === 'magna').length;
             const vendidasParalelas = vendasEvento.filter(v => v.tipo === 'paralela').length;
-            const dispMagnas = (config?.magnasVendaveis ?? 0) - vendidasMagnas;
-            const dispParalelas = (config?.paralelasVendaveis ?? 0) - vendidasParalelas;
+            
+            // Cotas totais (sempre pelo menos a quantidade de pautas existentes na grade)
+            const totalMagnas = config.magnasVendaveis;
+            const totalParalelas = config.paralelasVendaveis;
+
+            const dispMagnas = totalMagnas - vendidasMagnas;
+            const dispParalelas = totalParalelas - vendidasParalelas;
 
             return (
               <Card key={e.id}>
@@ -125,19 +132,34 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-purple-500/10 p-3">
-                      <p className="text-xs text-muted-foreground">Pautas magnas</p>
+                    <div className="rounded-lg bg-purple-500/10 p-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground font-medium">Pautas magnas</p>
+                        {config.magnasNaGrade > 0 && (
+                          <Badge variant="outline" className="text-[10px] text-purple-600 border-purple-300">
+                            {config.magnasNaGrade} na grade
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm font-bold text-foreground">
-                        {vendidasMagnas} vendidas / {config?.magnasVendaveis ?? 0} disponíveis
+                        {vendidasMagnas} vendidas / {totalMagnas} disponíveis
                       </p>
                       <p className={`text-xs font-semibold ${dispMagnas > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
                         {dispMagnas > 0 ? `${dispMagnas} restantes` : 'Esgotadas'}
                       </p>
                     </div>
-                    <div className="rounded-lg bg-emerald-500/10 p-3">
-                      <p className="text-xs text-muted-foreground">Pautas paralelas</p>
+
+                    <div className="rounded-lg bg-emerald-500/10 p-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground font-medium">Pautas paralelas</p>
+                        {config.paralelasNaGrade > 0 && (
+                          <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-300">
+                            {config.paralelasNaGrade} na grade
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm font-bold text-foreground">
-                        {vendidasParalelas} vendidas / {config?.paralelasVendaveis ?? 0} disponíveis
+                        {vendidasParalelas} vendidas / {totalParalelas} disponíveis
                       </p>
                       <p className={`text-xs font-semibold ${dispParalelas > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
                         {dispParalelas > 0 ? `${dispParalelas} restantes` : 'Esgotadas'}
@@ -146,9 +168,10 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                   </div>
 
                   {vendasEvento.length > 0 && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 pt-1">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Vendas realizadas:</p>
                       {vendasEvento.map(v => (
-                        <div key={v.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                        <div key={v.id} className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 bg-muted/20">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="text-[10px]">
                               {v.tipo === 'magna' ? 'Magna' : 'Paralela'}
@@ -159,18 +182,13 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                                 R$ {v.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Badge className={v.status === 'alocada'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                            }>
-                              {v.status === 'alocada' ? 'Alocada na grade' : 'Aguardando FE'}
+                            <Badge variant={v.status === 'alocada' ? 'secondary' : 'default'} className="text-[10px]">
+                              {v.status === 'alocada' ? 'Alocada na grade' : 'Aguardando alocação'}
                             </Badge>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteVenda(v.id)}>
-                              <Trash2 size={13} />
-                            </Button>
                           </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteVenda(v.id)}>
+                            <Trash2 size={13} />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -182,7 +200,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
         </div>
       )}
 
-      {/* Modal de venda */}
+      {/* Modal de venda de pauta */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -200,6 +218,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-1">
               <Label className="text-xs">Tipo de pauta</Label>
               <Select value={form.tipo} onValueChange={v => setForm({ ...form, tipo: v as 'magna' | 'paralela' })}>
@@ -210,29 +229,31 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-1">
-              <Label className="text-xs">Parceiro</Label>
+              <Label className="text-xs">Nome do parceiro / empresa</Label>
               <Input
                 value={form.parceiroNome}
                 onChange={e => setForm({ ...form, parceiroNome: e.target.value })}
-                placeholder="Nome do parceiro que comprou a pauta"
+                placeholder="Ex.: Stone, Falconi, Ambev..."
               />
             </div>
+
             <div className="space-y-1">
-              <Label className="text-xs">Valor (R$)</Label>
+              <Label className="text-xs">Valor da cota (R$)</Label>
               <Input
                 type="number"
                 min={0}
-                step={0.01}
+                step={100}
                 value={form.valor}
                 onChange={e => setForm({ ...form, valor: e.target.value })}
-                placeholder="Ex.: 1500.00"
+                placeholder="Ex.: 5000"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={salvar} disabled={!form.eventoId || !form.parceiroNome.trim()}>Registrar venda</Button>
+            <Button onClick={salvar} disabled={!form.parceiroNome.trim()}>Registrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
