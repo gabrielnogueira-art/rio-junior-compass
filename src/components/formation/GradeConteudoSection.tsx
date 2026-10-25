@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Pencil,
   Trash2,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +32,10 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MomentoDialog, MomentoFormValues } from './MomentoDialog';
 import { GradeCronologicaTable } from './GradeCronologicaTable';
+import { GradeTemplatesModal } from './GradeTemplatesModal';
+import { TemplateMomento } from './gradeTemplates';
 import GradeLivreEditor from './GradeLivreEditor';
+import { toast } from '@/hooks/use-toast';
 
 interface GradeConteudoSectionProps {
   selectedYear: number;
@@ -96,6 +100,9 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
   const [sugestaoInicio, setSugestaoInicio] = useState<string>('09:00');
   const [diaPadraoModal, setDiaPadraoModal] = useState<string>('');
 
+  // Modal de Templates / Modelos
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
+
   // Sub-visão dentro da Planilha da Grade (Tabela Dinâmica vs Planilha Matricial)
   const [subVisaoPlanilha, setSubVisaoPlanilha] = useState<'tabela' | 'matricial'>('tabela');
 
@@ -105,13 +112,6 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
     if (sugestaoHora) setSugestaoInicio(sugestaoHora);
     if (diaPre) setDiaPadraoModal(diaPre);
     else if (evento?.dataInicio) setDiaPadraoModal(evento.dataInicio);
-    setModalOpen(true);
-  };
-
-  const abrirNovaPautaComercial = (tipo: 'magna' | 'paralela') => {
-    setEditando(null);
-    setVendaParaAlocar(null);
-    if (evento?.dataInicio) setDiaPadraoModal(evento.dataInicio);
     setModalOpen(true);
   };
 
@@ -181,6 +181,44 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
     setCotasForm(null);
   };
 
+  // Aplicação do Modelo / Template
+  const handleAplicarTemplate = async (momentos: TemplateMomento[], substituir: boolean) => {
+    if (!eventoId) return;
+
+    if (substituir && pautasEvento.length > 0) {
+      // Exclui os momentos existentes
+      for (const p of pautasEvento) {
+        await deletePauta(p.id);
+      }
+    }
+
+    const baseOrdem = substituir ? 0 : pautasEvento.length;
+    const diaEvento = evento?.dataInicio || null;
+
+    // Insere os momentos do template
+    for (let i = 0; i < momentos.length; i++) {
+      const m = momentos[i];
+      await addPauta({
+        eventoId,
+        tipo: m.tipo as any,
+        titulo: m.titulo,
+        tematicaMacro: m.tematicaMacro,
+        dia: diaEvento,
+        horario: m.horario,
+        ministranteTipo: (m.ministranteTipo || null) as any,
+        ministranteNome: m.ministranteNome || '',
+        parceiroNome: m.parceiroNome || '',
+        csat: m.csat ?? null,
+        ordem: baseOrdem + i,
+      });
+    }
+
+    toast({
+      title: 'Modelo aplicado com sucesso!',
+      description: `${momentos.length} momentos foram adicionados à grade e já estão 100% editáveis.`,
+    });
+  };
+
   if (eventosLoading || loading) {
     return <div className="text-center py-12 text-muted-foreground">Carregando grade de conteúdo...</div>;
   }
@@ -230,13 +268,22 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
           )}
         </div>
 
-        <div className="text-xs text-muted-foreground flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Grade & VPNeg 100% conectadas</span>
+        {/* Botão de Templates de Grade */}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+            onClick={() => setTemplatesModalOpen(true)}
+          >
+            <Sparkles size={14} className="text-primary" />
+            <span>Modelos de Grade (Templates)</span>
+          </Button>
         </div>
       </div>
 
-      {/* ABAS: 1ª Pautas e Vendas VPNeg | 2ª Planilha da Grade (Ordem exata pedida pelo usuário) */}
+      {/* ABAS: 1ª Pautas e Vendas VPNeg | 2ª Planilha da Grade */}
       <Tabs defaultValue="comercial" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="comercial" className="gap-2">
@@ -411,11 +458,16 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
                   <Sparkles size={32} className="mx-auto mb-2 opacity-30 text-primary" />
                   <p className="text-sm font-semibold">Nenhuma pauta magna ou paralela cadastrada ainda.</p>
                   <p className="text-xs mt-1">
-                    Adicione pautas magnas ou paralelas para alimentar a interface comercial da VPNeg.
+                    Adicione pautas magnas ou paralelas ou aplique um dos modelos oficiais para preencher a grade.
                   </p>
-                  <Button size="sm" className="mt-3 text-xs" onClick={() => abrirNovoMomento()}>
-                    <Plus size={13} className="mr-1" /> Adicionar momento à grade
-                  </Button>
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => setTemplatesModalOpen(true)}>
+                      <Sparkles size={13} /> Usar Modelo de Grade
+                    </Button>
+                    <Button size="sm" className="text-xs" onClick={() => abrirNovoMomento()}>
+                      <Plus size={13} className="mr-1" /> Adicionar momento
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -503,6 +555,19 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Botão de Modelos de Grade */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10 font-semibold"
+                  onClick={() => setTemplatesModalOpen(true)}
+                  title="Carregar ou salvar templates de grade de conteúdo"
+                >
+                  <Sparkles size={13} />
+                  <span>Modelos de Grade</span>
+                </Button>
+
                 {/* Alternador de visualização Tabela Cronológica vs Matricial */}
                 <div className="hidden sm:flex items-center gap-1 bg-muted p-1 rounded-lg">
                   <Button
@@ -565,6 +630,16 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
         evento={evento}
         sugestaoHorarioInicio={sugestaoInicio}
         diaPadrao={diaPadraoModal}
+      />
+
+      {/* Modal de Modelos / Templates de Referência */}
+      <GradeTemplatesModal
+        open={templatesModalOpen}
+        onOpenChange={setTemplatesModalOpen}
+        pautasAtuais={pautasEvento}
+        nomeEvento={evento?.nome || 'Evento Atual'}
+        dataInicioEvento={evento?.dataInicio}
+        onAplicarTemplate={handleAplicarTemplate}
       />
     </div>
   );
