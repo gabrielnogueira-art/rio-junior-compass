@@ -75,7 +75,7 @@ const Index = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-72 flex flex-col min-h-screen">
+      <div className="flex-1 min-w-0 lg:ml-72 flex flex-col min-h-screen">
         {/* Header with Year Selector */}
         <header className="h-16 bg-card border-b border-border sticky top-0 z-10 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

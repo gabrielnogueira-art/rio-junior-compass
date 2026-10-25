@@ -36,7 +36,7 @@
 - Painel da VPNeg mostra cotas, registra vendas (parceiro, valor) e acompanha alocação
 - Pauta vendida pela VPNeg aparece para a FE alocar na grade; controle de disponíveis atualiza automaticamente
 
-## Fase 7 — Grade de conteúdo livre (EM ANDAMENTO)
+## Fase 7 — Grade de conteúdo livre (CONCLUÍDA)
 - Linhas e colunas editáveis, tópicos livres e colagem de células
 - Páginas por evento, duplicação para preservar versões e salvamento persistente
 - Referências: RJ 74°, ONDE e CentralRio; storytelling do ONDE fora deste escopo
