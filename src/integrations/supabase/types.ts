@@ -621,6 +621,32 @@ export type Database = {
           },
         ]
       }
+      grades_livres: {
+        Row: {
+          evento_id: string
+          paginas: Json
+          updated_at: string
+        }
+        Insert: {
+          evento_id: string
+          paginas?: Json
+          updated_at?: string
+        }
+        Update: {
+          evento_id?: string
+          paginas?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grades_livres_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: true
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       key_results: {
         Row: {
           atual: number
