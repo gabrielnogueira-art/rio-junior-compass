@@ -50,6 +50,13 @@
       "when": 1792885836350,
       "tag": "0006_grade_conteudo_pautas_vendas",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792888046100,
+      "tag": "0007_event_content_workbooks",
+      "breakpoints": true
     }
   ]
 }

@@ -95,11 +95,11 @@ const FormacaoEmpreendedoraView = ({ selectedYear }: FormacaoEmpreendedoraViewPr
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <GraduationCap className="text-primary" size={22} />
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-foreground">Formação Empreendedora</h1>
           <p className="text-sm text-muted-foreground">Demandas de IDV e PF geradas pela Presidência</p>
         </div>

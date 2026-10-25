@@ -20,6 +20,8 @@ import {
 } from '@/hooks/useGradeConteudo';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import GradeLivreEditor from './GradeLivreEditor';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const TIPO_COLORS: Record<string, string> = {
   credenciamento: 'bg-slate-100 text-slate-800 dark:bg-slate-800/40 dark:text-slate-300',
@@ -165,7 +167,11 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
       {/* Seletor de evento */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <Label className="text-sm font-medium shrink-0">Evento:</Label>
-        <Select value={eventoId} onValueChange={setEventoSelecionado}>
+        <Select value={eventoId} onValueChange={id => {
+          if (id !== eventoId && !window.confirm('Trocar de evento? Salve antes as alterações da grade que deseja manter.')) return;
+          setEventoSelecionado(id);
+          setCotasForm(null);
+        }}>
           <SelectTrigger className="w-full sm:w-96">
             <SelectValue placeholder="Selecione o evento" />
           </SelectTrigger>
@@ -185,6 +191,12 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
         )}
       </div>
 
+      <Tabs defaultValue="livre">
+        <TabsList className="mb-4"><TabsTrigger value="livre">Planilha da grade</TabsTrigger><TabsTrigger value="comercial">Pautas e vendas VPNeg</TabsTrigger></TabsList>
+        <TabsContent value="livre" forceMount className="data-[state=inactive]:hidden min-w-0">
+          <GradeLivreEditor key={eventoId} eventoId={eventoId} pautas={pautasEvento} />
+        </TabsContent>
+        <TabsContent value="comercial" className="space-y-6">
       {/* Cotas de pautas vendáveis (interface com VPNeg) */}
       <Card>
         <CardHeader className="pb-3">
@@ -307,6 +319,8 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
         </CardContent>
       </Card>
 
+        </TabsContent>
+      </Tabs>
       {/* Modal de momento/pauta */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
