@@ -34,12 +34,12 @@ export default function RioAssistant({ section, year }: { section: string; year:
     <Button onClick={() => setOpen(true)} className="fixed bottom-6 right-6 z-30 shadow-lg gap-2" aria-label="Abrir assistente Gemini"><MessageCircle />Assistente</Button>
     {open && <aside data-assistant-panel role="dialog" aria-label="Assistente RioJunior" className="fixed z-40 right-0 top-0 h-[100dvh] w-full sm:w-[460px] bg-card text-card-foreground border-l border-border shadow-xl flex flex-col">
       <header className="flex items-center justify-between p-4 border-b border-border shrink-0"><div className="flex gap-3 items-center"><span className="h-10 w-10 grid place-items-center bg-primary text-primary-foreground rounded-md font-bold">RJ</span><div><h2 className="font-bold">Assistente RioJunior</h2><p className="text-xs text-muted-foreground">Gemini · {year}</p></div></div><Button size="icon" variant="ghost" aria-label="Fechar assistente" onClick={() => setOpen(false)}><X /></Button></header>
-      {loadError ? <p role="alert" className="p-4 text-destructive">{loadError}</p> : history && user ? <ChatWindow key={user.id} initial={history} section={section} year={year} /> : <div className="p-4"><Shimmer>Carregando histórico…</Shimmer></div>}
+      {loadError ? <p role="alert" className="p-4 text-destructive">{loadError}</p> : history && user ? <ChatWindow key={user.id} initial={history} section={section} year={year} onHistoryChange={setHistory} /> : <div className="p-4"><Shimmer>Carregando histórico…</Shimmer></div>}
     </aside>}
   </>;
 }
 
-function ChatWindow({ initial, section, year }: { initial: UIMessage[]; section: string; year: number }) {
+function ChatWindow({ initial, section, year, onHistoryChange }: { initial: UIMessage[]; section: string; year: number; onHistoryChange: (messages: UIMessage[]) => void }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
@@ -63,6 +63,7 @@ function ChatWindow({ initial, section, year }: { initial: UIMessage[]; section:
   }), []);
   const { messages, sendMessage, status, stop } = useChat({ messages: initial, transport, onError: error => setError(error.message), onFinish: () => textarea.current?.focus() });
   const busy = status === 'submitted' || status === 'streaming';
+  useEffect(() => { onHistoryChange(messages); }, [messages, onHistoryChange]);
   useEffect(() => { textarea.current?.focus(); }, []);
   async function send(text: string) {
     if (busy || (!text.trim() && !attachment)) return;

@@ -20,7 +20,7 @@ const FinancialProjectionChart = ({ selectedYear }: FinancialProjectionChartProp
     return () => window.removeEventListener('rio-finance-updated', refresh);
   }, []);
   const transacoes = useMemo(() => {
-    const local = movimentacoesService.getAllTransactions().map(item => ({ id: item.id, descricao: item.descricao, valor: item.valorEfetivo, data: item.dataEfetiva, tipo: item.tipo === 'Receita' ? 'entrada' : 'saida', status: 'realizado' }));
+    const local = movimentacoesService.getAllTransactions().filter(item => item.tipo === 'Receita' || item.tipo === 'Despesa').map(item => ({ id: item.id, descricao: item.descricao, valor: item.valorEfetivo, data: item.dataEfetiva, tipo: item.tipo === 'Receita' ? 'entrada' : 'saida', status: 'realizado' }));
     return [...local, ...storedTransacoes.filter(item => item.status === 'projetado' || !local.some(row => row.data === item.data && row.tipo === item.tipo && row.valor === item.valor && row.descricao === item.descricao))];
   }, [storedTransacoes, revision]);
 
