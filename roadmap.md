@@ -49,6 +49,7 @@
 - Pendente: republicação e validação da autorização completa em um cliente externo; a versão hospedada ainda não contém estas ferramentas
 
 ## Pendências futuras
+- Assistente Gemini: chat global, histórico por conta, análise da página e extratos com revisão antes da importação; conectar impactos financeiros aos dados existentes
 - Presidência do Conselho (diretoria ainda placeholder)
 - Integração Google Calendar (requer credenciais OAuth do Google Cloud Console)
 - E-mail transacional (requer domínio próprio configurado)
