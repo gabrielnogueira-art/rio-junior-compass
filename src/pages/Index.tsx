@@ -13,6 +13,8 @@ import PresidencyView from '@/views/PresidencyView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
 import BusinessView from '@/views/BusinessView';
 import UsersAdmin from '@/components/admin/UsersAdmin';
+import { useWebMCP } from 'use-webmcp-tool';
+import { runWebMCPTool } from '@/lib/webmcp-telemetry';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
@@ -21,6 +23,33 @@ const Index = () => {
   const { profile, isAdmin, signOut } = useAuth();
 
   const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
+  const visibleTabs: TabType[] = ['calendar', 'strategic', 'presidency', 'council', 'business', 'operations', 'ddr', 'formation', ...(isAdmin ? ['users' as const] : [])];
+  function changeTab(tab: TabType) {
+    if (typeof tab !== 'string' || !visibleTabs.includes(tab)) throw new Error('Seção indisponível para sua conta.');
+    setActiveTab(tab);
+  }
+  function changeYear(year: number) {
+    if (typeof year !== 'number' || !Number.isInteger(year) || !yearOptions.includes(year)) throw new Error('Ano indisponível no seletor.');
+    setSelectedYear(year);
+  }
+  useWebMCP({
+    name: 'read_current_section',
+    description: 'Consulta a seção e o ano atualmente selecionados no painel RioJunior.',
+    annotations: { readOnlyHint: true },
+    execute: () => runWebMCPTool('read_current_section', () => `Seção: ${activeTab}; ano: ${selectedYear}.`),
+  });
+  useWebMCP({
+    name: 'open_section',
+    description: 'Abre uma seção disponível no menu da RioJunior sem alterar registros.',
+    inputSchema: { type: 'object', properties: { section: { type: 'string', enum: visibleTabs, description: 'Identificador da seção do menu.' } }, required: ['section'] },
+    execute: ({ section }: { section: TabType }) => runWebMCPTool('open_section', () => { changeTab(section); return `Seção selecionada: ${section}.`; }),
+  });
+  useWebMCP({
+    name: 'select_year',
+    description: 'Seleciona um ano disponível no seletor de vigência do painel.',
+    inputSchema: { type: 'object', properties: { year: { type: 'integer', enum: yearOptions, description: 'Ano de vigência disponível.' } }, required: ['year'] },
+    execute: ({ year }: { year: number }) => runWebMCPTool('select_year', () => { changeYear(year); return `Ano selecionado: ${year}.`; }),
+  });
 
   const renderContent = () => {
     switch (activeTab) {
@@ -57,7 +86,7 @@ const Index = () => {
       {/* Sidebar - Desktop */}
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={changeTab}
         isAdmin={isAdmin}
         userName={profile?.nome ?? undefined}
         userEmail={profile?.email ?? undefined}
@@ -69,7 +98,7 @@ const Index = () => {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={changeTab}
         isAdmin={isAdmin}
         onLogout={signOut}
       />
@@ -99,7 +128,7 @@ const Index = () => {
             <div className="relative">
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                onChange={(e) => changeYear(Number(e.target.value))}
                 className="appearance-none bg-primary text-primary-foreground px-4 py-2 pr-8 rounded-lg font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity border-0 focus:ring-2 focus:ring-primary/50 focus:outline-none"
               >
                 {yearOptions.map(year => (
