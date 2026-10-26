@@ -48,6 +48,11 @@
 - Consentimento e retorno seguro do login implementados; testes de aprovação e retorno passaram
 - Pendente: republicação e validação da autorização completa em um cliente externo; a versão hospedada ainda não contém estas ferramentas
 
+## Assistente Gemini — concluído
+- Conversa única por conta disponível em todas as páginas; resposta real e restauração após recarregar verificadas
+- Análise da página e propostas de extrato com revisão e confirmação humana
+- Importação verificada com dois lançamentos: caixa atualizado em R$ 79,75; testes financeiros passaram
+
 ## Pendências futuras
 - Presidência do Conselho (diretoria ainda placeholder)
 - Integração Google Calendar (requer credenciais OAuth do Google Cloud Console)

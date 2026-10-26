@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
+import { movimentacoesService } from '@/services/movimentacoesService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { TrendingUp, Loader2 } from 'lucide-react';
 import { useTransacoes } from '@/hooks/useTransacoes';
@@ -11,7 +12,17 @@ interface FinancialProjectionChartProps {
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const FinancialProjectionChart = ({ selectedYear }: FinancialProjectionChartProps) => {
-  const { transacoes, loading } = useTransacoes();
+  const { transacoes: storedTransacoes, loading } = useTransacoes();
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => setRevision(value => value + 1);
+    window.addEventListener('rio-finance-updated', refresh);
+    return () => window.removeEventListener('rio-finance-updated', refresh);
+  }, []);
+  const transacoes = useMemo(() => {
+    const local = movimentacoesService.getAllTransactions().filter(item => item.tipo === 'Receita' || item.tipo === 'Despesa').map(item => ({ id: item.id, descricao: item.descricao, valor: item.valorEfetivo, data: item.dataEfetiva, tipo: item.tipo === 'Receita' ? 'entrada' : 'saida', status: 'realizado' }));
+    return [...local, ...storedTransacoes.filter(item => item.status === 'projetado' || !local.some(row => row.data === item.data && row.tipo === item.tipo && row.valor === item.valor && row.descricao === item.descricao))];
+  }, [storedTransacoes, revision]);
 
   const chartData = useMemo(() => {
     // Filter transactions for selected year

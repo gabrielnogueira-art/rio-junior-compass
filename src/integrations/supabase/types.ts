@@ -52,6 +52,30 @@ export type Database = {
           },
         ]
       }
+      ai_conversations: {
+        Row: {
+          id: string
+          messages: Json
+          paused_reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          messages?: Json
+          paused_reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          messages?: Json
+          paused_reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       anuidades: {
         Row: {
           ano: number

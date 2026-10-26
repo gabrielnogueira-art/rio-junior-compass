@@ -160,6 +160,12 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
     init();
   }, [loadData, loadTransactions]);
 
+  useEffect(() => {
+    const refresh = () => { loadData(); loadTransactions(); };
+    window.addEventListener('rio-finance-updated', refresh);
+    return () => window.removeEventListener('rio-finance-updated', refresh);
+  }, [loadData, loadTransactions]);
+
   // Handle filter changes
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
