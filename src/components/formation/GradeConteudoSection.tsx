@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,7 +43,7 @@ interface GradeConteudoSectionProps {
 }
 
 const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
-  const { eventos, loading: eventosLoading } = useEventos();
+  const { eventos, loading: eventosLoading, updateEvento } = useEventos();
   const {
     pautas,
     vendas,
@@ -105,6 +106,34 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
 
   // Sub-visão dentro da Planilha da Grade (Tabela Dinâmica vs Planilha Matricial)
   const [subVisaoPlanilha, setSubVisaoPlanilha] = useState<'tabela' | 'matricial'>('tabela');
+
+  // Estado para renomear evento (ex: RJ 74° -> RJ 75°)
+  const [modalRenomearOpen, setModalRenomearOpen] = useState(false);
+  const [novoNomeEvento, setNovoNomeEvento] = useState('');
+  const [renomeando, setRenomeando] = useState(false);
+
+  const handleAbrirRenomear = () => {
+    if (!evento) return;
+    setNovoNomeEvento(evento.nome);
+    setModalRenomearOpen(true);
+  };
+
+  const handleSalvarRenomear = async () => {
+    if (!evento || !novoNomeEvento.trim()) return;
+    setRenomeando(true);
+    try {
+      await updateEvento(evento.id, { nome: novoNomeEvento.trim() });
+      setModalRenomearOpen(false);
+      toast({
+        title: 'Nome do evento atualizado com sucesso!',
+        description: `O evento agora se chama "${novoNomeEvento.trim()}".`,
+      });
+    } catch (err) {
+      console.error('Erro ao renomear evento:', err);
+    } finally {
+      setRenomeando(false);
+    }
+  };
 
   const abrirNovoMomento = (sugestaoHora?: string, diaPre?: string, tipoPre?: string) => {
     setEditando(null);
@@ -195,15 +224,26 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
     const baseOrdem = substituir ? 0 : pautasEvento.length;
     const diaEvento = evento?.dataInicio || null;
 
-    // Insere os momentos do template
+    // Insere os momentos do template com cálculo inteligente de offset de dias (ex: EFEJ 3 dias)
     for (let i = 0; i < momentos.length; i++) {
       const m = momentos[i];
+      let dataMomento = diaEvento;
+      if (diaEvento && typeof m.diaOffset === 'number' && m.diaOffset > 0) {
+        try {
+          const d = new Date(diaEvento + 'T12:00:00');
+          d.setDate(d.getDate() + m.diaOffset);
+          dataMomento = format(d, 'yyyy-MM-dd');
+        } catch {
+          dataMomento = diaEvento;
+        }
+      }
+
       await addPauta({
         eventoId,
         tipo: m.tipo as any,
         titulo: m.titulo,
         tematicaMacro: m.tematicaMacro,
-        dia: diaEvento,
+        dia: dataMomento,
         horario: m.horario,
         ministranteTipo: (m.ministranteTipo || null) as any,
         ministranteNome: m.ministranteNome || '',
@@ -260,11 +300,24 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
             </SelectContent>
           </Select>
           {evento && (
-            <Badge variant="outline" className="w-fit text-xs font-medium">
-              {format(new Date(evento.dataInicio + 'T12:00:00'), "dd/MM", { locale: ptBR })}
-              {evento.dataFim !== evento.dataInicio &&
-                ` a ${format(new Date(evento.dataFim + 'T12:00:00'), "dd/MM", { locale: ptBR })}`}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="w-fit text-xs font-medium">
+                {format(new Date(evento.dataInicio + 'T12:00:00'), "dd/MM", { locale: ptBR })}
+                {evento.dataFim !== evento.dataInicio &&
+                  ` a ${format(new Date(evento.dataFim + 'T12:00:00'), "dd/MM", { locale: ptBR })}`}
+              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs gap-1.5 text-muted-foreground hover:text-foreground font-semibold"
+                onClick={handleAbrirRenomear}
+                title="Editar nome oficial deste evento (ex: RJ 74° -> RJ 75°)"
+              >
+                <Pencil size={13} className="text-primary" />
+                <span>Renomear</span>
+              </Button>
+            </div>
           )}
         </div>
 
@@ -641,6 +694,65 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
         dataInicioEvento={evento?.dataInicio}
         onAplicarTemplate={handleAplicarTemplate}
       />
+
+      {/* Dialog para Renomear Evento (ex: RJ 74° -> RJ 75°) */}
+      <Dialog open={modalRenomearOpen} onOpenChange={setModalRenomearOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil size={18} className="text-primary" />
+              Renomear Evento
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              O número da edição (como <strong>RJ 74°</strong>) refere-se ao total de EJs federadas à RioJunior e evolui com o tempo. Edite o nome oficial do evento abaixo.
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Nome Oficial do Evento</Label>
+              <Input
+                value={novoNomeEvento}
+                onChange={(e) => setNovoNomeEvento(e.target.value)}
+                placeholder="Ex.: RJ 75°, CentralRio 2026, EFEJ 2026..."
+                className="text-sm font-medium"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSalvarRenomear();
+                  }
+                }}
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Nome atual: <strong>{evento?.nome}</strong>
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setModalRenomearOpen(false)}
+              disabled={renomeando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSalvarRenomear}
+              disabled={renomeando || !novoNomeEvento.trim()}
+              className="font-bold gap-1.5"
+            >
+              <Save size={14} />
+              {renomeando ? 'Salvando...' : 'Salvar Novo Nome'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
