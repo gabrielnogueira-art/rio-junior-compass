@@ -57,6 +57,13 @@
       "when": 1792888046100,
       "tag": "0007_event_content_workbooks",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793048580984,
+      "tag": "0008_single_account_ai_conversation",
+      "breakpoints": true
     }
   ]
 }
