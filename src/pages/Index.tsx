@@ -15,6 +15,7 @@ import BusinessView from '@/views/BusinessView';
 import UsersAdmin from '@/components/admin/UsersAdmin';
 import { useWebMCP } from 'use-webmcp-tool';
 import { runWebMCPTool } from '@/lib/webmcp-telemetry';
+import RioAssistant from '@/components/assistant/RioAssistant';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
@@ -141,7 +142,7 @@ const Index = () => {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
+        <main data-assistant-page className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
           {renderContent()}
         </main>
 
@@ -150,6 +151,7 @@ const Index = () => {
           <p>© 2025 RioJunior - Federação de Empresas Juniores do Estado do Rio de Janeiro</p>
         </footer>
       </div>
+      <RioAssistant section={activeTab} year={selectedYear} />
     </div>
   );
 };

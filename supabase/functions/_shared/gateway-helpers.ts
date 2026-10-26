@@ -27,6 +27,7 @@ export function createLovableAiGatewayProvider(
   });
 
   return Object.assign(provider, {
+    fetch: runIdFetch.fetch,
     getRunId: runIdFetch.getRunId,
     waitForRunId: runIdFetch.waitForRunId,
   });
