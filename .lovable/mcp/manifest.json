@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "sdk_version": "3.3.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://rahpfprdnxxfnggunmtk.supabase.co/auth/v1",
+    "require_oauth_client_claim": true,
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "riojunior-pain-l-estrat-gico",
+      "version": "0.1.0",
+      "title": "RioJunior - Painél Estratégico"
+    },
+    "tools": [
+      {
+        "name": "list_eventos",
+        "title": "Consultar calendarização",
+        "description": "Consulta até 100 eventos de um ano, respeitando o acesso do usuário aprovado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ano": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9998,
+              "description": "Ano dos eventos."
+            },
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "Quantidade máxima de eventos."
+            }
+          },
+          "required": [
+            "ano"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_estrategia",
+        "title": "Consultar OKRs e ciclos",
+        "description": "Consulta as OKRs estratégicas e os ciclos de um ano para o usuário aprovado, até 100 registros por grupo.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ano": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9998,
+              "description": "Ano das OKRs e dos ciclos."
+            }
+          },
+          "required": [
+            "ano"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

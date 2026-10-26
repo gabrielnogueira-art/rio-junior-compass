@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import AuthGate from "@/components/AuthGate";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import OAuthConsent from './pages/OAuthConsent';
+import Auth from './pages/Auth';
 
 const queryClient = new QueryClient();
 
@@ -19,6 +21,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<AuthGate><Index /></AuthGate>} />
+            <Route path="/login" element={<Auth />} />
+            <Route path="/.lovable/oauth/consent" element={<AuthGate><OAuthConsent /></AuthGate>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

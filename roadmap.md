@@ -43,6 +43,7 @@
 - Preservar pautas e vendas já cadastradas
 
 ## Pendências futuras
+- Integrações de agentes: preparar MCP protegido, consentimento e ferramentas de navegação; republicação necessária para ativar a versão hospedada
 - Presidência do Conselho (diretoria ainda placeholder)
 - Integração Google Calendar (requer credenciais OAuth do Google Cloud Console)
 - E-mail transacional (requer domínio próprio configurado)

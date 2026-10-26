@@ -3,6 +3,8 @@ import { Mail, Lock, User as UserIcon, Building2, Loader2, CheckCircle2, Sparkle
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 import { useAuth, TIPOS_USUARIO } from '@/hooks/useAuth';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { oauthReturnPath } from '@/lib/oauth-return-path';
 
 interface EJOption {
   id: string;
@@ -10,7 +12,15 @@ interface EJOption {
 }
 
 const Auth = () => {
-  const { loginAsLocalDev, isLocalhost } = useAuth();
+  const { loginAsLocalDev, isLocalhost, session } = useAuth();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const currentPath = window.location.pathname + window.location.search + window.location.hash;
+  const next = oauthReturnPath(params.get('next') ?? (window.location.pathname === '/.lovable/oauth/consent' ? currentPath : '/'));
+  const redirectTo = new URL(next, window.location.origin).href;
+  useEffect(() => {
+    if (session && window.location.pathname === '/login') navigate(next, { replace: true });
+  }, [session, next, navigate]);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -43,7 +53,7 @@ const Auth = () => {
         const { error: supaError } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin,
+            redirectTo,
           },
         });
         if (supaError) {
@@ -54,7 +64,7 @@ const Auth = () => {
       }
 
       const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
+        redirect_uri: redirectTo,
       });
       if (result.error) {
         setError('Não foi possível entrar com o Google. Tente novamente.');
@@ -77,6 +87,8 @@ const Auth = () => {
     setLoading(false);
     if (signInError) {
       setError('E-mail ou senha incorretos. Verifique e tente novamente.');
+    } else {
+      navigate(next, { replace: true });
     }
   };
 
@@ -102,6 +114,7 @@ const Auth = () => {
       email,
       password: senha,
       options: {
+        emailRedirectTo: redirectTo,
         data: {
           nome: nome.trim(),
           tipo_solicitado: tipoSolicitado,
