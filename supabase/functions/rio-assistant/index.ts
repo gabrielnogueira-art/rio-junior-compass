@@ -33,7 +33,7 @@ Deno.serve(async req => {
     const { data: stored, error: readError } = await client.from('ai_conversations').select('*').eq('user_id', userId).maybeSingle();
     if (readError) return fail('Não foi possível carregar seu histórico.', 500);
     if (stored?.paused_reason) return fail(stored.paused_reason, 403);
-    const previous = await validateUIMessages({ messages: Array.isArray(stored?.messages) ? stored.messages : [] });
+    const previous = Array.isArray(stored?.messages) && stored.messages.length ? await validateUIMessages({ messages: stored.messages }) : [];
     const messages: UIMessage[] = [...previous.filter(message => message.id !== last.id), last];
     const { error: saveError } = await client.from('ai_conversations').upsert({ user_id: userId, messages, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
     if (saveError) return fail('Não foi possível salvar sua mensagem.', 500);
