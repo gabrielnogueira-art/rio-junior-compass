@@ -10,10 +10,18 @@ export const proposedMovementSchema = z.object({
 });
 export const proposedBatchSchema = z.array(proposedMovementSchema).min(1).max(500);
 
+export function validatedProposals(value: unknown) {
+  return proposedBatchSchema.parse(value).map(item => {
+    const { data, descricao, valor, tipo, banco, documento } = item;
+    if (data === undefined || descricao === undefined || valor === undefined || tipo === undefined || banco === undefined) throw new Error('Lançamento incompleto.');
+    return { data, descricao, valor, tipo, banco, documento };
+  });
+}
+
 export function movementKey(item: { data: string; descricao: string; valor: number; tipo: string; banco: string; documento?: string | null }) {
   return [item.banco.toLowerCase(), item.data, item.tipo, Math.round(item.valor * 100), item.documento || item.descricao.toLowerCase()].join('|');
 }
-export function uniqueProposals(items: z.infer<typeof proposedMovementSchema>[]) {
+export function uniqueProposals(items: unknown) {
   const seen = new Set<string>();
-  return items.filter(item => { const key = movementKey(item); if (seen.has(key)) return false; seen.add(key); return true; });
+  return validatedProposals(items).filter(item => { const key = movementKey(item); if (seen.has(key)) return false; seen.add(key); return true; });
 }

@@ -10,5 +10,5 @@ test('revisão rejeita datas impossíveis e valores negativos', () => {
   expect(proposedBatchSchema.safeParse([{ ...receita, valor: -10 }]).success).toBe(false);
 });
 test('duplicatas do mesmo extrato não duplicam o caixa', () => {
-  expect(uniqueProposals([receita, receita, { ...receita, banco: 'Bradesco' }])).lengthOf(2);
+  expect(uniqueProposals([receita, receita, { ...receita, banco: 'Bradesco' }])).toHaveLength(2);
 });

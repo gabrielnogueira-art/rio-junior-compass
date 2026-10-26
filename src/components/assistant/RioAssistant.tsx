@@ -72,7 +72,7 @@ function ChatWindow({ initial, section, year }: { initial: UIMessage[]; section:
       let fullText = text;
       if (attachment) {
         if (!attachment.size || attachment.size > 5 * 1024 * 1024) throw new Error('Envie um arquivo não vazio de até 5 MB.');
-        const extension = attachment.name.split('.').at(-1)?.toLowerCase();
+        const extension = attachment.name.split('.').slice(-1)[0]?.toLowerCase();
         if (extension === 'xlsx' || extension === 'xls') {
           const workbook = XLSX.read(await attachment.arrayBuffer(), { type: 'array' });
           fullText += `\nArquivo ${attachment.name}:\n` + workbook.SheetNames.map(name => `${name}\n${XLSX.utils.sheet_to_csv(workbook.Sheets[name])}`).join('\n');

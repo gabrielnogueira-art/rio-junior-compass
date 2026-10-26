@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { proposedBatchSchema, uniqueProposals } from '@/lib/assistant-finance';
+import { proposedBatchSchema, uniqueProposals, validatedProposals } from '@/lib/assistant-finance';
 import { movimentacoesService } from '@/services/movimentacoesService';
 import { BankStatementService } from '@/services/bankStatementService';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,7 +23,7 @@ export function ImportReview({ value }: { value: unknown }) {
     try {
       const { data: profile, error: accessError } = await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle();
       if (accessError || profile?.status !== 'aprovado') throw new Error('Seu acesso precisa estar aprovado.');
-      const checked = proposedBatchSchema.parse(selected);
+      const checked = validatedProposals(selected);
       const banks = movimentacoesService.getTaxonomy().contas;
       const current = movimentacoesService.getAllTransactions();
       const classified = checked.map(item => {
