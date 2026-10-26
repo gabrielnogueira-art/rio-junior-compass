@@ -4,6 +4,7 @@ import rawIniciativas from '@/data/iniciativasData.json';
 import rawCaixaMinimo from '@/data/caixaMinimoData.json';
 import rawAnaliseGeral from '@/data/analiseGeralData.json';
 import rawPlanoContas from '@/data/planoContasData.json';
+import { financialDelta } from '@/lib/finance-impact';
 
 import { 
   MovimentacaoRioJunior, 
@@ -126,7 +127,15 @@ class MovimentacoesService {
   }
 
   public getAnaliseGeral(): AnaliseGeralData {
-    return this.analiseGeral;
+    const delta = financialDelta(this.memoryTransactions, rawTransactions as unknown as MovimentacaoRioJunior[]);
+    const base = this.analiseGeral;
+    return {
+      ...base,
+      saldoAtualConsolidado: base.saldoAtualConsolidado + delta.saldo,
+      variacaoTotal: base.variacaoTotal + delta.saldo,
+      saldosContas: Object.fromEntries(Object.entries(base.saldosContas).map(([bank, saldo]) => [bank, saldo + (delta.bancos[bank] ?? 0)])),
+      indicadoresExecutivos: { ...base.indicadoresExecutivos, receitaTotal: base.indicadoresExecutivos.receitaTotal + delta.receitas, despesaTotal: base.indicadoresExecutivos.despesaTotal + delta.despesas, resultadoTotal: base.indicadoresExecutivos.resultadoTotal + delta.saldo },
+    };
   }
 
   public getPlanoContas(): PlanoContaItem[] {
@@ -134,6 +143,7 @@ class MovimentacoesService {
   }
 
   public async getSummary(): Promise<FinancialSummaryRioJunior> {
+    const analiseAtual = this.getAnaliseGeral();
     const txs = this.memoryTransactions;
     const initialBalances = this.taxonomy.initialBalances || {
       'Asaas': 4679.52,
@@ -198,21 +208,21 @@ class MovimentacoesService {
       .sort((a, b) => b.value - a.value);
 
     // If we have analiseGeral from spreadsheet, use official current balances
-    if (this.analiseGeral && this.analiseGeral.saldosContas) {
-      Object.entries(this.analiseGeral.saldosContas).forEach(([acc, val]) => {
+    if (analiseAtual && analiseAtual.saldosContas) {
+      Object.entries(analiseAtual.saldosContas).forEach(([acc, val]) => {
         if (accountsMap[acc]) {
           accountsMap[acc].saldoAtual = val;
         }
       });
     }
 
-    const saldoAtualConsolidado = this.analiseGeral?.saldoAtualConsolidado || (saldoInicialTotal + (totalReceitas - totalDespesas));
+    const saldoAtualConsolidado = analiseAtual?.saldoAtualConsolidado ?? (saldoInicialTotal + (totalReceitas - totalDespesas));
 
     return {
       saldoInicialTotal,
-      totalReceitas: this.analiseGeral?.indicadoresExecutivos?.receitaTotal || totalReceitas,
-      totalDespesas: this.analiseGeral?.indicadoresExecutivos?.despesaTotal || totalDespesas,
-      resultadoLiquido: this.analiseGeral?.indicadoresExecutivos?.resultadoTotal || (totalReceitas - totalDespesas),
+      totalReceitas: analiseAtual?.indicadoresExecutivos?.receitaTotal ?? totalReceitas,
+      totalDespesas: analiseAtual?.indicadoresExecutivos?.despesaTotal ?? totalDespesas,
+      resultadoLiquido: analiseAtual?.indicadoresExecutivos?.resultadoTotal ?? (totalReceitas - totalDespesas),
       saldoAtualConsolidado,
       totalMovimentacoes: txs.length,
       monthly: Object.values(monthlyMap),
@@ -310,6 +320,7 @@ class MovimentacoesService {
   }
 
   public async getBankAccountsView(): Promise<BankAccountsViewData> {
+    const analiseAtual = this.getAnaliseGeral();
     const txs = this.memoryTransactions;
     const initialBalances = this.taxonomy.initialBalances || {
       'Asaas': 4679.52,
@@ -379,7 +390,7 @@ class MovimentacoesService {
         m.saldoAcumulado = runSaldo;
       });
       accountsData[acc].resultadoTotal = accountsData[acc].totalEntradas - accountsData[acc].totalSaidas;
-      accountsData[acc].saldoAtual = this.analiseGeral?.saldosContas?.[acc] || runSaldo;
+      accountsData[acc].saldoAtual = analiseAtual?.saldosContas?.[acc] ?? runSaldo;
     });
 
     let runConsolidado = initialTotal;
@@ -398,7 +409,7 @@ class MovimentacoesService {
       totalEntradas,
       totalSaidas,
       resultadoConsolidado: totalEntradas - totalSaidas,
-      saldoAtualConsolidado: this.analiseGeral?.saldoAtualConsolidado || runConsolidado,
+      saldoAtualConsolidado: analiseAtual?.saldoAtualConsolidado ?? runConsolidado,
       accounts: accountsData,
       consolidatedMonthly: consolidatedMonths
     };
