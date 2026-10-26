@@ -42,8 +42,13 @@
 - Referências: RJ 74°, ONDE e CentralRio; storytelling do ONDE fora deste escopo
 - Preservar pautas e vendas já cadastradas
 
+## Integrações de agentes — preparação concluída
+- MCP protegido: consultas de eventos, OKRs e ciclos, exigindo usuário aprovado
+- WebMCP: leitura da seção atual, navegação entre seções e seleção do ano
+- Consentimento e retorno seguro do login implementados; testes de aprovação e retorno passaram
+- Pendente: republicação e validação da autorização completa em um cliente externo; a versão hospedada ainda não contém estas ferramentas
+
 ## Pendências futuras
-- Integrações de agentes: preparar MCP protegido, consentimento e ferramentas de navegação; republicação necessária para ativar a versão hospedada
 - Presidência do Conselho (diretoria ainda placeholder)
 - Integração Google Calendar (requer credenciais OAuth do Google Cloud Console)
 - E-mail transacional (requer domínio próprio configurado)
