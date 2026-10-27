@@ -13,6 +13,7 @@ import {
   Settings2,
   HandCoins,
   MapPin
+  ShieldAlert,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
