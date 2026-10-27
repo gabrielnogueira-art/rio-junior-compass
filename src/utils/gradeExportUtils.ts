@@ -80,7 +80,7 @@ export function exportGradeToExcel(
     };
   });
 
-  const ws = XLSX.utils.json_to_sheet(rows, { origin: 'A6' });
+  const ws = XLSX.utils.sheet_add_json(XLSX.utils.aoa_to_sheet([]), rows, { origin: 'A6' });
 
   // Cabeçalho institucional estilizado
   XLSX.utils.sheet_add_aoa(
