@@ -45,6 +45,7 @@ import { TransactionDetailsModal } from '@/components/operations/TransactionDeta
 import FinancialProjectionChart from '@/components/operations/FinancialProjectionChart';
 import AnuidadesSection from '@/components/operations/AnuidadesSection';
 import VisitasGuardioesSection from '@/components/shared/VisitasGuardioesSection';
+import CartoesMembrosTab from '@/components/operations/CartoesMembrosTab';
 
 interface OperationsViewProps {
   selectedYear: number;
@@ -362,6 +363,11 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
             <TabsTrigger value="visitas" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3">
               <MapPin size={14} /> Visitas
             </TabsTrigger>
+
+            <TabsTrigger value="cartoes" className="flex items-center gap-1.5 text-xs font-bold py-2 px-3 text-amber-600 dark:text-amber-400">
+              <ShieldAlert size={14} className="text-amber-500" />
+              <span>Cartões & Membros (OP)</span>
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -459,6 +465,11 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
         {/* Tab 10: Visitas dos Guardiões (interface com DDR) */}
         <TabsContent value="visitas" className="space-y-6">
           <VisitasGuardioesSection selectedYear={selectedYear} modo="op" />
+        </TabsContent>
+
+        {/* Tab 11: Gestão de Membros e Aplicação de Cartões (OP) */}
+        <TabsContent value="cartoes" className="space-y-6">
+          <CartoesMembrosTab />
         </TabsContent>
       </Tabs>
 

@@ -41,6 +41,7 @@ const SidebarItem = ({ icon: Icon, label, active, onClick, badge }: SidebarItemP
 );
 
 interface SidebarProps {
+  onOpenProfile?: () => void;
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   isAdmin?: boolean;
@@ -49,7 +50,7 @@ interface SidebarProps {
   onLogout?: () => void;
 }
 
-const Sidebar = ({ activeTab, setActiveTab, isAdmin, userName, userEmail, onLogout }: SidebarProps) => {
+const Sidebar = ({ activeTab, setActiveTab, isAdmin, userName, userEmail, onLogout, onOpenProfile }: SidebarProps) => {
   return (
     <aside className="hidden lg:flex w-72 flex-col fixed h-full z-20 bg-sidebar border-r border-sidebar-border">
       {/* Logo */}
@@ -132,22 +133,41 @@ const Sidebar = ({ activeTab, setActiveTab, isAdmin, userName, userEmail, onLogo
       </nav>
 
       {/* User Section */}
-      <div className="p-4 m-4 bg-sidebar-accent rounded-xl border border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-sidebar-primary/20 flex items-center justify-center shrink-0">
-            <User size={18} className="text-sidebar-primary" />
+      <div className="p-3 m-3 bg-sidebar-accent rounded-xl border border-sidebar-border hover:border-sidebar-primary/40 transition-colors">
+        <div 
+          onClick={onOpenProfile}
+          className="flex items-center gap-3 cursor-pointer group mb-2"
+          title="Clique para ver seu Perfil e Cartões"
+        >
+          <div className="h-9 w-9 rounded-full bg-sidebar-primary/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform text-sidebar-primary font-bold text-xs">
+            {userName ? userName.charAt(0) : <User size={16} />}
           </div>
           <div className="overflow-hidden flex-1">
-            <p className="text-sm font-bold text-sidebar-foreground truncate">{userName ?? 'Usuário'}</p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">{userEmail ?? ''}</p>
+            <p className="text-xs font-bold text-sidebar-foreground truncate group-hover:text-sidebar-primary transition-colors">
+              {userName ?? "Usuário"}
+            </p>
+            <p className="text-[11px] text-sidebar-foreground/60 truncate">{userEmail ?? ""}</p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 pt-1.5 border-t border-sidebar-border/60">
+          <button
+            onClick={onOpenProfile}
+            type="button"
+            className="flex-1 py-1 px-2 rounded-lg bg-sidebar-primary/10 hover:bg-sidebar-primary/20 text-sidebar-primary text-[11px] font-bold transition-colors flex items-center justify-center gap-1.5"
+            title="Ver meu perfil completo e cartões"
+          >
+            <ShieldAlert size={12} className="text-amber-500" />
+            <span>Meu Perfil & Cartões</span>
+          </button>
+
           {onLogout && (
             <button
               onClick={onLogout}
               title="Sair da conta"
-              className="p-2 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-border transition-colors shrink-0"
+              className="p-1 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-border transition-colors shrink-0"
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
             </button>
           )}
         </div>

@@ -2,6 +2,7 @@ import { X, Calendar, Building2, Settings, GraduationCap, Crown, TrendingUp, Tar
 import { TabType } from '@/types';
 
 interface MobileMenuProps {
+  onOpenProfile?: () => void;
   isOpen: boolean;
   onClose: () => void;
   activeTab: TabType;
@@ -10,7 +11,7 @@ interface MobileMenuProps {
   onLogout?: () => void;
 }
 
-const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab, isAdmin, onLogout }: MobileMenuProps) => {
+const MobileMenu = ({ isOpen, onClose, activeTab, setActiveTab, isAdmin, onLogout, onOpenProfile }: MobileMenuProps) => {
   if (!isOpen) return null;
 
   const handleTabClick = (tab: TabType) => {

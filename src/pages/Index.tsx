@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, ChevronDown } from 'lucide-react';
+import { Menu, ChevronDown, ShieldAlert, User } from 'lucide-react';
 import { TabType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/layout/Sidebar';
@@ -13,6 +13,7 @@ import PresidencyView from '@/views/PresidencyView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
 import BusinessView from '@/views/BusinessView';
 import UsersAdmin from '@/components/admin/UsersAdmin';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useWebMCP } from 'use-webmcp-tool';
 import { runWebMCPTool } from '@/lib/webmcp-telemetry';
 import RioAssistant from '@/components/assistant/RioAssistant';
@@ -21,6 +22,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { profile, isAdmin, signOut } = useAuth();
 
   const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
@@ -92,6 +94,7 @@ const Index = () => {
         userName={profile?.nome ?? undefined}
         userEmail={profile?.email ?? undefined}
         onLogout={signOut}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
       {/* Mobile Menu */}
@@ -102,6 +105,7 @@ const Index = () => {
         setActiveTab={changeTab}
         isAdmin={isAdmin}
         onLogout={signOut}
+        onOpenProfile={() => setIsProfileOpen(true)}
       />
 
       {/* Main Content */}
@@ -123,7 +127,7 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Year Selector */}
+          {/* Year Selector & Profile button */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground hidden sm:inline">Ano de vigência:</span>
             <div className="relative">
@@ -138,6 +142,19 @@ const Index = () => {
               </select>
               <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary-foreground pointer-events-none" />
             </div>
+
+            {/* Botão Perfil & Cartões no Header */}
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card hover:bg-muted border border-border text-xs font-bold text-foreground transition-all shadow-xs"
+              title="Ver Perfil de Usuário, Guilda, Cargo e Cartões"
+            >
+              <div className="h-6 w-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[11px]">
+                {profile?.nome ? profile.nome.charAt(0) : 'U'}
+              </div>
+              <span className="hidden sm:inline">{profile?.nome?.split(' ')[0] || 'Meu Perfil'}</span>
+              <ShieldAlert size={14} className="text-amber-500" />
+            </button>
           </div>
         </header>
 
@@ -151,7 +168,15 @@ const Index = () => {
           <p>© 2025 RioJunior - Federação de Empresas Juniores do Estado do Rio de Janeiro</p>
         </footer>
       </div>
+
       <RioAssistant section={activeTab} year={selectedYear} />
+
+      {/* Modal de Perfil de Usuário Oficial RioJunior */}
+      <UserProfileModal
+        open={isProfileOpen}
+        onOpenChange={setIsProfileOpen}
+        targetMemberEmail={profile?.email || undefined}
+      />
     </div>
   );
 };

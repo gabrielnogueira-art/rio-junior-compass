@@ -37,6 +37,14 @@ import { GradeTemplatesModal } from './GradeTemplatesModal';
 import { TemplateMomento } from './gradeTemplates';
 import GradeLivreEditor from './GradeLivreEditor';
 import { toast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Download, ChevronDown, FileText } from 'lucide-react';
+import { exportGradeToExcel, exportGradeToPDF } from '@/utils/gradeExportUtils';
 
 interface GradeConteudoSectionProps {
   selectedYear: number;
@@ -111,6 +119,85 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
   const [modalRenomearOpen, setModalRenomearOpen] = useState(false);
   const [novoNomeEvento, setNovoNomeEvento] = useState('');
   const [renomeando, setRenomeando] = useState(false);
+
+  
+  // Exportação da Grade em Excel (.xlsx) e PDF (.pdf)
+  const handleExportarExcel = () => {
+    if (!evento) return;
+    try {
+      exportGradeToExcel(evento, pautasEvento, config);
+      toast({
+        title: 'Grade exportada para Excel com sucesso!',
+        description: `O arquivo oficial .xlsx de "${evento.nome}" foi gerado e baixado.`
+      });
+    } catch (err) {
+      console.error('Erro ao exportar Excel:', err);
+      toast({ title: 'Erro ao exportar Excel', variant: 'destructive' });
+    }
+  };
+
+  const handleExportarPDF = () => {
+    if (!evento) return;
+    try {
+      exportGradeToPDF(evento, pautasEvento, config);
+      toast({
+        title: 'Grade exportada para PDF com sucesso!',
+        description: `O documento oficial em PDF de "${evento.nome}" foi gerado com layout RioJunior.`
+      });
+    } catch (err) {
+      console.error('Erro ao exportar PDF:', err);
+      toast({ title: 'Erro ao exportar PDF', variant: 'destructive' });
+    }
+  };
+
+  const ExportGradeDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold shadow-xs"
+          title="Exportar Grade em PDF ou XLSX"
+        >
+          <Download size={13} className="text-emerald-600 dark:text-emerald-400" />
+          <span>Exportar Grade</span>
+          <ChevronDown size={12} className="opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64 p-1 z-50">
+        <DropdownMenuItem
+          onClick={handleExportarPDF}
+          className="flex items-start gap-2.5 p-2 cursor-pointer hover:bg-muted rounded-lg"
+        >
+          <div className="h-8 w-8 rounded-lg bg-rose-500/15 flex items-center justify-center text-rose-600 shrink-0 mt-0.5">
+            <FileText size={16} />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-xs text-foreground">Exportar em PDF (.pdf)</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">
+              Layout oficial RioJunior paisagem para impressão e visualização
+            </span>
+          </div>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={handleExportarExcel}
+          className="flex items-start gap-2.5 p-2 cursor-pointer hover:bg-muted rounded-lg"
+        >
+          <div className="h-8 w-8 rounded-lg bg-emerald-500/15 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+            <FileSpreadsheet size={16} />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-xs text-foreground">Exportar em Excel (.xlsx)</span>
+            <span className="text-[10px] text-muted-foreground leading-tight">
+              Planilha completa com formatação e aba de resumo executivo
+            </span>
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   const handleAbrirRenomear = () => {
     if (!evento) return;
@@ -323,6 +410,7 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
 
         {/* Botão de Templates de Grade */}
         <div className="flex items-center gap-2">
+          <ExportGradeDropdown />
           <Button
             type="button"
             variant="outline"
@@ -608,6 +696,7 @@ const GradeConteudoSection = ({ selectedYear }: GradeConteudoSectionProps) => {
               </div>
 
               <div className="flex items-center gap-2">
+                <ExportGradeDropdown />
                 {/* Botão de Modelos de Grade */}
                 <Button
                   type="button"
