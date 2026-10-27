@@ -9,6 +9,7 @@ import {
   Target,
   Users,
   ShieldCheck,
+  ShieldAlert,
   LogOut
 } from 'lucide-react';
 import { TabType } from '@/types';
