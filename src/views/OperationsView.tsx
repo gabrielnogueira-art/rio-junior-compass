@@ -12,7 +12,7 @@ import {
   FolderTree,
   Settings2,
   HandCoins,
-  MapPin
+  MapPin,
   ShieldAlert,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
