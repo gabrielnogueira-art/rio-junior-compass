@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Target, ChevronDown, ChevronRight, Calendar, Loader2, Award } from 'lucide-react';
 import { OKREstrategica, Objetivo, KeyResult, Ciclo, DIRETORIAS, DIRETORIAS_SIGLAS } from '@/types';
 import { formatCurrency, formatDateString } from '@/utils/formatters';
