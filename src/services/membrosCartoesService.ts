@@ -469,7 +469,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "VPNEG",
-    "cargo": "Executivo de Vendas",
+    "cargo": "Diretor(a) de Negócios",
     "status": "ativo"
   },
   {
@@ -517,7 +517,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "OP",
-    "cargo": "Gestão de Processos",
+    "cargo": "Diretor(a) de Operações",
     "status": "ativo"
   },
   {
@@ -549,7 +549,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "DDR",
-    "cargo": "Aceleração",
+    "cargo": "Diretor(a) de Desenvolvimento da Rede",
     "status": "ativo"
   },
   {
@@ -581,7 +581,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "PRESEX",
-    "cargo": "Presidente Executivo",
+    "cargo": "Diretor(a) - Presidente Executivo",
     "status": "ativo"
   },
   {
@@ -958,6 +958,64 @@ class MembrosCartoesService {
 
     this.notify();
     return newCard;
+  }
+
+  
+  public getCartaoById(id: string): CartaoAdvertencia | undefined {
+    return this.getCartoes().find(c => c.id === id);
+  }
+
+  public updateCartao(cartaoAtualizado: CartaoAdvertencia): void {
+    const list = this.getCartoes();
+    const oldCard = list.find(c => c.id === cartaoAtualizado.id);
+    if (!oldCard) {
+      throw new Error('Cartão não encontrado para atualização.');
+    }
+
+    const previousMemberId = oldCard.membroId;
+    const newMemberId = cartaoAtualizado.membroId;
+
+    // Se o membro mudou, busca o novo membro para sincronizar nome e email
+    let finalCard = { ...cartaoAtualizado };
+    if (newMemberId !== previousMemberId) {
+      const newMembro = this.getMembroById(newMemberId);
+      if (newMembro) {
+        finalCard.membroNome = newMembro.nome;
+        finalCard.membroEmail = newMembro.email;
+      }
+    }
+
+    // Sincroniza gravidade com tipo
+    finalCard.gravidade = finalCard.tipo === 'vermelho' ? 'grave' : 'moderada';
+
+    const updatedList = list.map(c => (c.id === finalCard.id ? finalCard : c));
+    localStorage.setItem(STORAGE_KEY_CARTOES, JSON.stringify(updatedList));
+
+    // Recalcula status do membro atual
+    const membro = this.getMembroById(finalCard.membroId);
+    if (membro) {
+      const stats = this.calculateCardStats(this.getCartoesByMembro(membro.id));
+      let newStatus: MembroRioJunior['status'] = 'ativo';
+      if (stats.isDesligamento) newStatus = 'desligado';
+      else if (stats.totalVermelhos === 1) newStatus = 'critico';
+      else if (stats.amarelosCount > 0) newStatus = 'atencao';
+      this.saveMembro({ ...membro, status: newStatus });
+    }
+
+    // Se mudou de membro, recalcula também o status do membro anterior
+    if (previousMemberId && previousMemberId !== newMemberId) {
+      const prevMembro = this.getMembroById(previousMemberId);
+      if (prevMembro) {
+        const prevStats = this.calculateCardStats(this.getCartoesByMembro(prevMembro.id));
+        let prevStatus: MembroRioJunior['status'] = 'ativo';
+        if (prevStats.isDesligamento) prevStatus = 'desligado';
+        else if (prevStats.totalVermelhos === 1) prevStatus = 'critico';
+        else if (prevStats.amarelosCount > 0) prevStatus = 'atencao';
+        this.saveMembro({ ...prevMembro, status: prevStatus });
+      }
+    }
+
+    this.notify();
   }
 
   public deleteCartao(id: string): void {

@@ -1,5 +1,5 @@
 // src/components/profile/UserProfileModal.tsx
-// Perfil Individual de Usuário da RioJunior com Sistema de Advertências e Cartões
+// Perfil Individual de Usuário da RioJunior com Sistema de Advertências, Cartões Editáveis e Papéis Mapeados
 
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -30,17 +30,21 @@ import {
   FileText,
   Save,
   Pencil,
+  Trash2,
+  Plus,
   Info,
   Clock,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   membrosCartoesService,
   MembroRioJunior,
   CartaoAdvertencia,
-  MembroCardStats
+  MembroCardStats,
+  CardTipo
 } from '@/services/membrosCartoesService';
 import {
   getGuildaInfo,
@@ -61,8 +65,21 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
   const { profile } = useAuth();
   const [membros, setMembros] = useState<MembroRioJunior[]>(membrosCartoesService.getMembros());
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
+  
+  // Edição dos dados cadastrais do membro
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<MembroRioJunior>>({});
+
+  // Gerenciamento e edição de cartões disciplinares
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [cardForm, setCardForm] = useState({
+    tipo: 'amarelo' as CardTipo,
+    categoria: 'Falta em Reunião Geral (RV)',
+    motivo: '',
+    data: new Date().toISOString().split('T')[0],
+    observacoes: ''
+  });
 
   // Atualiza lista caso haja alterações no serviço
   useEffect(() => {
@@ -78,6 +95,8 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
   useEffect(() => {
     if (!open) {
       setIsEditing(false);
+      setIsCardModalOpen(false);
+      setEditingCardId(null);
       return;
     }
     // Procura membro por e-mail
@@ -99,7 +118,7 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
   const memberCards = useMemo(() => {
     if (!currentMember) return [];
     return membrosCartoesService.getCartoesByMembro(currentMember.id);
-  }, [currentMember]);
+  }, [currentMember, membros]);
 
   const stats: MembroCardStats = useMemo(() => {
     return membrosCartoesService.calculateCardStats(memberCards);
@@ -114,7 +133,33 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
     return getObjetivoPapel(currentMember.guilda, currentMember.cargo);
   }, [currentMember]);
 
-  // Iniciar edição
+  // Prévia do impacto para adição/edição de cartão no perfil
+  const cardImpactPreview = useMemo(() => {
+    if (!stats) return null;
+    if (cardForm.tipo === 'vermelho') {
+      const nextV = stats.totalVermelhos + (editingCardId ? 0 : 1);
+      return {
+        willDismiss: nextV >= 2,
+        desc: nextV >= 2
+          ? '⚠️ ATENÇÃO: Resultará em 2 cartões vermelhos (DESLIGAMENTO DA RIOJUNIOR)!'
+          : 'Membro ficará em Status Crítico (1 Cartão Vermelho).'
+      };
+    } else {
+      if (stats.amarelosCount === 1 && !editingCardId) {
+        const nextV = stats.totalVermelhos + 1;
+        return {
+          willDismiss: nextV >= 2,
+          desc: '🔄 2º Amarelo: converte automaticamente em +1 Vermelho.' + (nextV >= 2 ? ' Resultará em DESLIGAMENTO!' : ' Membro entrará em Status Crítico.')
+        };
+      }
+      return {
+        willDismiss: false,
+        desc: 'Infração Moderada: Cartão Amarelo registrado.'
+      };
+    }
+  }, [stats, cardForm.tipo, editingCardId]);
+
+  // Iniciar edição de dados cadastrais
   const handleStartEdit = () => {
     if (!currentMember) return;
     setEditForm({
@@ -133,72 +178,197 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
     setIsEditing(true);
   };
 
-  // Salvar edição
+  // Salvar dados cadastrais
   const handleSaveEdit = () => {
     if (!currentMember) return;
+    if (!editForm.nome?.trim() || !editForm.email?.trim()) {
+      toast({
+        title: 'Nome e E-mail são obrigatórios!',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     const updated: MembroRioJunior = {
       ...currentMember,
-      nome: editForm.nome || currentMember.nome,
-      email: editForm.email || currentMember.email,
-      guilda: (editForm.guilda as GuildaKey) || currentMember.guilda,
-      cargo: editForm.cargo || currentMember.cargo,
-      cpf: editForm.cpf || currentMember.cpf,
-      identidade: editForm.identidade || currentMember.identidade,
-      orgaoExpedidor: editForm.orgaoExpedidor || currentMember.orgaoExpedidor,
-      endereco: editForm.endereco || currentMember.endereco,
-      nacionalidade: editForm.nacionalidade || currentMember.nacionalidade,
-      estadoCivil: editForm.estadoCivil || currentMember.estadoCivil,
-      profissao: editForm.profissao || currentMember.profissao
+      ...editForm,
+      nome: editForm.nome.trim(),
+      email: editForm.email.trim().toLowerCase(),
+      guilda: editForm.guilda || currentMember.guilda,
+      cargo: editForm.cargo || currentMember.cargo
     };
+
     membrosCartoesService.saveMembro(updated);
     setIsEditing(false);
     toast({
-      title: 'Dados cadastrais atualizados!',
-      description: 'As informações do seu perfil foram gravadas com sucesso.'
+      title: 'Perfil atualizado com sucesso!',
+      description: 'As alterações cadastrais foram salvas.'
     });
+  };
+
+  // Abrir modal para adicionar cartão a esta pessoa
+  const handleOpenAddCard = () => {
+    if (!currentMember) return;
+    setEditingCardId(null);
+    setCardForm({
+      tipo: 'amarelo',
+      categoria: 'Falta em Reunião Geral (RV)',
+      motivo: '',
+      data: new Date().toISOString().split('T')[0],
+      observacoes: ''
+    });
+    setIsCardModalOpen(true);
+  };
+
+  // Abrir modal para editar cartão existente desta pessoa
+  const handleOpenEditCard = (card: CartaoAdvertencia) => {
+    setEditingCardId(card.id);
+    setCardForm({
+      tipo: card.tipo,
+      categoria: card.categoria,
+      motivo: card.motivo,
+      data: card.data,
+      observacoes: card.observacoes || ''
+    });
+    setIsCardModalOpen(true);
+  };
+
+  // Excluir / Revogar cartão disciplinar
+  const handleDeleteCard = (cardId: string) => {
+    const card = membrosCartoesService.getCartaoById(cardId);
+    const desc = card ? `"${card.motivo}"` : 'este cartão';
+    if (confirm(`Deseja realmente revogar/excluir ${desc}?`)) {
+      membrosCartoesService.deleteCartao(cardId);
+      toast({
+        title: 'Cartão revogado com sucesso!',
+        description: 'O registro foi removido e os indicadores foram recalculados.'
+      });
+    }
+  };
+
+  // Submeter adição ou edição de cartão
+  const handleSaveCardSubmit = () => {
+    if (!currentMember) return;
+    if (!cardForm.motivo.trim()) {
+      toast({
+        title: 'Preencha o motivo circunstanciado da infração!',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      if (editingCardId) {
+        const existing = membrosCartoesService.getCartaoById(editingCardId);
+        if (existing) {
+          membrosCartoesService.updateCartao({
+            ...existing,
+            membroId: currentMember.id,
+            membroNome: currentMember.nome,
+            membroEmail: currentMember.email,
+            tipo: cardForm.tipo,
+            categoria: cardForm.categoria,
+            motivo: cardForm.motivo.trim(),
+            data: cardForm.data,
+            observacoes: cardForm.observacoes.trim() || undefined
+          });
+          toast({
+            title: 'Cartão atualizado com sucesso!',
+            description: 'Os detalhes do cartão foram salvos e o status recalculado.'
+          });
+        }
+      } else {
+        membrosCartoesService.aplicarCartao({
+          membroId: currentMember.id,
+          tipo: cardForm.tipo,
+          categoria: cardForm.categoria,
+          motivo: cardForm.motivo.trim(),
+          data: cardForm.data,
+          observacoes: cardForm.observacoes.trim() || undefined,
+          aplicadoPor: 'Guilda de Operações (OP)'
+        });
+        toast({
+          title: `Cartão ${cardForm.tipo === 'vermelho' ? 'Vermelho' : 'Amarelo'} aplicado!`,
+          description: `A advertência foi atribuída a ${currentMember.nome}.`
+        });
+      }
+
+      setIsCardModalOpen(false);
+      setEditingCardId(null);
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao salvar cartão',
+        description: err.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   if (!currentMember) return null;
 
+  const isDiretoria =
+    currentMember.cargo.toLowerCase().includes('diretor') ||
+    currentMember.cargo.toLowerCase().includes('presidente');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 border-sidebar-border bg-card">
-        {/* Top Header com Tema RioJunior */}
-        <div className="relative bg-gradient-to-r from-[#0f1c35] via-[#16274b] to-[#1e3a8a] p-6 text-white border-b border-primary/20">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto p-0 gap-0">
+        {/* ========================================================
+            HEADER DO PERFIL
+            ======================================================== */}
+        <div className="relative bg-gradient-to-r from-primary/10 via-primary/5 to-amber-500/10 p-6 border-b border-border">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-xl ring-4 ring-white/10 shrink-0">
-                {currentMember.nome ? currentMember.nome.charAt(0) : 'U'}
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary text-primary-foreground font-black text-2xl flex items-center justify-center shadow-md shrink-0">
+                {currentMember.nome.charAt(0)}
               </div>
-              <div>
+              <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl font-bold text-white tracking-tight">{currentMember.nome}</h2>
-                  <Badge className="bg-amber-400 text-slate-950 font-bold hover:bg-amber-300 text-[11px]">
-                    {guildaInfo.sigla}
-                  </Badge>
+                  <h3 className="text-xl font-black text-foreground">{currentMember.nome}</h3>
+                  {isDiretoria && (
+                    <Badge className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] gap-1 shadow-xs">
+                      👑 Diretoria Executiva
+                    </Badge>
+                  )}
+                  {stats.isDesligamento ? (
+                    <Badge variant="destructive" className="font-bold text-[10px] animate-pulse">
+                      Desligamento Formal (2 Vermelhos)
+                    </Badge>
+                  ) : stats.totalVermelhos === 1 ? (
+                    <Badge className="bg-rose-500 text-white font-bold text-[10px]">
+                      Status Crítico (1 Vermelho)
+                    </Badge>
+                  ) : stats.amarelosCount > 0 ? (
+                    <Badge className="bg-amber-400 text-slate-950 font-bold text-[10px]">
+                      Status Atenção ({stats.amarelosCount} Amarelo)
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 text-[10px] font-bold">
+                      Conforme
+                    </Badge>
+                  )}
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-300 mt-1 flex-wrap">
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Mail size={13} className="text-amber-400" />
-                    {currentMember.email}
+                    <Mail size={12} /> {currentMember.email}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Briefcase size={13} className="text-amber-400" />
-                    {currentMember.cargo}
+                  <span className="flex items-center gap-1 font-semibold text-foreground">
+                    <Building2 size={12} className="text-primary" /> {guildaInfo.nome} ({currentMember.guilda})
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Alternador de Membro (para visualização/teste da plataforma) */}
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-2.5 border border-white/15 max-w-xs shrink-0">
-              <Label className="text-[10px] text-amber-200 uppercase font-bold tracking-wider block mb-1">
-                Visualizar Membro (Vinculado por e-mail):
+            {/* Alternador de Perfil para visualização de outros membros */}
+            <div className="sm:text-right shrink-0">
+              <Label className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">
+                Visualizar Membro:
               </Label>
-              <Select value={selectedMemberId} onValueChange={(id) => { setSelectedMemberId(id); setIsEditing(false); }}>
-                <SelectTrigger className="h-8 text-xs bg-slate-900/60 text-white border-white/20">
-                  <SelectValue placeholder="Selecione um membro" />
+              <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                <SelectTrigger className="h-8 text-xs w-48 bg-background/80">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
                   {membros.map(m => (
@@ -212,94 +382,61 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
           </div>
         </div>
 
-        {/* Corpo do Perfil */}
+        {/* ========================================================
+            CORPO DO MODAL: SISTEMA DISCIPLINAR + DADOS
+            ======================================================== */}
         <div className="p-6 space-y-6">
-          {/* Card Principal de Advertências e Cartões (Regras da RioJunior) */}
-          <div className="rounded-2xl border border-border p-5 bg-gradient-to-br from-card to-muted/20 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
-                  <ShieldAlert size={18} className="text-amber-500" />
-                  Sistema de Advertências da RioJunior
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Acompanhamento individual de cartões atribuídos pela Guilda de Operações (OP).
+          {/* PAINEL DISCIPLINAR DA PESSOA (SISTEMA DE CARTÕES) */}
+          <div className="rounded-2xl border border-border bg-gradient-to-br from-card to-muted/20 p-4 space-y-4 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={18} className="text-amber-500" />
+                <h4 className="text-sm font-bold text-foreground">
+                  Prontuário Disciplinar & Sistema de Advertências
+                </h4>
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono self-start sm:self-auto">
+                Estatuto e Regimento RioJunior
+              </Badge>
+            </div>
+
+            {/* Cards dos Contadores */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              {/* Cartões Amarelos */}
+              <div className="p-3 rounded-xl border border-amber-300/50 bg-amber-500/10 text-center space-y-1">
+                <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider block">
+                  Cartões Amarelos
+                </span>
+                <div className="text-2xl font-black text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5">
+                  <div className="w-3.5 h-5 bg-amber-400 rounded-xs shadow-xs" />
+                  <span>{stats.amarelosCount}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Infração Moderada
                 </p>
               </div>
 
-              {/* Status do Membro Badge */}
-              <div className="flex items-center gap-2">
-                {stats.isDesligamento ? (
-                  <Badge variant="destructive" className="px-3 py-1 text-xs gap-1.5 animate-pulse">
-                    <XCircle size={14} /> Desligamento da RioJunior
-                  </Badge>
-                ) : stats.totalVermelhos === 1 ? (
-                  <Badge className="bg-rose-500 hover:bg-rose-600 text-white px-3 py-1 text-xs gap-1.5">
-                    <AlertTriangle size={14} /> Alerta Crítico (1 Vermelho)
-                  </Badge>
-                ) : stats.amarelosCount > 0 ? (
-                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 text-xs gap-1.5">
-                    <AlertTriangle size={14} /> Em Atenção ({stats.amarelosCount} Amarelo)
-                  </Badge>
-                ) : (
-                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-xs gap-1.5">
-                    <CheckCircle2 size={14} /> Regular / Conforme
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Painel de Contadores de Cartões */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-              {/* Cartões Amarelos (Infrações Moderadas) */}
-              <div className="rounded-xl border border-amber-300 dark:border-amber-900/60 bg-amber-500/10 p-4 relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
-                    Cartões Amarelos
-                  </span>
-                  <div className="w-4 h-6 rounded-xs bg-amber-400 shadow-sm border border-amber-600"></div>
+              {/* Cartões Vermelhos Totais */}
+              <div className="p-3 rounded-xl border border-rose-300/50 bg-rose-500/10 text-center space-y-1">
+                <span className="text-[10px] text-rose-800 dark:text-rose-300 font-bold uppercase tracking-wider block">
+                  Cartões Vermelhos
+                </span>
+                <div className="text-2xl font-black text-rose-600 dark:text-rose-400 flex items-center justify-center gap-1.5">
+                  <div className="w-3.5 h-5 bg-rose-500 rounded-xs shadow-xs" />
+                  <span>{stats.totalVermelhos}</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-amber-900 dark:text-amber-200">
-                    {stats.amarelosCount}
-                  </span>
-                  <span className="text-xs text-amber-700 dark:text-amber-400">
-                    {stats.amarelosCount === 1 ? 'infração moderada' : 'infrações moderadas'}
-                  </span>
-                </div>
-                {stats.vermelhosConvertidos > 0 && (
-                  <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-1 font-medium">
-                    ⚡ {stats.vermelhosConvertidos * 2} amarelos viraram {stats.vermelhosConvertidos} vermelho
-                  </p>
-                )}
-              </div>
-
-              {/* Cartões Vermelhos (Infrações Graves + Conversões) */}
-              <div className="rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-500/10 p-4 relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wide">
-                    Cartões Vermelhos
-                  </span>
-                  <div className="w-4 h-6 rounded-xs bg-rose-500 shadow-sm border border-rose-700"></div>
-                </div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-rose-900 dark:text-rose-200">
-                    {stats.totalVermelhos}
-                  </span>
-                  <span className="text-xs text-rose-700 dark:text-rose-400">
-                    de 2 máximos permitidos
-                  </span>
-                </div>
-                <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-1 font-medium">
-                  {stats.vermelhosDiretosCount} diretos + {stats.vermelhosConvertidos} por conversão
+                <p className="text-[10px] text-muted-foreground">
+                  {stats.vermelhosConvertidos > 0
+                    ? `(${stats.vermelhosDiretosCount} direto + ${stats.vermelhosConvertidos} por 2 amarelos)`
+                    : 'Infração Grave'}
                 </p>
               </div>
 
               {/* Medidor de Limite para Desligamento */}
-              <div className="sm:col-span-2 rounded-xl border border-border bg-card p-4 flex flex-col justify-between">
+              <div className="sm:col-span-2 rounded-xl border border-border bg-card p-3 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                    <span className="text-foreground">Escala para Desligamento Formal</span>
+                  <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                    <span className="text-foreground">Escala para Desligamento</span>
                     <span className={stats.totalVermelhos >= 2 ? 'text-destructive font-bold' : 'text-muted-foreground'}>
                       {stats.totalVermelhos} / 2 Vermelhos
                     </span>
@@ -319,21 +456,33 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
                   </div>
                 </div>
 
-                <div className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
-                  <strong>Regra Regulamentar:</strong> 2 cartões amarelos convertem em 1 vermelho. O acúmulo de 2 cartões vermelhos resulta no <strong>desligamento da RioJunior</strong>.
+                <div className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+                  <strong>Regra RioJunior:</strong> 2 amarelos = 1 vermelho. 2 vermelhos = <strong>desligamento formal</strong>.
                 </div>
               </div>
             </div>
 
-            {/* Histórico Detalhado dos Cartões Desta Pessoa */}
+            {/* Histórico Detalhado dos Cartões Desta Pessoa com Ações */}
             <div className="pt-2">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                Histórico de Aplicações ({memberCards.length})
-              </h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Histórico de Aplicações ({memberCards.length})
+                </h4>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs gap-1 border-amber-300 dark:border-amber-700/60 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                  onClick={handleOpenAddCard}
+                >
+                  <Plus size={12} />
+                  <span>Adicionar Cartão</span>
+                </Button>
+              </div>
+
               {memberCards.length === 0 ? (
                 <div className="p-4 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground bg-muted/20">
                   <CheckCircle2 size={24} className="mx-auto mb-1.5 text-emerald-500 opacity-60" />
-                  Nenhum cartão ou advertência registrado para este membro. Excelente conduta!
+                  Nenhum cartão disciplinar registrado para este membro. Excelente conduta!
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -355,7 +504,7 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-foreground">
-                              {c.tipo === 'vermelho' ? 'Cartão Vermelho (Infração Grave)' : 'Cartão Amarelo (Infração Moderada)'}
+                              {c.tipo === 'vermelho' ? 'Cartão Vermelho (Grave)' : 'Cartão Amarelo (Moderada)'}
                             </span>
                             <Badge variant="outline" className="text-[10px] py-0 px-1.5">
                               {c.categoria}
@@ -370,9 +519,33 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
                         </div>
                       </div>
 
-                      <div className="sm:text-right shrink-0 text-muted-foreground text-[11px]">
-                        <div>📅 {c.data}</div>
-                        <div className="text-primary font-medium">{c.aplicadoPor}</div>
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0">
+                        <div className="text-muted-foreground text-[11px] text-right">
+                          <div>📅 {c.data}</div>
+                          <div className="text-primary font-medium">{c.aplicadoPor}</div>
+                        </div>
+
+                        {/* Botões de Ação para o Cartão */}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={() => handleOpenEditCard(c)}
+                            title="Editar detalhes do cartão"
+                          >
+                            <Pencil size={13} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteCard(c.id)}
+                            title="Remover / Excluir cartão"
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -384,11 +557,11 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
           {/* Abas de Dados da Guilda, Papel e Informações Cadastrais */}
           <Tabs defaultValue="papel" className="w-full">
             <TabsList className="w-full grid grid-cols-2">
-              <TabsTrigger value="papel" className="gap-2">
+              <TabsTrigger value="papel" className="gap-2 text-xs">
                 <Briefcase size={14} />
                 <span>Guilda & Frente de Atuação</span>
               </TabsTrigger>
-              <TabsTrigger value="cadastro" className="gap-2">
+              <TabsTrigger value="cadastro" className="gap-2 text-xs">
                 <IdCard size={14} />
                 <span>Dados Cadastrais & Contato</span>
               </TabsTrigger>
@@ -413,11 +586,20 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
                 <div className="rounded-xl border border-border p-4 bg-card space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs text-muted-foreground uppercase font-bold">Cargo / Frente Mapeada</Label>
-                    <Badge variant="secondary" className="text-[10px]">
-                      Mapeamento 2027
-                    </Badge>
+                    {isDiretoria ? (
+                      <Badge className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px]">
+                        👑 Diretoria
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px]">
+                        Mapeamento 2027
+                      </Badge>
+                    )}
                   </div>
-                  <h4 className="text-base font-bold text-foreground">{currentMember.cargo}</h4>
+                  <h4 className="text-base font-bold text-foreground flex items-center gap-1.5">
+                    {isDiretoria && <Crown size={14} className="text-amber-500 shrink-0" />}
+                    <span>{currentMember.cargo}</span>
+                  </h4>
                   <p className="text-xs text-muted-foreground">
                     Atuação estratégica alinhada ao organograma oficial da Federação.
                   </p>
@@ -512,10 +694,10 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
                       <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-60">
                         {getPapeisByGuilda(editForm.guilda || currentMember.guilda).map(p => (
                           <SelectItem key={p.nome} value={p.nome} className="text-xs">
-                            {p.nome}
+                            {p.isDiretoria ? `👑 ${p.nome} (Diretoria)` : p.nome}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -597,6 +779,148 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* ========================================================
+          SUB-MODAL: ADIÇÃO OU EDIÇÃO DE CARTÃO NO PERFIL
+          ======================================================== */}
+      <Dialog open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert size={18} className={cardForm.tipo === 'vermelho' ? 'text-rose-500' : 'text-amber-500'} />
+              {editingCardId ? 'Editar Detalhes do Cartão' : `Aplicar Cartão a ${currentMember.nome}`}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              {editingCardId
+                ? 'Modifique o motivo circunstanciado, data, categoria ou gravidade.'
+                : 'Lançamento com efeito direto no prontuário disciplinar do membro.'}
+            </p>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            {/* Tipo do Cartão */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Tipo de Cartão</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCardForm({ ...cardForm, tipo: 'amarelo' })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    cardForm.tipo === 'amarelo'
+                      ? 'border-amber-400 bg-amber-500/10 ring-2 ring-amber-400/20'
+                      : 'border-border bg-card opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="w-2.5 h-3.5 bg-amber-400 rounded-xs shadow-xs" />
+                    <span className="font-bold text-foreground text-xs">Amarelo</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Moderada</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCardForm({ ...cardForm, tipo: 'vermelho' })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    cardForm.tipo === 'vermelho'
+                      ? 'border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/20'
+                      : 'border-border bg-card opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="w-2.5 h-3.5 bg-rose-500 rounded-xs shadow-xs" />
+                    <span className="font-bold text-foreground text-xs">Vermelho</span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">Grave</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Categoria */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Categoria da Ocorrência</Label>
+              <Select
+                value={cardForm.categoria}
+                onValueChange={val => setCardForm({ ...cardForm, categoria: val })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Falta em Reunião Geral (RV)" className="text-xs">Falta em Reunião Geral (RV)</SelectItem>
+                  <SelectItem value="Descumprimento de SLA / Entrega" className="text-xs">Descumprimento de SLA / Entrega</SelectItem>
+                  <SelectItem value="Comportamental / Clima" className="text-xs">Comportamental / Clima</SelectItem>
+                  <SelectItem value="Violação Estatutária" className="text-xs">Violação Estatutária</SelectItem>
+                  <SelectItem value="Quebra de Confidencialidade" className="text-xs">Quebra de Confidencialidade</SelectItem>
+                  <SelectItem value="Ausência em Evento Obrigatório" className="text-xs">Ausência em Evento Obrigatório</SelectItem>
+                  <SelectItem value="Outros" className="text-xs">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Motivo Circunstanciado */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Motivo Circunstanciado</Label>
+              <Input
+                placeholder="Descreva o motivo detalhado da infração..."
+                value={cardForm.motivo}
+                onChange={e => setCardForm({ ...cardForm, motivo: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Data */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Data da Ocorrência</Label>
+              <Input
+                type="date"
+                value={cardForm.data}
+                onChange={e => setCardForm({ ...cardForm, data: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Observações */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Observações (Opcional)</Label>
+              <Input
+                placeholder="Observações complementares..."
+                value={cardForm.observacoes}
+                onChange={e => setCardForm({ ...cardForm, observacoes: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Impacto */}
+            {cardImpactPreview && (
+              <div className={`p-2.5 rounded-lg border text-xs ${
+                cardImpactPreview.willDismiss
+                  ? 'border-rose-300 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                  : 'border-amber-300 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+              }`}>
+                <div className="font-bold flex items-center gap-1 mb-0.5">
+                  <AlertTriangle size={13} />
+                  Impacto Disciplinar:
+                </div>
+                <p>{cardImpactPreview.desc}</p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsCardModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveCardSubmit}
+              className={cardForm.tipo === 'vermelho' ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold'}
+            >
+              {editingCardId ? 'Salvar Alterações' : 'Aplicar Cartão'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
