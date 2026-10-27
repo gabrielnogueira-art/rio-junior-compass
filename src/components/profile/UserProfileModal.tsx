@@ -90,7 +90,7 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
   }, []);
 
   // Identifica o membro vinculado pelo e-mail
-  const loggedEmail = targetMemberEmail || profile?.email || 'presidencia@riojunior.com.br';
+  const loggedEmail = targetMemberEmail || profile?.email || 'gabriel.nogueira@riojunior.com.br';
 
   useEffect(() => {
     if (!open) {

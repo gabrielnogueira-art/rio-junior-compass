@@ -1,6 +1,5 @@
 // src/services/membrosCartoesService.ts
-// Sistema de Gestão de Membros e Aplicação de Cartões (Advertências) da RioJunior
-// Gerenciado pela Guilda de Operações (OP)
+// Servico oficial de gerenciamento de membros da RioJunior e sistema disciplinar de cartoes
 
 import { GuildaKey } from '@/data/rolesGuildasData';
 
@@ -33,7 +32,7 @@ export interface CartaoAdvertencia {
   gravidade: CardGravidade;
   motivo: string;
   categoria: string;
-  data: string; // YYYY-MM-DD
+  data: string;
   aplicadoPor: string;
   observacoes?: string;
 }
@@ -43,19 +42,13 @@ export interface MembroCardStats {
   vermelhosDiretosCount: number;
   vermelhosConvertidos: number;
   totalVermelhos: number;
-  amarelosRestantes: number;
   isDesligamento: boolean;
-  statusLabel: string;
-  statusColor: string;
-  riscoNivel: 'regular' | 'atencao' | 'critico' | 'desligamento';
-  descricaoRegra: string;
 }
 
-const STORAGE_KEY_MEMBROS = 'riojunior_membros_v1';
-const STORAGE_KEY_CARTOES = 'riojunior_cartoes_v1';
+const STORAGE_KEY_MEMBROS = 'riojunior_membros_v3';
+const STORAGE_KEY_CARTOES = 'riojunior_cartoes_v3';
 
-// Seed oficial dos 43 membros da RioJunior extraídos de [RIOJUNIOR] Dados de Membros 2026.xlsx
-const INITIAL_MEMBROS: MembroRioJunior[] = [
+export const INITIAL_MEMBROS: MembroRioJunior[] = [
   {
     "id": "mem_001",
     "nome": "Adrielle Macedo Coutinho",
@@ -69,8 +62,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "FE",
-    "cargo": "Experiência e Infraestrutura de Eventos",
-    "status": "ativo"
+    "cargo": "Estratégia de Comunicação",
+    "status": "atencao"
   },
   {
     "id": "mem_002",
@@ -84,8 +77,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "FE",
-    "cargo": "Coordenadoria Geral do EFEJ",
+    "guilda": "DDR",
+    "cargo": "Diretor(a) de Desenvolvimento da Rede",
     "status": "ativo"
   },
   {
@@ -100,9 +93,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "FE",
-    "cargo": "Coordenadoria de Operações do EFEJ",
-    "status": "ativo"
+    "guilda": "OP",
+    "cargo": "Financeiro",
+    "status": "atencao"
   },
   {
     "id": "mem_004",
@@ -116,8 +109,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Mercado",
+    "guilda": "DDR",
+    "cargo": "Regulamentação da Rede",
     "status": "ativo"
   },
   {
@@ -132,9 +125,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Relações Públicas",
-    "status": "ativo"
+    "guilda": "FE",
+    "cargo": "Coordenadoria de Comunicação do EFEJ",
+    "status": "atencao"
   },
   {
     "id": "mem_006",
@@ -148,9 +141,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "FE",
-    "cargo": "Coordenadoria Geral do EFEJ",
-    "status": "ativo"
+    "guilda": "PRESCON",
+    "cargo": "Presidente do Conselho",
+    "status": "desligado"
   },
   {
     "id": "mem_007",
@@ -181,8 +174,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "OP",
-    "cargo": "Gestão de Processos",
-    "status": "ativo"
+    "cargo": "Jornada de Time",
+    "status": "critico"
   },
   {
     "id": "mem_009",
@@ -196,9 +189,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "FE",
-    "cargo": "Estratégia de Comunicação",
-    "status": "ativo"
+    "guilda": "PRESEX",
+    "cargo": "Mercado",
+    "status": "atencao"
   },
   {
     "id": "mem_010",
@@ -212,8 +205,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Regulamentação da Rede",
+    "guilda": "PRESEX",
+    "cargo": "Relacionamento com Insituição de Ensino Superior",
     "status": "ativo"
   },
   {
@@ -228,9 +221,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Gestão de Processos",
-    "status": "ativo"
+    "guilda": "PRESEX",
+    "cargo": "Presidente Executivo",
+    "status": "critico"
   },
   {
     "id": "mem_012",
@@ -246,7 +239,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "dataEntrada": "2026-01-15",
     "guilda": "DDR",
     "cargo": "Regulamentação da Rede",
-    "status": "ativo"
+    "status": "atencao"
   },
   {
     "id": "mem_013",
@@ -260,8 +253,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Financeiro",
+    "guilda": "DDR",
+    "cargo": "Expansão",
     "status": "ativo"
   },
   {
@@ -276,8 +269,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "FE",
-    "cargo": "Coordenadoria de Operações do EFEJ",
+    "guilda": "VPNEG",
+    "cargo": "Modelo de Negócios",
     "status": "ativo"
   },
   {
@@ -292,8 +285,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Regulamentação da Rede",
+    "guilda": "OP",
+    "cargo": "Gestão de Processos",
     "status": "ativo"
   },
   {
@@ -310,7 +303,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "dataEntrada": "2026-01-15",
     "guilda": "FE",
     "cargo": "Coordenadoria Geral do EFEJ",
-    "status": "ativo"
+    "status": "atencao"
   },
   {
     "id": "mem_017",
@@ -326,7 +319,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "dataEntrada": "2026-01-15",
     "guilda": "FE",
     "cargo": "Coordenadoria de Conteúdo do EFEJ",
-    "status": "ativo"
+    "status": "critico"
   },
   {
     "id": "mem_018",
@@ -340,9 +333,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Relacionamento com Insituição de Ensino Superior",
-    "status": "ativo"
+    "guilda": "FE",
+    "cargo": "Educação da rede",
+    "status": "atencao"
   },
   {
     "id": "mem_019",
@@ -356,8 +349,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Employer Branding",
+    "guilda": "DDR",
+    "cargo": "Suporte aos Guardiões",
     "status": "ativo"
   },
   {
@@ -372,8 +365,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Regulamentação da Rede",
+    "guilda": "FE",
+    "cargo": "Coordenadoria Geral do EFEJ",
     "status": "ativo"
   },
   {
@@ -389,7 +382,7 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "VPNEG",
-    "cargo": "Customer Sucess",
+    "cargo": "Executivo de Vendas",
     "status": "ativo"
   },
   {
@@ -404,8 +397,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Regulamentação da Rede",
+    "guilda": "FE",
+    "cargo": "Experiência e Infraestrutura de Eventos",
     "status": "ativo"
   },
   {
@@ -420,200 +413,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Relacionamento com Insituição de Ensino Superior",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_024",
-    "nome": "Ana Caroline Ferreira da Silva",
-    "email": "ana.ferreira@riojunior.com.br",
-    "cpf": "12907852795",
-    "identidade": "269686291",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Avenida Vinte e Oito de Março, n° 696 - Centro, Campos dos Goytacazes - RJ, 28020-740",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Relacionamento com Insituição de Ensino Superior",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_025",
-    "nome": "Ana Luisa Lima Soares",
-    "email": "luisalima@riojunior.com.br",
-    "cpf": "18555652774",
-    "identidade": "317895399",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Nilópolis, n° 14 - Boa Esperança, Seropédica - RJ, 23890-000",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Jornada de Time",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_026",
-    "nome": "Beatriz de Freitas Gonçalves",
-    "email": "negocios@riojunior.com.br",
-    "cpf": "16394995711",
-    "identidade": "322037227",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Travessa Soares, n° 140 - Centro, Nova Iguaçu - RJ, 26255-120",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "VPNEG",
-    "cargo": "Diretor(a) de Negócios",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_027",
-    "nome": "Bruno Barbosa Manhães e Rangel Lima",
-    "email": "brunobarbosa@lignumambientaljr.com",
-    "cpf": "11908476710",
-    "identidade": "312103625",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Mario Luís Viêira, n° 28, Bloco 10, Apartamento 308 - Parque Jóquei Club, Campos dos Goytacazes - RJ, 28020-505",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "VPNEG",
-    "cargo": "Executivo de Vendas",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_028",
-    "nome": "Daniele Ferreira Vieira",
-    "email": "danielevieira@riojunior.com.br",
-    "cpf": "18388425781",
-    "identidade": "298435900",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Barão do Rio Branco, n° 49 - Liberdade, Resende - RJ, 27510-150",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Jornada de Time",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_029",
-    "nome": "Davi Silva Cortez",
-    "email": "davicortez@riojunior.com.br",
-    "cpf": "19797627756",
-    "identidade": "333078152",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Aílson Simões, n° 90 - Bento Ribeiro, Rio de Janeiro - RJ, 21331-280",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Diretor(a) de Operações",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_030",
-    "nome": "Gabriel Dias Tavares",
-    "email": "gabrieldias@riojunior.com.br",
-    "cpf": "10905571754",
-    "identidade": "314988395",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Vicente Celestino, n° 764, Casa 17 - Centro, Nilópolis - RJ, 26525-530",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Relacionamento com Insituição de Ensino Superior",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_031",
-    "nome": "Joanna Favre de Brito",
-    "email": "desenvolvimento@riojunior.com.br",
-    "cpf": "11723768758",
-    "identidade": "283662538",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Sílvia Pozzano, n° 2880, Bloco 2, Apartamento 508 - Recreio dos Bandeirantes, RJ, 22790-671",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Diretor(a) de Desenvolvimento da Rede",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_032",
-    "nome": "Leticia de Souza Castilho",
-    "email": "leticia.castilho@riojunior.com.br",
-    "cpf": "20368358720",
-    "identidade": "270983554",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Fábio Ribeiro Sobrinho, n° 86 - Centro, Carapebus - RJ, 27998-000",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
     "guilda": "DDR",
     "cargo": "Suporte as EJs",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_033",
-    "nome": "Matheus Afonso Martins Rego",
-    "email": "presidencia@riojunior.com.br",
-    "cpf": "19863263737",
-    "identidade": "322165499",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Cap. Gouvêia, n° 330 - Pavuna, Rio de Janeiro - RJ, 21520-030",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Diretor(a) - Presidente Executivo",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_034",
-    "nome": "Roberta Marques Falleiro",
-    "email": "roberta@riojunior.com.br",
-    "cpf": "19221859738",
-    "identidade": "297100018",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua conde de Bonfim, n° 645/304 - Tijuca, Rio de Janeiro - RJ, 20520-052",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Regulamentação da Rede",
-    "status": "ativo"
-  },
-  {
-    "id": "mem_035",
-    "nome": "Tiago Felipe do Carmo dos Santos",
-    "email": "tiago.santos@riojunior.com.br",
-    "cpf": "18423098702",
-    "identidade": "312807647",
-    "orgaoExpedidor": "DETRAN-RJ",
-    "endereco": "Rua Gurupi, n° 65, Apartamento 702 - Grajaú, Rio de Janeiro - RJ, 20561-100",
-    "nacionalidade": "brasileira",
-    "estadoCivil": "solteiro",
-    "profissao": "estudante",
-    "dataEntrada": "2026-01-15",
-    "guilda": "VPNEG",
-    "cargo": "Modelo de Negócios",
     "status": "ativo"
   },
   {
@@ -628,8 +429,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Expansão",
+    "guilda": "OP",
+    "cargo": "Diretor(a) de Operações",
     "status": "ativo"
   },
   {
@@ -644,8 +445,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "PRESEX",
-    "cargo": "Relacionamento com Insituição de Ensino Superior",
+    "guilda": "VPNEG",
+    "cargo": "Modelo de Negócios",
     "status": "ativo"
   },
   {
@@ -660,9 +461,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "FE",
-    "cargo": "Educação da rede",
-    "status": "ativo"
+    "guilda": "DDR",
+    "cargo": "Expansão",
+    "status": "desligado"
   },
   {
     "id": "mem_039",
@@ -677,8 +478,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
     "guilda": "FE",
-    "cargo": "Experiência e Infraestrutura de Eventos",
-    "status": "ativo"
+    "cargo": "Diretor(a) de Formação Empreendedora",
+    "status": "atencao"
   },
   {
     "id": "mem_040",
@@ -692,8 +493,8 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Employer Branding",
+    "guilda": "FE",
+    "cargo": "Coordenadoria de Operações do EFEJ",
     "status": "ativo"
   },
   {
@@ -708,9 +509,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Gestão de Processos",
-    "status": "ativo"
+    "guilda": "FE",
+    "cargo": "Coordenadoria de Operações do EFEJ",
+    "status": "atencao"
   },
   {
     "id": "mem_042",
@@ -724,9 +525,9 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "OP",
-    "cargo": "Financeiro",
-    "status": "ativo"
+    "guilda": "PRESEX",
+    "cargo": "Relações Institucionais e Governamentais",
+    "status": "atencao"
   },
   {
     "id": "mem_043",
@@ -740,63 +541,336 @@ const INITIAL_MEMBROS: MembroRioJunior[] = [
     "estadoCivil": "solteiro",
     "profissao": "estudante",
     "dataEntrada": "2026-01-15",
-    "guilda": "DDR",
-    "cargo": "Regulamentação da Rede",
-    "status": "ativo"
+    "guilda": "OP",
+    "cargo": "Employer Branding",
+    "status": "atencao"
   }
 ];
 
-// Cartões iniciais de demonstração para evidenciar o funcionamento das regras
-const INITIAL_CARTOES: CartaoAdvertencia[] = [
+export const INITIAL_CARTOES: CartaoAdvertencia[] = [
   {
-    id: 'card_001',
-    membroId: 'mem_001',
-    membroNome: 'Adrielle Macedo Coutinho',
-    membroEmail: 'dricoutinho@riojunior.com.br',
-    tipo: 'amarelo',
-    gravidade: 'moderada',
-    motivo: 'Ausência sem justificativa prévia na Reunião Geral de Alinhamento da Federação (RV 08).',
-    categoria: 'Falta em Reunião Geral (RV)',
-    data: '2026-03-12',
-    aplicadoPor: 'Guilda de Operações (OP)'
+    "id": "card_001",
+    "membroId": "mem_001",
+    "membroNome": "Adrielle Macedo Coutinho",
+    "membroEmail": "dricoutinho@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Ausência sem justificativa prévia na Reunião Geral de Alinhamento da Federação (RV 08).",
+    "categoria": "Falta em Reunião Geral (RV)",
+    "data": "2026-02-10",
+    "aplicadoPor": "Guilda de Operações (OP)"
   },
   {
-    id: 'card_002',
-    membroId: 'mem_003',
-    membroNome: 'Breno Chrisostomo Paulo de Mattos Pinna',
-    membroEmail: 'brenopinna@riojunior.com.br',
-    tipo: 'amarelo',
-    gravidade: 'moderada',
-    motivo: 'Não entrega do diagnóstico operacional no prazo estipulado sem comunicação ao time.',
-    categoria: 'Atraso Crítico em Demanda',
-    data: '2026-02-18',
-    aplicadoPor: 'Guilda de Operações (OP)'
+    "id": "card_002",
+    "membroId": "mem_003",
+    "membroNome": "Breno Chrisostomo Paulo de Mattos Pinna",
+    "membroEmail": "brenopinna@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Não entrega do diagnóstico operacional no prazo estipulado sem comunicação ao time.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-18",
+    "aplicadoPor": "Guilda de Operações (OP)"
   },
   {
-    id: 'card_003',
-    membroId: 'mem_003',
-    membroNome: 'Breno Chrisostomo Paulo de Mattos Pinna',
-    membroEmail: 'brenopinna@riojunior.com.br',
-    tipo: 'amarelo',
-    gravidade: 'moderada',
-    motivo: 'Ausência na capacitação obrigatória de Gestão de Processos e rotinas internas.',
-    categoria: 'Falta em Capacitação Obrigatória',
-    data: '2026-03-24',
-    aplicadoPor: 'Guilda de Operações (OP)',
-    observacoes: 'Atingiu 2 cartões amarelos. Convertido automaticamente em 1 cartão vermelho!'
+    "id": "card_003",
+    "membroId": "mem_005",
+    "membroNome": "Clara Santos Louback",
+    "membroEmail": "claralouback@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na validação dos comunicados de comunicação do EFEJ.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-03-05",
+    "aplicadoPor": "Guilda de Operações (OP)"
   },
   {
-    id: 'card_004',
-    membroId: 'mem_005',
-    membroNome: 'Clara Santos Louback',
-    membroEmail: 'claralouback@riojunior.com.br',
-    tipo: 'vermelho',
-    gravidade: 'grave',
-    motivo: 'Quebra de protocolo de confidencialidade de dados estratégicos de EJs federadas.',
-    categoria: 'Conduta e Compliance',
-    data: '2026-03-05',
-    aplicadoPor: 'Guilda de Operações (OP)',
-    observacoes: 'Infração grave aplicada diretamente. Membro em nível crítico (1 vermelho).'
+    "id": "card_004",
+    "membroId": "mem_006",
+    "membroNome": "Deborah Pacheco Marques",
+    "membroEmail": "deb@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Ausência não comunicada em Reunião de Governança do Conselho.",
+    "categoria": "Falta em Reunião Geral (RV)",
+    "data": "2026-01-20",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_005",
+    "membroId": "mem_006",
+    "membroNome": "Deborah Pacheco Marques",
+    "membroEmail": "deb@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Descumprimento de prazo estatutário na emissão de parecer do Conselho.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-05",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_006",
+    "membroId": "mem_006",
+    "membroNome": "Deborah Pacheco Marques",
+    "membroEmail": "deb@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na validação de atas e relatórios de conformidade regulamentar.",
+    "categoria": "Violação Estatutária",
+    "data": "2026-02-25",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_007",
+    "membroId": "mem_006",
+    "membroNome": "Deborah Pacheco Marques",
+    "membroEmail": "deb@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Não comparecimento à sessão extraordinária de alinhamento com a diretoria.",
+    "categoria": "Ausência em Evento Obrigatório",
+    "data": "2026-03-12",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_008",
+    "membroId": "mem_008",
+    "membroNome": "Emanuelle Mesquita Alves da Fonseca",
+    "membroEmail": "manumafonseca@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso no fechamento do relatório quinzenal da Jornada de Time.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-02",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_009",
+    "membroId": "mem_008",
+    "membroNome": "Emanuelle Mesquita Alves da Fonseca",
+    "membroEmail": "manumafonseca@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Falta em alinhamento de liderança de Gente e Gestão.",
+    "categoria": "Falta em Reunião Geral (RV)",
+    "data": "2026-02-20",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_010",
+    "membroId": "mem_008",
+    "membroNome": "Emanuelle Mesquita Alves da Fonseca",
+    "membroEmail": "manumafonseca@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Ausência em treinamento obrigatório de feedback e clima organizacional.",
+    "categoria": "Ausência em Evento Obrigatório",
+    "data": "2026-03-15",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_011",
+    "membroId": "mem_009",
+    "membroNome": "Gabriel de Sousa Silva Araújo",
+    "membroEmail": "gabrielsousa@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Não envio de propostas comerciais de mercado no prazo acordado.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-28",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_012",
+    "membroId": "mem_011",
+    "membroNome": "Gabriel Pinto Nogueira",
+    "membroEmail": "gabriel.nogueira@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na validação dos relatórios executivos institucionais.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-14",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_013",
+    "membroId": "mem_011",
+    "membroNome": "Gabriel Pinto Nogueira",
+    "membroEmail": "gabriel.nogueira@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Ausência em compromisso institucional com agentes de mercado.",
+    "categoria": "Ausência em Evento Obrigatório",
+    "data": "2026-03-10",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_014",
+    "membroId": "mem_012",
+    "membroNome": "Gabriel Rodrigues da Silva",
+    "membroEmail": "gabrielrodrigues@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na análise de conformidade de documentação de Selo EJ.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-22",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_015",
+    "membroId": "mem_016",
+    "membroNome": "Júlia da Silva Coupey",
+    "membroEmail": "geralefej@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na consolidação da grade geral de coordenadores do EFEJ.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-03-01",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_016",
+    "membroId": "mem_017",
+    "membroNome": "Karoline dos Santos Silva",
+    "membroEmail": "conteudoefej@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Descumprimento do prazo de curadoria de conteúdos do EFEJ.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-08",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_017",
+    "membroId": "mem_017",
+    "membroNome": "Karoline dos Santos Silva",
+    "membroEmail": "conteudoefej@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Falta sem justificativa prévia na reunião tática de conteúdo.",
+    "categoria": "Falta em Reunião Geral (RV)",
+    "data": "2026-02-26",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_018",
+    "membroId": "mem_017",
+    "membroNome": "Karoline dos Santos Silva",
+    "membroEmail": "conteudoefej@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na validação dos roteiros e palestrantes do evento.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-03-18",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_019",
+    "membroId": "mem_018",
+    "membroNome": "Letícia Urbano Pessanha",
+    "membroEmail": "leticiaurbano@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na elaboração do diagnóstico de capacitações da rede.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-12",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_020",
+    "membroId": "mem_038",
+    "membroNome": "Rafael Julião Oliveira da Silva dos Santos",
+    "membroEmail": "rafaeljuliao@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Ausência não justificada em imersão presencial de Expansão.",
+    "categoria": "Ausência em Evento Obrigatório",
+    "data": "2026-01-25",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_021",
+    "membroId": "mem_038",
+    "membroNome": "Rafael Julião Oliveira da Silva dos Santos",
+    "membroEmail": "rafaeljuliao@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Não entrega do plano de prospecção de novas EJs no prazo acordado.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-15",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_022",
+    "membroId": "mem_038",
+    "membroNome": "Rafael Julião Oliveira da Silva dos Santos",
+    "membroEmail": "rafaeljuliao@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Falta em reunião obrigatória de acompanhamento da DDR.",
+    "categoria": "Falta em Reunião Geral (RV)",
+    "data": "2026-03-02",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_023",
+    "membroId": "mem_038",
+    "membroNome": "Rafael Julião Oliveira da Silva dos Santos",
+    "membroEmail": "rafaeljuliao@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Descumprimento de diretriz da coordenação de Expansão.",
+    "categoria": "Violação Estatutária",
+    "data": "2026-03-20",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_024",
+    "membroId": "mem_039",
+    "membroNome": "Rian Mendes Guimarães",
+    "membroEmail": "rianm@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso no envio do cronograma de eventos da guilda de FE.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-03-08",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_025",
+    "membroId": "mem_041",
+    "membroNome": "Sofia Batista Silva Orrico",
+    "membroEmail": "operacoesefej@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso no envio do checklist de infraestrutura do evento.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-16",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_026",
+    "membroId": "mem_042",
+    "membroNome": "Victor Pereira Lopes",
+    "membroEmail": "victorlopes@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Ausência em reunião estratégica de articulação com o poder público.",
+    "categoria": "Ausência em Evento Obrigatório",
+    "data": "2026-03-14",
+    "aplicadoPor": "Guilda de Operações (OP)"
+  },
+  {
+    "id": "card_027",
+    "membroId": "mem_043",
+    "membroNome": "Vinicius Souza da Silva",
+    "membroEmail": "vinicius.souza@riojunior.com.br",
+    "tipo": "amarelo",
+    "gravidade": "moderada",
+    "motivo": "Atraso na publicação dos materiais de comunicação de Marca Empregadora.",
+    "categoria": "Descumprimento de SLA / Entrega",
+    "data": "2026-02-24",
+    "aplicadoPor": "Guilda de Operações (OP)"
   }
 ];
 
@@ -828,19 +902,18 @@ class MembrosCartoesService {
     this.listeners.forEach(cb => {
       try {
         cb();
-      } catch (err) {
-        console.error('Erro no listener de membros/cartoes:', err);
+      } catch (e) {
+        console.error('Erro no listener de membros/cartoes:', e);
       }
     });
   }
 
-  // --- MEMBROS ---
-
   public getMembros(): MembroRioJunior[] {
     if (typeof window === 'undefined') return INITIAL_MEMBROS;
+    const data = localStorage.getItem(STORAGE_KEY_MEMBROS);
+    if (!data) return INITIAL_MEMBROS;
     try {
-      const data = localStorage.getItem(STORAGE_KEY_MEMBROS);
-      return data ? JSON.parse(data) : INITIAL_MEMBROS;
+      return JSON.parse(data);
     } catch {
       return INITIAL_MEMBROS;
     }
@@ -850,98 +923,84 @@ class MembrosCartoesService {
     return this.getMembros().find(m => m.id === id);
   }
 
-  public getMembroByEmail(email: string): MembroRioJunior | undefined {
-    if (!email) return undefined;
-    const cleanEmail = email.toLowerCase().trim();
-    return this.getMembros().find(m => (m.email || '').toLowerCase().trim() === cleanEmail);
-  }
-
   public saveMembro(membro: MembroRioJunior): void {
     const list = this.getMembros();
-    const index = list.findIndex(m => m.id === membro.id);
-    let updated: MembroRioJunior[];
-    if (index >= 0) {
-      updated = [...list];
-      updated[index] = membro;
+    const idx = list.findIndex(m => m.id === membro.id);
+    if (idx >= 0) {
+      list[idx] = membro;
     } else {
-      updated = [membro, ...list];
+      list.push(membro);
     }
-    localStorage.setItem(STORAGE_KEY_MEMBROS, JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEY_MEMBROS, JSON.stringify(list));
     this.notify();
-  }
-
-  public addMembro(membroData: Omit<MembroRioJunior, 'id'>): MembroRioJunior {
-    const newId = 'mem_' + Date.now().toString().slice(-4);
-    const newMembro: MembroRioJunior = {
-      ...membroData,
-      id: newId
-    };
-    this.saveMembro(newMembro);
-    return newMembro;
   }
 
   public deleteMembro(id: string): void {
     const list = this.getMembros().filter(m => m.id !== id);
     localStorage.setItem(STORAGE_KEY_MEMBROS, JSON.stringify(list));
-    // Exclui cartões vinculados
+    
+    // Remove tambem cartoes desse membro
     const cartoes = this.getCartoes().filter(c => c.membroId !== id);
     localStorage.setItem(STORAGE_KEY_CARTOES, JSON.stringify(cartoes));
+    
     this.notify();
   }
 
-  // --- CARTÕES (ADVERTÊNCIAS) ---
-
   public getCartoes(): CartaoAdvertencia[] {
     if (typeof window === 'undefined') return INITIAL_CARTOES;
+    const data = localStorage.getItem(STORAGE_KEY_CARTOES);
+    if (!data) return INITIAL_CARTOES;
     try {
-      const data = localStorage.getItem(STORAGE_KEY_CARTOES);
-      return data ? JSON.parse(data) : INITIAL_CARTOES;
+      return JSON.parse(data);
     } catch {
       return INITIAL_CARTOES;
     }
   }
 
-  public getCartoesByMembro(membroIdOrEmail: string): CartaoAdvertencia[] {
-    if (!membroIdOrEmail) return [];
-    const clean = membroIdOrEmail.toLowerCase().trim();
-    return this.getCartoes().filter(c => 
-      c.membroId.toLowerCase() === clean || (c.membroEmail && c.membroEmail.toLowerCase().trim() === clean)
-    );
+  public getCartoesByMembro(membroId: string): CartaoAdvertencia[] {
+    return this.getCartoes().filter(c => c.membroId === membroId);
   }
 
-  public aplicarCartao(dados: {
+  public getCartaoById(id: string): CartaoAdvertencia | undefined {
+    return this.getCartoes().find(c => c.id === id);
+  }
+
+  public aplicarCartao(params: {
     membroId: string;
     tipo: CardTipo;
-    motivo: string;
     categoria: string;
-    data?: string;
-    aplicadoPor?: string;
+    motivo: string;
+    data: string;
     observacoes?: string;
+    aplicadoPor?: string;
   }): CartaoAdvertencia {
-    const membro = this.getMembroById(dados.membroId);
+    const membro = this.getMembroById(params.membroId);
     if (!membro) {
       throw new Error('Membro não encontrado para aplicação de cartão.');
     }
 
     const newCard: CartaoAdvertencia = {
-      id: 'card_' + Date.now().toString().slice(-6),
+      id: 'card_' + Date.now().toString(36),
       membroId: membro.id,
       membroNome: membro.nome,
       membroEmail: membro.email,
-      tipo: dados.tipo,
-      gravidade: dados.tipo === 'vermelho' ? 'grave' : 'moderada',
-      motivo: dados.motivo,
-      categoria: dados.categoria || 'Infração de Rotina',
-      data: dados.data || new Date().toISOString().split('T')[0],
-      aplicadoPor: dados.aplicadoPor || 'Guilda de Operações (OP)',
-      observacoes: dados.observacoes
+      tipo: params.tipo,
+      gravidade: params.tipo === 'vermelho' ? 'grave' : 'moderada',
+      motivo: params.motivo,
+      categoria: params.categoria,
+      data: params.data || new Date().toISOString().split('T')[0],
+      aplicadoPor: params.aplicadoPor || 'Guilda de Operações (OP)',
+      observacoes: params.observacoes
     };
 
-    const cartoes = [newCard, ...this.getCartoes()];
+    const cartoes = this.getCartoes();
+    cartoes.unshift(newCard);
     localStorage.setItem(STORAGE_KEY_CARTOES, JSON.stringify(cartoes));
 
-    // Atualiza status do membro automaticamente de acordo com as regras dos cartões
-    const stats = this.calculateCardStats(this.getCartoesByMembro(membro.id));
+    // Recalcula status disciplinar do membro
+    const membroCards = this.getCartoesByMembro(membro.id);
+    const stats = this.calculateCardStats(membroCards);
+
     let newStatus: MembroRioJunior['status'] = 'ativo';
     if (stats.isDesligamento) {
       newStatus = 'desligado';
@@ -960,11 +1019,6 @@ class MembrosCartoesService {
     return newCard;
   }
 
-  
-  public getCartaoById(id: string): CartaoAdvertencia | undefined {
-    return this.getCartoes().find(c => c.id === id);
-  }
-
   public updateCartao(cartaoAtualizado: CartaoAdvertencia): void {
     const list = this.getCartoes();
     const oldCard = list.find(c => c.id === cartaoAtualizado.id);
@@ -975,7 +1029,6 @@ class MembrosCartoesService {
     const previousMemberId = oldCard.membroId;
     const newMemberId = cartaoAtualizado.membroId;
 
-    // Se o membro mudou, busca o novo membro para sincronizar nome e email
     let finalCard = { ...cartaoAtualizado };
     if (newMemberId !== previousMemberId) {
       const newMembro = this.getMembroById(newMemberId);
@@ -985,7 +1038,6 @@ class MembrosCartoesService {
       }
     }
 
-    // Sincroniza gravidade com tipo
     finalCard.gravidade = finalCard.tipo === 'vermelho' ? 'grave' : 'moderada';
 
     const updatedList = list.map(c => (c.id === finalCard.id ? finalCard : c));
@@ -1002,7 +1054,7 @@ class MembrosCartoesService {
       this.saveMembro({ ...membro, status: newStatus });
     }
 
-    // Se mudou de membro, recalcula também o status do membro anterior
+    // Se mudou de membro, recalcula tambem o status do membro anterior
     if (previousMemberId && previousMemberId !== newMemberId) {
       const prevMembro = this.getMembroById(previousMemberId);
       if (prevMembro) {
@@ -1042,59 +1094,29 @@ class MembrosCartoesService {
     this.notify();
   }
 
-  // --- CÁLCULO DAS REGRAS DE ADVERTÊNCIA DA RIOJUNIOR ---
-  // Regra 1: Infrações moderadas = Cartão Amarelo
-  // Regra 2: Infrações graves = Cartão Vermelho
-  // Regra 3: 2 cartões amarelos viram 1 cartão vermelho
-  // Regra 4: 2 cartões vermelhos viram desligamento da RioJunior
+  public calculateCardStats(cartoes: CartaoAdvertencia[]): MembroCardStats {
+    const amarelos = cartoes.filter(c => c.tipo === 'amarelo');
+    const vermelhosDiretos = cartoes.filter(c => c.tipo === 'vermelho');
 
-  public calculateCardStats(cards: CartaoAdvertencia[]): MembroCardStats {
-    const amarelosCount = cards.filter(c => c.tipo === 'amarelo').length;
-    const vermelhosDiretosCount = cards.filter(c => c.tipo === 'vermelho').length;
-    
-    // 2 amarelos viram 1 vermelho
+    const amarelosCount = amarelos.length;
+    const vermelhosDiretosCount = vermelhosDiretos.length;
+
+    // Regra: cada 2 cartões amarelos convertem em 1 cartão vermelho adicional
     const vermelhosConvertidos = Math.floor(amarelosCount / 2);
     const totalVermelhos = vermelhosDiretosCount + vermelhosConvertidos;
-    const amarelosRestantes = amarelosCount % 2;
+
     const isDesligamento = totalVermelhos >= 2;
-
-    let statusLabel = 'Conforme';
-    let statusColor = 'emerald';
-    let riscoNivel: MembroCardStats['riscoNivel'] = 'regular';
-    let descricaoRegra = 'Membro em plena conformidade com as diretrizes e presença da RioJunior.';
-
-    if (isDesligamento) {
-      statusLabel = 'Desligamento';
-      statusColor = 'rose';
-      riscoNivel = 'desligamento';
-      descricaoRegra = 'Atingiu o limite regulamentar de 2 cartões vermelhos. Processo de desligamento formal aplicável.';
-    } else if (totalVermelhos === 1) {
-      statusLabel = 'Alerta Crítico';
-      statusColor = 'red';
-      riscoNivel = 'critico';
-      descricaoRegra = 'Possui 1 cartão vermelho ativo. Próximo cartão resultará em DESLIGAMENTO da Federação!';
-    } else if (amarelosCount === 1) {
-      statusLabel = 'Atenção';
-      statusColor = 'amber';
-      riscoNivel = 'atencao';
-      descricaoRegra = 'Possui 1 cartão amarelo por infração moderada. Se acumular mais 1 amarelo, converterá em 1 vermelho.';
-    }
 
     return {
       amarelosCount,
       vermelhosDiretosCount,
       vermelhosConvertidos,
       totalVermelhos,
-      amarelosRestantes,
-      isDesligamento,
-      statusLabel,
-      statusColor,
-      riscoNivel,
-      descricaoRegra
+      isDesligamento
     };
   }
 
-  public resetToDefault(): void {
+  public reloadFromSeed(): void {
     localStorage.setItem(STORAGE_KEY_MEMBROS, JSON.stringify(INITIAL_MEMBROS));
     localStorage.setItem(STORAGE_KEY_CARTOES, JSON.stringify(INITIAL_CARTOES));
     this.notify();

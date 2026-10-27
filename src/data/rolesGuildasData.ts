@@ -1,6 +1,6 @@
 // src/data/rolesGuildasData.ts
-// Dados oficiais extraidos de [RioJunior] Mapeamento de Papeis 2027.xlsx
-// Com opcoes de Diretoria para todas as Guildas da RioJunior
+// Dados oficiais extraídos de [RioJunior] Mapeamento de Papéis 2027.xlsx
+// Com exatamente 1 cargo de nível de Diretoria por Guilda e frentes estratégicas completas
 
 export type GuildaKey = 'PRESEX' | 'VPNEG' | 'DDR' | 'FE' | 'OP' | 'PRESCON';
 
@@ -24,8 +24,8 @@ export const GUILDAS_INFO: Record<GuildaKey, GuildaInfo> = {
     nome: 'Presidência Executiva',
     sigla: 'PRESEX',
     cor: 'amber',
-    descricao: 'Representação institucional, relações governamentais e parcerias com IES e mercado.',
-    diretoriaTitulo: 'Diretor-Presidente Executivo'
+    descricao: 'Representação institucional, relações governamentais, mercado e relações públicas.',
+    diretoriaTitulo: 'Presidente Executivo'
   },
   VPNEG: {
     nome: 'Vice-Presidência de Negócios',
@@ -52,14 +52,14 @@ export const GUILDAS_INFO: Record<GuildaKey, GuildaInfo> = {
     nome: 'Operações (Gente e Gestão)',
     sigla: 'OP',
     cor: 'cyan',
-    descricao: 'Gestão de pessoas, cultura organizacional, financeiro interno, processos e sistema de cartões/advertências.',
+    descricao: 'Processos internos, financeiro, jornada de time, marca empregadora e sistema disciplinar.',
     diretoriaTitulo: 'Diretor(a) de Operações'
   },
   PRESCON: {
     nome: 'Presidência do Conselho',
     sigla: 'PRESCON',
-    cor: 'rose',
-    descricao: 'Governança do MEJ Fluminense, representação do Conselho e direcionamento estratégico.',
+    cor: 'slate',
+    descricao: 'Governança institucional, perenidade, fiscalização estatutária e ética da Federação.',
     diretoriaTitulo: 'Presidente do Conselho'
   }
 };
@@ -67,22 +67,15 @@ export const GUILDAS_INFO: Record<GuildaKey, GuildaInfo> = {
 export const MAPEAMENTO_PAPEIS: Record<GuildaKey, PapelRioJunior[]> = {
   PRESEX: [
     {
-      nome: 'Diretor(a) - Presidente Executivo',
-      nomeCompletoOriginal: 'Diretor-Presidente Executivo',
-      objetivo: 'Liderar a Diretoria Executiva da RioJunior, representando a Federação perante as EJs, agentes de mercado, poder público e universidades, garantindo o alcance das metas e sustentabilidade da organização.',
-      isDiretoria: true
-    },
-    {
-      nome: 'Diretor(a)',
-      nomeCompletoOriginal: 'Diretor(a)',
-      objetivo: 'Diretoria executiva da Guilda de Presidência Executiva da RioJunior.',
-      isDiretoria: true
-    },
-    {
       nome: 'Presidente Executivo',
       nomeCompletoOriginal: 'Presidente Executivo',
       objetivo: 'Garantir a representação dos interesses da RioJunior perante a sociedade civil organizada, instituições de ensino superior e instâncias do MEJ.',
       isDiretoria: true
+    },
+    {
+      nome: 'Relações Públicas',
+      nomeCompletoOriginal: 'Relações Públicas (1 pessoa)',
+      objetivo: 'Responsável por construir, divulgar e preservar a boa imagem da organização perante o público interno ou externo, a partir da comunicação, trazendo relevância e presença no ecossistema. Responsável por gerir o posicionamento da RioJunior com o ecossistema empreendedor e relacionamento com pós juniores.'
     },
     {
       nome: 'Relacionamento com Insituição de Ensino Superior',
@@ -103,54 +96,42 @@ export const MAPEAMENTO_PAPEIS: Record<GuildaKey, PapelRioJunior[]> = {
   VPNEG: [
     {
       nome: 'Diretor(a) de Negócios',
-      nomeCompletoOriginal: 'Diretor(a) de Negócios / Vice-Presidente de Negócios',
-      objetivo: 'Liderar a guilda de Negócios, estruturando parcerias comerciais corporativas, captação de receitas diversificadas, patrocínios de eventos e sustentabilidade financeira da Federação.',
-      isDiretoria: true
-    },
-    {
-      nome: 'Diretor(a)',
-      nomeCompletoOriginal: 'Diretor(a)',
-      objetivo: 'Diretoria executiva da Guilda de Negócios da RioJunior.',
+      nomeCompletoOriginal: 'Diretor(a) de Negócios',
+      objetivo: 'Liderar a estratégia comercial da RioJunior, prospecção e fechamento de parcerias com grandes marcas, captação de recursos e desenvolvimento de novas fontes de receita para a Federação.',
       isDiretoria: true
     },
     {
       nome: 'Executivo de Vendas',
-      nomeCompletoOriginal: 'Executivo de Vendas (1 pessoa)',
+      nomeCompletoOriginal: 'Executivo de Vendas (3 pessoas)',
       objetivo: 'Gerar oportunidades frente a contas de renovação e novos negócios, garantindo a captação de receita operacional bruta da RioJunior por meio das fontes tradicionais. Além disso, garantir o recebimento dessas contas.'
     },
     {
       nome: 'Modelo de Negócios',
-      nomeCompletoOriginal: 'Modelo de Negócios (1 pessoa)',
-      objetivo: 'Promover evolução do modelo de negócio da RioJunior, garantindo suporte e desenvolvimento de produtos novos e existentes, de maneira a garantir eficiência na inserção de produtos diversificados na receita operacional da organização.'
+      nomeCompletoOriginal: 'Modelo de Negócios (2 pessoas)',
+      objetivo: 'Desenhar, estruturar, testar e implementar novos produtos e modelos de negócios para a RioJunior, garantindo a validação de propostas de valor escaláveis e sustentáveis. Além de gerenciar as fontes de receita diversificada atuais.'
     },
     {
       nome: 'Customer Sucess',
       nomeCompletoOriginal: 'Customer Sucess (1 pessoa)',
-      objetivo: 'Manter a comunicação com o parceiro, com foco na jornada de experiência, e garantir a execução de todas as ações acordadas em contrato.'
+      objetivo: 'Garantir a execução da proposta de valor vendida aos parceiros da RioJunior, com o objetivo de gerar retenção (renovação de contratos) e satisfação por meio de um bom relacionamento e entrega com excelência.'
     }
   ],
   DDR: [
     {
       nome: 'Diretor(a) de Desenvolvimento da Rede',
       nomeCompletoOriginal: 'Diretor(a) de Desenvolvimento da Rede',
-      objetivo: 'Liderar a guilda de Desenvolvimento da Rede (DDR), definindo programas de aceleração, expansão, auditoria jurídica do Selo EJ e governança da rede fluminense.',
-      isDiretoria: true
-    },
-    {
-      nome: 'Diretor(a)',
-      nomeCompletoOriginal: 'Diretor(a)',
-      objetivo: 'Diretoria executiva da Guilda de Desenvolvimento da Rede da RioJunior.',
+      objetivo: 'Liderar a guilda de Desenvolvimento da Rede, impulsionando a conformidade regulamentar (Selo EJ), a aceleração dos resultados das EJs e o acompanhamento dos Guardiões.',
       isDiretoria: true
     },
     {
       nome: 'Aceleração',
       nomeCompletoOriginal: 'Aceleração',
-      objetivo: 'Tracionar resultados da rede e desenvolver as EJs com base em programas e produtos direcionados a segmentações e a rede como um todo.'
+      objetivo: 'Auxiliar e guiar as instâncias da rede fluminense para que cumpram seu papel no suporte e desenvolvimento das EJs, a fim de garantir a aceleração da rede rumo às metas do Plano Estratégico da Rede 2027.'
     },
     {
       nome: 'Expansão',
       nomeCompletoOriginal: 'Expansão',
-      objetivo: 'Garantir a expansão estratégica do Movimento Empresa Júnior, auxiliando as EJs iniciantes e aspirantes de forma personalizada desde a ideação à validação do modelo de negócios e, posteriormente, na fundação de novas empresas juniores no estado do Rio de Janeiro capazes de evoluírem e se desenvolverem de forma autônoma.'
+      objetivo: 'Atuar diretamente no crescimento sustentável da rede de Empresas Juniores no Rio de Janeiro, auxiliando na prospecção, criação, fundação e federação de novas EJs, garantindo que novas iniciativas tenham suporte estrutural para se desenvolverem com excelência.'
     },
     {
       nome: 'Regulamentação da Rede',
@@ -173,12 +154,6 @@ export const MAPEAMENTO_PAPEIS: Record<GuildaKey, PapelRioJunior[]> = {
       nome: 'Diretor(a) de Formação Empreendedora',
       nomeCompletoOriginal: 'Diretor(a) de Formação Empreendedora',
       objetivo: 'Liderar a guilda de Formação Empreendedora, definindo a estratégia de capacitações da rede, produtos de conexão, comunicação institucional e os grandes eventos do MEJ Fluminense (EFEJ, CentralRio, ONDE).',
-      isDiretoria: true
-    },
-    {
-      nome: 'Diretor(a)',
-      nomeCompletoOriginal: 'Diretor(a)',
-      objetivo: 'Diretoria executiva da Guilda de Formação Empreendedora da RioJunior.',
       isDiretoria: true
     },
     {
@@ -225,12 +200,6 @@ export const MAPEAMENTO_PAPEIS: Record<GuildaKey, PapelRioJunior[]> = {
       isDiretoria: true
     },
     {
-      nome: 'Diretor(a)',
-      nomeCompletoOriginal: 'Diretor(a)',
-      objetivo: 'Diretoria executiva da Guilda de Operações da RioJunior.',
-      isDiretoria: true
-    },
-    {
       nome: 'Gestão de Processos',
       nomeCompletoOriginal: 'Gestão de Processos (1 pessoa)',
       objetivo: 'Gerenciar processos, ferramentas e rotinas que potencializem o trabalho das Guildas, buscando continuamente melhores resultados para a RioJunior.'
@@ -256,18 +225,6 @@ export const MAPEAMENTO_PAPEIS: Record<GuildaKey, PapelRioJunior[]> = {
       nome: 'Presidente do Conselho',
       nomeCompletoOriginal: 'Presidente do Conselho',
       objetivo: 'Representar o MEJ Fluminense e desenvolver a RioJunior através da governança, garantindo a perenidade, evolução e bom funcionamento de seus órgãos de governança, fortalecendo a ética e contribuindo para o direcionamento estratégico da Federação.',
-      isDiretoria: true
-    },
-    {
-      nome: 'Diretor(a) do Conselho',
-      nomeCompletoOriginal: 'Diretor(a) do Conselho',
-      objetivo: 'Atuar na mesa diretora do Conselho de Administração da Federação, zelando pela transparência e ética estatutária.',
-      isDiretoria: true
-    },
-    {
-      nome: 'Diretor(a)',
-      nomeCompletoOriginal: 'Diretor(a)',
-      objetivo: 'Membro diretor da Presidência do Conselho da RioJunior.',
       isDiretoria: true
     }
   ]

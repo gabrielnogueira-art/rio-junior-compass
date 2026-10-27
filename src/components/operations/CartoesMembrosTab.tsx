@@ -153,9 +153,16 @@ export default function CartoesMembrosTab() {
           gInfo.nome.toLowerCase().includes(q);
 
         if (matchesSearch) {
-          const assigned = membros.filter(
-            m => m.guilda === gKey && m.cargo.toLowerCase() === papel.nome.toLowerCase()
-          );
+          const assigned = membros.filter(m => {
+            if (m.guilda !== gKey) return false;
+            const mCargo = (m.cargo || '').toLowerCase().trim();
+            const pNome = papel.nome.toLowerCase().trim();
+            if (mCargo === pNome) return true;
+            if (pNome.includes('relações públicas') && (mCargo.includes('relações públicas') || mCargo === 'rp' || mCargo.includes('rp ('))) {
+              return true;
+            }
+            return false;
+          });
           result.push({
             guilda: gKey,
             guildaInfo: gInfo,
@@ -460,17 +467,7 @@ export default function CartoesMembrosTab() {
               <Plus size={14} />
               Novo Membro
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                membrosCartoesService.reloadFromSeed();
-                toast({ title: 'Dados reinicializados da planilha oficial!' });
-              }}
-              title="Restaurar dados originais da planilha"
-            >
-              <RefreshCw size={14} />
-            </Button>
+            {/* Botão de reset removido para preservar dados dos membros */}
           </div>
         </div>
 
