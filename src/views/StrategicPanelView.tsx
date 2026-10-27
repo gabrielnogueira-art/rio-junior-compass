@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit2, Trash2, Target, ChevronDown, ChevronRight, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Target, ChevronDown, ChevronRight, Calendar, Loader2, Award } from 'lucide-react';
 import { OKREstrategica, Objetivo, KeyResult, Ciclo, DIRETORIAS, DIRETORIAS_SIGLAS } from '@/types';
 import { formatCurrency, formatDateString } from '@/utils/formatters';
 import Modal from '@/components/ui/Modal';
@@ -41,6 +41,13 @@ const StrategicPanelView = ({ selectedYear }: StrategicPanelViewProps) => {
   const [activeTab, setActiveTab] = useState<TabView>('estrategico');
   const [selectedCicloId, setSelectedCicloId] = useState<string | null>(null);
   const [expandedObjetivos, setExpandedObjetivos] = useState<Set<string>>(new Set());
+
+  // Auto-expand all strategic objectives by default so they are immediately visible
+  useEffect(() => {
+    if (objetivos.length > 0) {
+      setExpandedObjetivos(new Set(objetivos.map(o => o.id)));
+    }
+  }, [objetivos.length]);
   
   // Modal states
   const [showOKRModal, setShowOKRModal] = useState(false);
@@ -59,6 +66,18 @@ const StrategicPanelView = ({ selectedYear }: StrategicPanelViewProps) => {
   // Filter by selected year
   const ciclosTaticos = ciclos.filter(c => c.tipo === 'tatico' && c.ano === selectedYear);
   const currentYearOKRs = okrsEstrategicas.filter(o => o.ano === selectedYear);
+
+  // Alcance Geral (Média dos Objetivos Estratégicos)
+  const generalProgress = (() => {
+    if (currentYearOKRs.length === 0) return 0;
+    const okrProgresses = currentYearOKRs.map(okr => {
+      const objs = getObjetivosByOKR(okr.id);
+      const allKRs = objs.flatMap(o => getKeyResultsByObjetivo(o.id));
+      return calculateProgress(allKRs);
+    });
+    const sum = okrProgresses.reduce((acc, p) => acc + p, 0);
+    return Math.round(sum / okrProgresses.length);
+  })();
 
   const toggleObjetivo = (id: string) => {
     setExpandedObjetivos(prev => {

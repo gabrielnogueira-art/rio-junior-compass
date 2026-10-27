@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Crown, CalendarIcon, GraduationCap, Accessibility } from 'lucide-react';
+import { Crown, CalendarIcon, GraduationCap, Bus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,7 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
             <span>COEJ (Orientadores)</span>
           </TabsTrigger>
           <TabsTrigger value="acessibilidade" className="flex items-center gap-2">
-            <Accessibility className="h-4 w-4" />
+            <Bus className="h-4 w-4 text-emerald-500" />
             <span>Acessibilidade</span>
           </TabsTrigger>
         </TabsList>
