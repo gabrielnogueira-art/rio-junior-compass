@@ -14,6 +14,8 @@ export interface PapelRioJunior {
   modeloTrabalho?: string;
   statusFrente?: 'ativa' | 'em_estruturacao' | 'pausada';
   entregaveis?: string;
+  /** Frente possui time de assessores (ex.: coordenadorias do EFEJ -> Time EFEJ) */
+  temTime?: boolean;
 }
 
 export interface GuildaInfo {

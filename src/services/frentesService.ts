@@ -343,25 +343,36 @@ class FrentesService {
   }
 
   // Atribuir e gerenciar membros responsaveis pela frente
-  public assignMembersToFrente(guilda: GuildaKey, cargoNome: string, targetMemberIds: string[]): void {
+  // timeMemberIds: subconjunto de targetMemberIds que atua como "time" (assessores) da frente
+  public assignMembersToFrente(
+    guilda: GuildaKey,
+    cargoNome: string,
+    targetMemberIds: string[],
+    timeMemberIds: string[] = []
+  ): void {
     const membros = membrosCartoesService.getMembros();
     const cargoLower = cargoNome.toLowerCase().trim();
 
     membros.forEach(m => {
       const isCurrentlyAssigned = m.guilda === guilda && m.cargo.toLowerCase().trim() === cargoLower;
       const shouldBeAssigned = targetMemberIds.includes(m.id);
+      const vinculo: 'responsavel' | 'time' = timeMemberIds.includes(m.id) ? 'time' : 'responsavel';
 
-      if (shouldBeAssigned && !isCurrentlyAssigned) {
-        // Aloca membro nesta frente
-        membrosCartoesService.saveMembro({
-          ...m,
-          guilda: guilda,
-          cargo: cargoNome
-        });
-      } else if (!shouldBeAssigned && isCurrentlyAssigned) {
+      if (shouldBeAssigned) {
+        const currentVinculo = m.vinculoFrente || 'responsavel';
+        if (!isCurrentlyAssigned || currentVinculo !== vinculo) {
+          membrosCartoesService.saveMembro({
+            ...m,
+            guilda: guilda,
+            cargo: cargoNome,
+            vinculoFrente: vinculo
+          });
+        }
+      } else if (isCurrentlyAssigned) {
         // Desaloca membro desta frente
+        const { vinculoFrente, ...rest } = m;
         membrosCartoesService.saveMembro({
-          ...m,
+          ...rest,
           cargo: 'Membro Colaborador'
         });
       }

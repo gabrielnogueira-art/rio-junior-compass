@@ -1,7 +1,6 @@
 // src/components/operations/CartoesMembrosTab.tsx
 // Aba Oficial de Aplicação de Cartões, Gestão de Membros e Frentes da Guilda de Operações (OP)
 // Baseada em [RIOJUNIOR] Dados de Membros 2026.xlsx e [RioJunior] Mapeamento de Papéis 2027.xlsx
-// Com suporte a edição dinâmica completa por ADMs (nomes, descrições, responsáveis e metas)
 
 import { useState, useEffect, useMemo } from 'react';
 import {
@@ -33,11 +32,8 @@ import {
   ShieldCheck,
   Award,
   X,
-  Target,
-  Clock,
-  CheckSquare,
-  Square,
-  SlidersHorizontal
+  UserX,
+  UserCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +42,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -74,10 +69,15 @@ import { frentesService } from '@/services/frentesService';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { toast } from '@/hooks/use-toast';
 
+// Frentes com time de assessores (ex.: coordenadorias do EFEJ -> Time EFEJ)
+const papelTemTime = (p: PapelRioJunior): boolean =>
+  p.temTime ?? (/coordenadoria/i.test(p.nome) && /efej/i.test(p.nome));
+
+const labelTimeDaFrente = (p: PapelRioJunior): string => (/efej/i.test(p.nome) ? 'Time EFEJ' : 'Time da Frente');
+
 export default function CartoesMembrosTab() {
   const [membros, setMembros] = useState<MembroRioJunior[]>(membrosCartoesService.getMembros());
   const [cartoes, setCartoes] = useState<CartaoAdvertencia[]>(membrosCartoesService.getCartoes());
-  const [frentesVersion, setFrentesVersion] = useState(0);
 
   // Filtros da Tabela de Membros
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,6 +94,7 @@ export default function CartoesMembrosTab() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedTargetEmail, setSelectedTargetEmail] = useState<string>('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
+  const [frentesVersion, setFrentesVersion] = useState(0);
 
   // Modal de Edição / Criação de Frente & Papel
   const [isFrenteModalOpen, setIsFrenteModalOpen] = useState(false);
@@ -106,19 +107,31 @@ export default function CartoesMembrosTab() {
     nome: string;
     objetivo: string;
     isDiretoria: boolean;
+    temTime: boolean;
     indicadores: string;
     modeloTrabalho: string;
     statusFrente: 'ativa' | 'em_estruturacao' | 'pausada';
     assignedMemberIds: string[];
+    timeMemberIds: string[];
   }>({
     guilda: 'OP',
     nome: '',
     objetivo: '',
     isDiretoria: false,
+    temTime: false,
     indicadores: '',
-    modeloTrabalho: 'Híbrido com ritos semanais',
+    modeloTrabalho: '',
     statusFrente: 'ativa',
-    assignedMemberIds: []
+    assignedMemberIds: [],
+    timeMemberIds: []
+  });
+
+  // Desligamento por motivo específico (sem cartão)
+  const [isDesligarModalOpen, setIsDesligarModalOpen] = useState(false);
+  const [desligarTarget, setDesligarTarget] = useState<MembroRioJunior | null>(null);
+  const [desligarForm, setDesligarForm] = useState({
+    motivo: '',
+    data: new Date().toISOString().split('T')[0]
   });
 
   // Formulário de Aplicação / Edição de Cartão
@@ -238,7 +251,7 @@ export default function CartoesMembrosTab() {
       totalAmarelos += st.amarelosCount;
       totalVermelhos += st.totalVermelhos;
 
-      if (st.isDesligamento) desligados++;
+      if (m.desligamentoManual || st.isDesligamento) desligados++;
       else if (st.totalVermelhos === 1) critico++;
       else if (st.amarelosCount > 0) atencao++;
       else conformes++;
@@ -466,73 +479,15 @@ export default function CartoesMembrosTab() {
     }
   };
 
-  // Abertura do Perfil Individual
-  const handleOpenProfile = (email: string) => {
-    setSelectedTargetEmail(email);
-    setIsProfileModalOpen(true);
-  };
-
-  // Exportar dados da tabela de membros em CSV
-  const handleExportMembersCSV = () => {
-    const headers = ['Nome', 'Email', 'Guilda', 'Cargo', 'Status', 'Cartoes_Amarelos', 'Cartoes_Vermelhos', 'Situacao_Disciplinar'];
-    const rows = filteredMembros.map(m => {
-      const cards = cartoes.filter(c => c.membroId === m.id);
-      const st = membrosCartoesService.calculateCardStats(cards);
-      return [
-        `"${m.nome}"`,
-        `"${m.email}"`,
-        `"${m.guilda}"`,
-        `"${m.cargo}"`,
-        `"${m.status}"`,
-        st.amarelosCount,
-        st.totalVermelhos,
-        st.isDesligamento ? 'Desligamento' : st.totalVermelhos > 0 ? 'Critico' : st.amarelosCount > 0 ? 'Atencao' : 'Regular'
-      ].join(',');
-    });
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `riojunior_membros_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({ title: 'Planilha de membros exportada com sucesso!' });
-  };
-
-  // Exportar histórico de cartões em CSV
-  const handleExportCardsCSV = () => {
-    const headers = ['Data', 'Membro', 'Email', 'Guilda', 'Tipo', 'Categoria', 'Motivo', 'Observacoes', 'Aplicado_Por'];
-    const rows = cartoes.map(c => [
-      `"${c.data}"`,
-      `"${c.membroNome}"`,
-      `"${c.membroEmail}"`,
-      `"${c.membroGuilda}"`,
-      `"${c.tipo}"`,
-      `"${c.categoria}"`,
-      `"${c.motivo.replace(/"/g, '""')}"`,
-      `"${(c.observacoes || '').replace(/"/g, '""')}"`,
-      `"${c.aplicadoPor}"`
-    ].join(','));
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `riojunior_cartoes_disciplinares_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast({ title: 'Histórico de cartões exportado com sucesso!' });
-  };
-
   // ========================================================
-  // CONTROLADORES DA ABA DE FRENTES (EDIÇÃO DINÂMICA POR ADMs)
+  // EDIÇÃO DINÂMICA DE FRENTES & PAPÉIS (ADMs)
   // ========================================================
 
   const handleOpenNewFrente = (defaultGuilda?: GuildaKey) => {
+    const targetGuilda =
+      defaultGuilda || (selectedFrenteGuilda !== 'all' ? (selectedFrenteGuilda as GuildaKey) : 'OP');
     setIsEditingFrente(false);
     setOriginalFrenteNome('');
-    const targetGuilda = defaultGuilda || (selectedFrenteGuilda !== 'all' ? (selectedFrenteGuilda as GuildaKey) : 'OP');
     setOriginalFrenteGuilda(targetGuilda);
     setMemberSearchInModal('');
     setFrenteForm({
@@ -540,10 +495,12 @@ export default function CartoesMembrosTab() {
       nome: '',
       objetivo: '',
       isDiretoria: false,
+      temTime: false,
       indicadores: '',
-      modeloTrabalho: 'Híbrido com ritos semanais',
+      modeloTrabalho: '',
       statusFrente: 'ativa',
-      assignedMemberIds: []
+      assignedMemberIds: [],
+      timeMemberIds: []
     });
     setIsFrenteModalOpen(true);
   };
@@ -558,10 +515,12 @@ export default function CartoesMembrosTab() {
       nome: papel.nome,
       objetivo: papel.objetivo || '',
       isDiretoria: !!papel.isDiretoria,
+      temTime: papelTemTime(papel),
       indicadores: papel.indicadores || '',
-      modeloTrabalho: papel.modeloTrabalho || 'Híbrido com ritos semanais',
+      modeloTrabalho: papel.modeloTrabalho || '',
       statusFrente: papel.statusFrente || 'ativa',
-      assignedMemberIds: currentAssigned.map(m => m.id)
+      assignedMemberIds: currentAssigned.map(m => m.id),
+      timeMemberIds: currentAssigned.filter(m => m.vinculoFrente === 'time').map(m => m.id)
     });
     setIsFrenteModalOpen(true);
   };
@@ -569,15 +528,27 @@ export default function CartoesMembrosTab() {
   const handleToggleMemberAssignment = (membroId: string) => {
     setFrenteForm(prev => {
       const exists = prev.assignedMemberIds.includes(membroId);
-      const updated = exists
-        ? prev.assignedMemberIds.filter(id => id !== membroId)
-        : [...prev.assignedMemberIds, membroId];
-      return { ...prev, assignedMemberIds: updated };
+      return {
+        ...prev,
+        assignedMemberIds: exists
+          ? prev.assignedMemberIds.filter(id => id !== membroId)
+          : [...prev.assignedMemberIds, membroId],
+        timeMemberIds: exists ? prev.timeMemberIds.filter(id => id !== membroId) : prev.timeMemberIds
+      };
     });
   };
 
-  const handleSaveFrenteSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSetMemberVinculo = (membroId: string, vinculo: 'responsavel' | 'time') => {
+    setFrenteForm(prev => ({
+      ...prev,
+      timeMemberIds:
+        vinculo === 'time'
+          ? Array.from(new Set([...prev.timeMemberIds, membroId]))
+          : prev.timeMemberIds.filter(id => id !== membroId)
+    }));
+  };
+
+  const handleSaveFrenteSubmit = () => {
     if (!frenteForm.nome.trim()) {
       toast({ title: 'Preencha o nome da frente/papel!', variant: 'destructive' });
       return;
@@ -592,82 +563,67 @@ export default function CartoesMembrosTab() {
         nome: frenteForm.nome.trim(),
         objetivo: frenteForm.objetivo.trim(),
         isDiretoria: frenteForm.isDiretoria,
+        temTime: frenteForm.temTime,
         indicadores: frenteForm.indicadores.trim() || undefined,
         modeloTrabalho: frenteForm.modeloTrabalho.trim() || undefined,
         statusFrente: frenteForm.statusFrente
       };
+      const timeIds = frenteForm.temTime ? frenteForm.timeMemberIds : [];
 
       if (isEditingFrente) {
-        frentesService.saveFrente(
-          originalFrenteGuilda,
-          papelPayload,
-          originalFrenteNome,
-          frenteForm.guilda
-        );
+        frentesService.saveFrente(originalFrenteGuilda, papelPayload, originalFrenteNome, frenteForm.guilda);
         frentesService.assignMembersToFrente(
           frenteForm.guilda,
           papelPayload.nome,
-          frenteForm.assignedMemberIds
+          frenteForm.assignedMemberIds,
+          timeIds
         );
         toast({
           title: 'Frente atualizada com sucesso!',
-          description: `As alterações de "${papelPayload.nome}" e seus responsáveis foram salvas.`
+          description: `As alterações de "${papelPayload.nome}" e de seus responsáveis foram salvas.`
         });
       } else {
         frentesService.createFrente(frenteForm.guilda, papelPayload);
         frentesService.assignMembersToFrente(
           frenteForm.guilda,
           papelPayload.nome,
-          frenteForm.assignedMemberIds
+          frenteForm.assignedMemberIds,
+          timeIds
         );
         toast({
           title: 'Nova frente cadastrada!',
           description: `A frente "${papelPayload.nome}" foi criada na guilda ${frenteForm.guilda}.`
         });
       }
-
       setIsFrenteModalOpen(false);
     } catch (err: any) {
-      toast({
-        title: 'Erro ao salvar frente',
-        description: err.message,
-        variant: 'destructive'
-      });
+      toast({ title: 'Erro ao salvar frente', description: err.message, variant: 'destructive' });
     }
   };
 
   const handleDeleteFrente = (guilda: GuildaKey, frenteNome: string) => {
-    if (confirm(`Tem certeza que deseja excluir a frente "${frenteNome}" da guilda ${guilda}? Membros atualmente alocados passarão a "Membro Colaborador".`)) {
+    if (
+      confirm(
+        `Excluir a frente "${frenteNome}" da guilda ${guilda}? Os membros alocados passarão a "Membro Colaborador".`
+      )
+    ) {
       try {
         frentesService.deleteFrente(guilda, frenteNome);
-        toast({
-          title: 'Frente removida com sucesso!',
-          description: `A frente "${frenteNome}" foi excluída.`
-        });
+        toast({ title: 'Frente removida com sucesso!' });
       } catch (err: any) {
-        toast({
-          title: 'Não foi possível excluir a frente',
-          description: err.message,
-          variant: 'destructive'
-        });
+        toast({ title: 'Não foi possível excluir a frente', description: err.message, variant: 'destructive' });
       }
     }
   };
 
   const handleQuickRemoveMemberFromFrente = (membro: MembroRioJunior, frenteNome: string) => {
-    if (confirm(`Deseja desvincular ${membro.nome} da frente "${frenteNome}"?`)) {
-      membrosCartoesService.saveMembro({
-        ...membro,
-        cargo: 'Membro Colaborador'
-      });
-      toast({
-        title: 'Membro desvinculado',
-        description: `${membro.nome} foi desvinculado(a) da frente "${frenteNome}".`
-      });
+    if (confirm(`Desvincular ${membro.nome} da frente "${frenteNome}"?`)) {
+      const { vinculoFrente, ...rest } = membro;
+      membrosCartoesService.saveMembro({ ...rest, cargo: 'Membro Colaborador' });
+      toast({ title: 'Membro desvinculado', description: `${membro.nome} saiu da frente "${frenteNome}".` });
     }
   };
 
-  // Membros para seleção dentro do modal de Frente
   const membersAvailableForFrenteModal = useMemo(() => {
     const q = memberSearchInModal.toLowerCase().trim();
     return membros.filter(m => {
@@ -681,214 +637,216 @@ export default function CartoesMembrosTab() {
     });
   }, [membros, memberSearchInModal]);
 
+  // ========================================================
+  // DESLIGAMENTO POR MOTIVO ESPECÍFICO (SEM CARTÃO)
+  // ========================================================
+
+  const handleOpenDesligar = (m: MembroRioJunior) => {
+    setDesligarTarget(m);
+    setDesligarForm({ motivo: '', data: new Date().toISOString().split('T')[0] });
+    setIsDesligarModalOpen(true);
+  };
+
+  const handleConfirmDesligar = () => {
+    if (!desligarTarget) return;
+    if (!desligarForm.motivo.trim()) {
+      toast({ title: 'Informe o motivo do desligamento!', variant: 'destructive' });
+      return;
+    }
+    membrosCartoesService.desligarMembro(desligarTarget.id, desligarForm.motivo, desligarForm.data);
+    toast({
+      title: 'Membro desligado',
+      description: `${desligarTarget.nome} foi desligado(a) da RioJunior (motivo registrado).`
+    });
+    setIsDesligarModalOpen(false);
+    setDesligarTarget(null);
+  };
+
+  const handleReintegrar = (m: MembroRioJunior) => {
+    if (confirm(`Reintegrar ${m.nome}? O status voltará a ser calculado pelos cartões.`)) {
+      membrosCartoesService.reintegrarMembro(m.id);
+      toast({ title: 'Membro reintegrado', description: `${m.nome} voltou ao quadro ativo.` });
+    }
+  };
+
+  // Ver perfil do membro
+  const handleOpenProfile = (email: string) => {
+    setSelectedTargetEmail(email);
+    setIsProfileModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top Banner Informativo e Estatísticas Disciplinares */}
-      <div className="bg-gradient-to-r from-cyan-950/40 via-card to-background p-5 rounded-2xl border border-cyan-800/30 shadow-sm space-y-4">
+      {/* ========================================================
+          HERO & APRESENTAÇÃO DO SISTEMA DISCIPLINAR
+          ======================================================== */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card/95 to-amber-500/5 p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                <ShieldAlert size={20} />
-              </div>
-              <h2 className="text-xl font-bold text-foreground">
-                Sistema Disciplinar, Membros & Frentes RioJunior
-              </h2>
+              <Badge variant="outline" className="border-amber-400 text-amber-600 dark:text-amber-400 gap-1 font-bold">
+                <ShieldAlert size={12} /> Guilda de Operações (OP)
+              </Badge>
+              <Badge variant="secondary" className="text-[11px] gap-1">
+                <FileSpreadsheet size={12} /> Base Oficial 2026/2027
+              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Gestão oficial de advertências conduzida pela <strong>Guilda de Operações (OP)</strong> baseada em{' '}
+            <h2 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
+              Sistema Disciplinar, Membros & Frentes RioJunior
+            </h2>
+            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+              Gestão integrada do quadro de membros da Federação baseada na planilha oficial{' '}
               <strong>[RIOJUNIOR] Dados de Membros 2026</strong>, nas frentes de atuação do{' '}
-              <strong>[RioJunior] Mapeamento de Papéis 2027</strong> com autonomia de edição para administradores.
+              <strong>[RioJunior] Mapeamento de Papéis 2027</strong> e no regimento de advertências e cartões da Federação.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1.5"
-              onClick={handleExportMembersCSV}
-            >
-              <FileSpreadsheet size={13} /> Exportar Membros
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1.5"
-              onClick={handleExportCardsCSV}
-            >
-              <FileSpreadsheet size={13} /> Exportar Cartões
-            </Button>
-            <Button
-              size="sm"
-              className="h-8 text-xs gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-medium shadow-xs"
               onClick={() => handleOpenApplyModal()}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs gap-1.5 shadow-sm"
             >
-              <Plus size={14} /> Aplicar Cartão
+              <ShieldAlert size={14} />
+              Aplicar Cartão (OP)
             </Button>
+            <Button
+              onClick={() => handleOpenNewMember()}
+              variant="outline"
+              className="text-xs gap-1.5"
+            >
+              <Plus size={14} />
+              Novo Membro
+            </Button>
+            {/* Botão de reset removido para preservar dados dos membros */}
           </div>
         </div>
 
-        {/* Cards de Resumo Disciplinar */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
-          <div className="bg-card/70 p-3 rounded-xl border border-border">
-            <span className="text-[11px] font-medium text-muted-foreground">Membros Ativos</span>
-            <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-foreground">{summaryStats.totalMembros}</span>
-              <Users size={14} className="text-muted-foreground" />
-            </div>
+        {/* CARDS DE RESUMO & REGRAS */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6 pt-6 border-t border-border/60">
+          <div className="p-3 rounded-xl bg-background/60 border border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold block">Quadro Total</span>
+            <span className="text-xl font-black text-foreground">{summaryStats.totalMembros}</span>
+            <span className="text-[10px] text-muted-foreground block">Membros cadastrados</span>
           </div>
 
-          <div className="bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20">
-            <span className="text-[11px] font-medium text-emerald-400">Situação Regular</span>
-            <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-emerald-400">{summaryStats.conformes}</span>
-              <CheckCircle2 size={14} className="text-emerald-400" />
-            </div>
-          </div>
-
-          <div className="bg-amber-500/5 p-3 rounded-xl border border-amber-500/20">
-            <span className="text-[11px] font-medium text-amber-400">Em Atenção (1 Amarelo)</span>
-            <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-amber-400">{summaryStats.atencao}</span>
-              <AlertTriangle size={14} className="text-amber-400" />
-            </div>
-          </div>
-
-          <div className="bg-rose-500/5 p-3 rounded-xl border border-rose-500/20">
-            <span className="text-[11px] font-medium text-rose-400">Crítico (1 Vermelho)</span>
-            <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-rose-400">{summaryStats.critico}</span>
-              <ShieldAlert size={14} className="text-rose-400" />
-            </div>
-          </div>
-
-          <div className="bg-destructive/10 p-3 rounded-xl border border-destructive/30">
-            <span className="text-[11px] font-medium text-destructive">Desligamento (2 Verm.)</span>
-            <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-destructive">{summaryStats.desligados}</span>
-              <XCircle size={14} className="text-destructive" />
-            </div>
-          </div>
-
-          <div className="bg-card/70 p-3 rounded-xl border border-border">
-            <span className="text-[11px] font-medium text-muted-foreground">Total de Cartões</span>
-            <div className="flex items-baseline justify-between mt-1">
-              <span className="text-lg font-bold text-foreground">{summaryStats.totalCartoesRegistrados}</span>
-              <div className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />
-                <span className="inline-block w-2 h-2 rounded-full bg-rose-500" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Régua de Regras Oficiais da RioJunior */}
-        <div className="bg-muted/40 p-3 rounded-xl border border-border/60 text-xs text-muted-foreground flex flex-col md:flex-row md:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Info size={14} className="text-cyan-400 shrink-0" />
-            <span>
-              <strong>Regimento Disciplinar RioJunior:</strong> Infrações moderadas resultam em{' '}
-              <span className="text-amber-400 font-semibold">Cartão Amarelo</span>; Infrações graves resultam em{' '}
-              <span className="text-rose-400 font-semibold">Cartão Vermelho</span>.
+          <div className="p-3 rounded-xl bg-background/60 border border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold block">Conformes</span>
+            <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+              {summaryStats.conformes}
             </span>
+            <span className="text-[10px] text-muted-foreground block">Sem advertências</span>
           </div>
-          <div className="flex items-center gap-2 shrink-0 text-[11px] font-mono">
-            <Badge variant="outline" className="border-amber-400/40 text-amber-400">
-              2 Amarelos = 1 Vermelho
-            </Badge>
-            <Badge variant="outline" className="border-rose-400/40 text-rose-400">
-              2 Vermelhos = Desligamento
-            </Badge>
+
+          <div className="p-3 rounded-xl bg-background/60 border border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold block">Em Atenção</span>
+            <span className="text-xl font-black text-amber-500">{summaryStats.atencao}</span>
+            <span className="text-[10px] text-muted-foreground block">{summaryStats.totalAmarelos} amarelo(s)</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-background/60 border border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold block">Status Crítico</span>
+            <span className="text-xl font-black text-rose-500">{summaryStats.critico}</span>
+            <span className="text-[10px] text-muted-foreground block">1 cartão vermelho</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-background/60 border border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold block">Desligamentos</span>
+            <span className="text-xl font-black text-destructive">{summaryStats.desligados}</span>
+            <span className="text-[10px] text-muted-foreground block">2 cartões vermelhos</span>
+          </div>
+
+          <div className="p-3 rounded-xl bg-background/60 border border-border/50">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold block">Total Cartões</span>
+            <span className="text-xl font-black text-foreground">{summaryStats.totalCartoesRegistrados}</span>
+            <span className="text-[10px] text-muted-foreground block">Lançados pela OP</span>
           </div>
         </div>
       </div>
 
-      {/* Tabs de Visualização */}
-      <Tabs defaultValue="membros" className="space-y-4">
-        <TabsList className="bg-card border border-border p-1 h-auto flex flex-wrap gap-1">
-          <TabsTrigger value="membros" className="gap-2 text-xs">
-            <Users size={14} />
-            <span>Painel Geral de Membros & Cartões ({membros.length})</span>
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2 text-xs">
-            <ShieldAlert size={14} />
-            <span>Histórico de Aplicação de Cartões ({cartoes.length})</span>
-          </TabsTrigger>
-          <TabsTrigger value="frentes" className="gap-2 text-xs">
-            <FolderTree size={14} />
-            <span>Aba de Frentes & Papéis</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* ========================================================
+          ABAS PRINCIPAIS: MEMBROS / HISTÓRICO / FRENTES & PAPÉIS
+          ======================================================== */}
+      <Tabs defaultValue="membros" className="w-full space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <TabsList className="grid grid-cols-3 max-w-xl">
+            <TabsTrigger value="membros" className="gap-2 text-xs">
+              <Users size={14} />
+              <span>Membros ({filteredMembros.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="gap-2 text-xs">
+              <ShieldAlert size={14} />
+              <span>Histórico de Cartões ({cartoes.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="frentes" className="gap-2 text-xs">
+              <FolderTree size={14} />
+              <span>Aba de Frentes & Papéis</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* --------------------------------------------------------
-            ABA 1: TABELA GERAL DE MEMBROS
+            ABA 1: LISTAGEM DE MEMBROS DA FEDERAÇÃO
             -------------------------------------------------------- */}
         <TabsContent value="membros" className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar membro por nome, email, guilda ou cargo..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-8 h-8 text-xs"
-                />
-              </div>
+          {/* Barra de Filtros */}
+          <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-card p-3 rounded-xl border border-border">
+            <div className="relative w-full md:w-80">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar membro, e-mail ou cargo..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
 
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              {/* Filtro por Guilda */}
               <Select value={guildaFilter} onValueChange={setGuildaFilter}>
-                <SelectTrigger className="w-36 h-8 text-xs">
-                  <SelectValue placeholder="Guilda" />
+                <SelectTrigger className="h-8 text-xs w-36">
+                  <SelectValue placeholder="Todas Guildas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todas Guildas</SelectItem>
+                  <SelectItem value="all" className="text-xs">Todas Guildas</SelectItem>
                   {Object.keys(GUILDAS_INFO).map(g => (
-                    <SelectItem key={g} value={g}>
-                      {g}
+                    <SelectItem key={g} value={g} className="text-xs">
+                      {g} - {GUILDAS_INFO[g as GuildaKey].nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
+              {/* Filtro por Status Disciplinar */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32 h-8 text-xs">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="h-8 text-xs w-36">
+                  <SelectValue placeholder="Status Disciplinar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos Status</SelectItem>
-                  <SelectItem value="ativo">Ativo</SelectItem>
-                  <SelectItem value="afastado">Afastado</SelectItem>
-                  <SelectItem value="desligado">Desligado</SelectItem>
+                  <SelectItem value="all" className="text-xs">Todos os Status</SelectItem>
+                  <SelectItem value="ativo" className="text-xs">Conforme (Ativo)</SelectItem>
+                  <SelectItem value="atencao" className="text-xs">Atenção (1 Amarelo)</SelectItem>
+                  <SelectItem value="critico" className="text-xs">Crítico (1 Vermelho)</SelectItem>
+                  <SelectItem value="desligado" className="text-xs">Desligado (2 Vermelhos)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1.5 shrink-0"
-              onClick={() => handleOpenNewMember()}
-            >
-              <Plus size={13} /> Cadastrar Membro
-            </Button>
           </div>
 
           {/* Tabela de Membros */}
-          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-bold tracking-wider border-b border-border">
                   <tr>
-                    <th className="py-2.5 px-3">Membro</th>
-                    <th className="py-2.5 px-3">Guilda</th>
-                    <th className="py-2.5 px-3">Cargo / Papel</th>
-                    <th className="py-2.5 px-3">Cartões Ativos</th>
-                    <th className="py-2.5 px-3">Status Disciplinar</th>
-                    <th className="py-2.5 px-3 text-right">Ações</th>
+                    <th className="py-3 px-4">Nome & Contato</th>
+                    <th className="py-3 px-4">Guilda</th>
+                    <th className="py-3 px-4">Cargo / Frente Mapeada</th>
+                    <th className="py-3 px-4 text-center">Cartões</th>
+                    <th className="py-3 px-4 text-center">Status Disciplinar</th>
+                    <th className="py-3 px-4 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60">
+                <tbody className="divide-y divide-border">
                   {filteredMembros.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-muted-foreground">
@@ -898,99 +856,181 @@ export default function CartoesMembrosTab() {
                   ) : (
                     filteredMembros.map(m => {
                       const mCards = cartoes.filter(c => c.membroId === m.id);
-                      const stats = membrosCartoesService.calculateCardStats(mCards);
-                      const gInfo = getGuildaInfo(m.guilda);
+                      const mStats = membrosCartoesService.calculateCardStats(mCards);
+                      const isDiretoria =
+                        m.cargo.toLowerCase().includes('diretor') ||
+                        m.cargo.toLowerCase().includes('presidente');
 
                       return (
-                        <tr key={m.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-2.5 px-3">
-                            <div
-                              className="font-medium text-foreground cursor-pointer hover:underline flex items-center gap-1.5"
-                              onClick={() => handleOpenProfile(m.email)}
-                              title="Ver perfil completo deste membro"
-                            >
-                              <span>{m.nome}</span>
-                              <Eye size={12} className="text-muted-foreground/70" />
+                        <tr key={m.id} className="hover:bg-muted/20 transition-colors">
+                          {/* Nome & Email */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
+                                {m.nome.charAt(0)}
+                              </div>
+                              <div>
+                                <span className="font-semibold text-foreground block">{m.nome}</span>
+                                <span className="text-[11px] text-muted-foreground">{m.email}</span>
+                              </div>
                             </div>
-                            <div className="text-[11px] text-muted-foreground font-mono">{m.email}</div>
                           </td>
-                          <td className="py-2.5 px-3">
-                            <Badge variant="outline" className="font-mono text-[10px]">
+
+                          {/* Guilda */}
+                          <td className="py-3 px-4">
+                            <Badge variant="outline" className="font-bold text-[11px]">
                               {m.guilda}
                             </Badge>
                           </td>
-                          <td className="py-2.5 px-3 text-muted-foreground max-w-xs truncate" title={m.cargo}>
-                            {m.cargo}
-                          </td>
-                          <td className="py-2.5 px-3">
-                            <div className="flex items-center gap-2">
-                              {stats.amarelosCount > 0 ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-[10px]">
-                                  🟨 {stats.amarelosCount}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground/60">—</span>
+
+                          {/* Cargo */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-medium text-foreground">{m.cargo}</span>
+                              {m.vinculoFrente === 'time' && (
+                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                                  {/efej/i.test(m.cargo) ? 'Time EFEJ' : 'Time'}
+                                </Badge>
                               )}
-                              {stats.totalVermelhos > 0 ? (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold text-[10px]">
-                                  🟥 {stats.totalVermelhos}
-                                </span>
-                              ) : null}
-                              {stats.convertedRedCount > 0 ? (
-                                <span className="text-[9px] text-muted-foreground/70" title="Convertido de 2 amarelos">
-                                  ({stats.convertedRedCount} conv.)
-                                </span>
-                              ) : null}
+                              {isDiretoria && (
+                                <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700/60 text-[10px] py-0 px-1.5 gap-0.5">
+                                  👑 Diretoria
+                                </Badge>
+                              )}
                             </div>
                           </td>
-                          <td className="py-2.5 px-3">
-                            {stats.isDesligamento ? (
-                              <Badge variant="destructive" className="text-[10px] gap-1 font-bold">
-                                <XCircle size={10} /> Desligamento
+
+                          {/* Cartões */}
+                          <td className="py-3 px-4 text-center">
+                            <div className="inline-flex items-center gap-2">
+                              {/* Amarelos */}
+                              <div
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                                  mStats.amarelosCount > 0
+                                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-900/60'
+                                    : 'text-muted-foreground/40'
+                                }`}
+                                title={`${mStats.amarelosCount} Cartão(ões) Amarelo(s)`}
+                              >
+                                <div className={`w-2.5 h-3.5 rounded-xs ${mStats.amarelosCount > 0 ? 'bg-amber-400' : 'bg-muted-foreground/30'}`} />
+                                <span>{mStats.amarelosCount}</span>
+                              </div>
+
+                              {/* Vermelhos */}
+                              <div
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                                  mStats.totalVermelhos > 0
+                                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-900/60'
+                                    : 'text-muted-foreground/40'
+                                }`}
+                                title={`${mStats.totalVermelhos} Cartão(ões) Vermelho(s) (${mStats.vermelhosDiretosCount} diretos + ${mStats.vermelhosConvertidos} por conversão)`}
+                              >
+                                <div className={`w-2.5 h-3.5 rounded-xs ${mStats.totalVermelhos > 0 ? 'bg-rose-500' : 'bg-muted-foreground/30'}`} />
+                                <span>{mStats.totalVermelhos}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-4 text-center">
+                            {m.desligamentoManual ? (
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] py-0 px-2"
+                                title={`Desligado em ${m.desligamentoManual.data}: ${m.desligamentoManual.motivo}`}
+                              >
+                                Desligado
                               </Badge>
-                            ) : stats.totalVermelhos === 1 ? (
-                              <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/30 text-[10px] gap-1">
-                                <ShieldAlert size={10} /> Crítico
+                            ) : mStats.isDesligamento ? (
+                              <Badge variant="destructive" className="text-[10px] py-0 px-2 animate-pulse">
+                                Desligamento (2V)
                               </Badge>
-                            ) : stats.amarelosCount > 0 ? (
-                              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[10px] gap-1">
-                                <AlertTriangle size={10} /> Atenção
+                            ) : mStats.totalVermelhos === 1 ? (
+                              <Badge className="bg-rose-500 text-white text-[10px] py-0 px-2">
+                                Crítico (1V)
+                              </Badge>
+                            ) : mStats.amarelosCount > 0 ? (
+                              <Badge className="bg-amber-500 text-slate-950 font-bold text-[10px] py-0 px-2">
+                                Atenção ({mStats.amarelosCount}A)
                               </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 text-[10px] gap-1">
-                                <CheckCircle2 size={10} /> Regular
+                              <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] py-0 px-2">
+                                Conforme
                               </Badge>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-right">
+
+                          {/* Ações */}
+                          <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 px-2 text-[11px] gap-1 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30"
-                                onClick={() => handleOpenApplyModal(m.id)}
-                                title="Aplicar advertência ou cartão a este membro"
-                              >
-                                <Plus size={11} /> Cartão
-                              </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                 onClick={() => handleOpenProfile(m.email)}
-                                title="Ver Perfil"
+                                title="Ver Perfil Individual"
                               >
-                                <User size={13} />
+                                <Eye size={13} />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10"
+                                onClick={() => handleOpenApplyModal(m.id)}
+                                title="Aplicar Cartão Disciplinar"
+                              >
+                                <ShieldAlert size={13} />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                 onClick={() => handleOpenEditMember(m)}
-                                title="Editar Cadastro"
+                                title="Editar Cadastro / Frente"
                               >
                                 <Pencil size={13} />
                               </Button>
+                              {m.desligamentoManual ? (
+
+                                <Button
+
+                                  size="sm"
+
+                                  variant="ghost"
+
+                                  className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+
+                                  onClick={() => handleReintegrar(m)}
+
+                                  title="Reintegrar membro"
+
+                                >
+
+                                  <UserCheck size={13} />
+
+                                </Button>
+
+                              ) : (
+
+                                <Button
+
+                                  size="sm"
+
+                                  variant="ghost"
+
+                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+
+                                  onClick={() => handleOpenDesligar(m)}
+
+                                  title="Desligar membro (motivo específico)"
+
+                                >
+
+                                  <UserX size={13} />
+
+                                </Button>
+
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
@@ -1013,109 +1053,106 @@ export default function CartoesMembrosTab() {
         </TabsContent>
 
         {/* --------------------------------------------------------
-            ABA 2: HISTÓRICO DE CARTÕES
+            ABA 2: HISTÓRICO DE CARTÕES APLICADOS (OP)
             -------------------------------------------------------- */}
         <TabsContent value="historico" className="space-y-4">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between bg-card p-4 rounded-xl border border-border">
             <div>
-              <h3 className="text-sm font-bold text-foreground">Registro de Infrações & Advertências</h3>
+              <h3 className="text-sm font-bold text-foreground">Registro Disciplinar Oficial da RioJunior</h3>
               <p className="text-xs text-muted-foreground">
-                Histórico auditável de todos os cartões lançados pela guilda de Operações (OP).
+                Cartões lançados pela Guilda de Operações com efeitos estatutários automáticos.
               </p>
             </div>
             <Button
               size="sm"
-              className="h-8 text-xs gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white"
               onClick={() => handleOpenApplyModal()}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs gap-1.5"
             >
-              <Plus size={14} /> Novo Lançamento
+              <ShieldAlert size={13} />
+              + Novo Lançamento de Advertência
             </Button>
           </div>
 
-          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-bold tracking-wider border-b border-border">
                   <tr>
-                    <th className="py-2.5 px-3">Data</th>
-                    <th className="py-2.5 px-3">Membro Penalizado</th>
-                    <th className="py-2.5 px-3">Tipo</th>
-                    <th className="py-2.5 px-3">Categoria</th>
-                    <th className="py-2.5 px-3">Motivo Circunstanciado</th>
-                    <th className="py-2.5 px-3">Aplicado Por</th>
-                    <th className="py-2.5 px-3 text-right">Ações</th>
+                    <th className="py-3 px-4">Data</th>
+                    <th className="py-3 px-4">Membro Penalizado</th>
+                    <th className="py-3 px-4 text-center">Tipo de Cartão</th>
+                    <th className="py-3 px-4">Categoria da Infração</th>
+                    <th className="py-3 px-4">Motivo Circunstanciado</th>
+                    <th className="py-3 px-4">Aplicado Por</th>
+                    <th className="py-3 px-4 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/60">
+                <tbody className="divide-y divide-border">
                   {cartoes.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                        Nenhum cartão disciplinar registrado no momento.
+                        Nenhum cartão disciplinar registrado até o momento.
                       </td>
                     </tr>
                   ) : (
                     cartoes.map(c => {
-                      const isVermelho = c.tipo === 'vermelho';
+                      const m = membros.find(mem => mem.id === c.membroId);
+
                       return (
-                        <tr key={c.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-2.5 px-3 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                        <tr key={c.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="py-3 px-4 font-mono text-[11px] text-muted-foreground">
                             {c.data}
                           </td>
-                          <td className="py-2.5 px-3">
-                            <div
-                              className="font-medium text-foreground cursor-pointer hover:underline"
-                              onClick={() => handleOpenProfile(c.membroEmail)}
-                            >
-                              {c.membroNome}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground font-mono">
-                              {c.membroGuilda} • {c.membroEmail}
-                            </div>
+                          <td className="py-3 px-4">
+                            <span className="font-semibold text-foreground block">{c.membroNome}</span>
+                            <span className="text-[11px] text-muted-foreground">{m?.cargo || m?.guilda || c.membroEmail}</span>
                           </td>
-                          <td className="py-2.5 px-3">
-                            {isVermelho ? (
-                              <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] font-bold gap-1">
-                                🟥 Vermelho
+                          <td className="py-3 px-4 text-center">
+                            {c.tipo === 'vermelho' ? (
+                              <Badge className="bg-rose-500 hover:bg-rose-600 text-white font-bold text-[10px] gap-1">
+                                <div className="w-2 h-3 bg-white rounded-xs"></div> Vermelho (Grave)
                               </Badge>
                             ) : (
-                              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px] font-bold gap-1">
-                                🟨 Amarelo
+                              <Badge className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-[10px] gap-1">
+                                <div className="w-2 h-3 bg-amber-900 rounded-xs"></div> Amarelo (Moderada)
                               </Badge>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 font-medium text-foreground">
-                            {c.categoria}
+                          <td className="py-3 px-4">
+                            <Badge variant="outline" className="text-[10px]">
+                              {c.categoria}
+                            </Badge>
                           </td>
-                          <td className="py-2.5 px-3 text-muted-foreground max-w-sm">
-                            <p className="line-clamp-2">{c.motivo}</p>
+                          <td className="py-3 px-4 max-w-xs">
+                            <p className="text-foreground font-medium">{c.motivo}</p>
                             {c.observacoes && (
-                              <p className="text-[10px] italic text-muted-foreground/70 mt-0.5">
+                              <p className="text-muted-foreground text-[11px] italic mt-0.5">
                                 Obs: {c.observacoes}
                               </p>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-[11px] text-muted-foreground whitespace-nowrap">
+                          <td className="py-3 px-4 text-muted-foreground">
                             {c.aplicadoPor}
                           </td>
-                          <td className="py-2.5 px-3 text-right">
+                          <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
                                 onClick={() => handleOpenEditCard(c)}
                                 title="Editar detalhes do cartão"
                               >
-                                <Pencil size={12} />
+                                <Pencil size={13} />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="h-7 px-2 text-[11px] text-destructive hover:bg-destructive/10"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
                                 onClick={() => handleRevokeCard(c.id)}
-                                title="Revogar / Excluir cartão"
+                                title="Revogar/Excluir este cartão"
                               >
-                                <Trash2 size={12} />
+                                <Trash2 size={13} />
                               </Button>
                             </div>
                           </td>
@@ -1130,7 +1167,7 @@ export default function CartoesMembrosTab() {
         </TabsContent>
 
         {/* --------------------------------------------------------
-            ABA 3: ABA DE FRENTES & PAPÉIS (DINÂMICA & EDITÁVEL POR ADM)
+            ABA 3: ABA DE FRENTES & PAPÉIS (MAPEAMENTO 2027)
             -------------------------------------------------------- */}
         <TabsContent value="frentes" className="space-y-4">
           {/* Header e Filtros de Frentes */}
@@ -1142,27 +1179,22 @@ export default function CartoesMembrosTab() {
                   Mapeamento Oficial de Papéis & Frentes RioJunior 2027
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Catálogo dinâmico das frentes de atuação de cada Guilda. Administradores podem alterar nomes, descrições, métricas e alocar os membros responsáveis.
+                  Catálogo das frentes de atuação de cada Guilda. Administradores podem editar nome, descrição, responsáveis e demais dados.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                <div className="relative w-full sm:w-64">
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full md:w-64">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Filtrar frentes ou objetivos..."
+                    placeholder="Filtrar frente por nome ou objetivo..."
                     value={frentesSearch}
                     onChange={e => setFrentesSearch(e.target.value)}
                     className="pl-8 h-8 text-xs"
                   />
                 </div>
-
-                <Button
-                  size="sm"
-                  className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shrink-0"
-                  onClick={() => handleOpenNewFrente()}
-                >
-                  <Plus size={13} /> Nova Frente / Papel
+                <Button size="sm" className="h-8 text-xs gap-1.5 shrink-0" onClick={() => handleOpenNewFrente()}>
+                  <Plus size={13} /> Nova Frente
                 </Button>
               </div>
             </div>
@@ -1199,7 +1231,42 @@ export default function CartoesMembrosTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {frentesList.map(({ guilda, guildaInfo, papel, assignedMembers }) => {
               const isDir = !!papel.isDiretoria;
-              const status = papel.statusFrente || 'ativa';
+              const temTime = papelTemTime(papel);
+              const coordenadores = assignedMembers.filter(m => m.vinculoFrente !== 'time');
+              const timeMembers = assignedMembers.filter(m => m.vinculoFrente === 'time');
+
+              const renderMemberRow = (m: MembroRioJunior) => (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between p-1.5 rounded-lg bg-muted/30 border border-border/40 text-xs hover:bg-muted/50 group"
+                >
+                  <div
+                    className="flex items-center gap-2 overflow-hidden flex-1 cursor-pointer"
+                    onClick={() => handleOpenProfile(m.email)}
+                    title="Clique para ver o perfil completo"
+                  >
+                    <div className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                      {m.nome.charAt(0)}
+                    </div>
+                    <span className="font-medium text-foreground truncate">{m.nome}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-[10px] text-muted-foreground font-mono">{m.status}</span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleQuickRemoveMemberFromFrente(m, papel.nome);
+                      }}
+                      title="Desvincular desta frente"
+                    >
+                      <X size={11} />
+                    </Button>
+                  </div>
+                </div>
+              );
 
               return (
                 <div
@@ -1210,13 +1277,13 @@ export default function CartoesMembrosTab() {
                       : 'border-border bg-card'
                   }`}
                 >
-                  <div className="space-y-3">
-                    {/* Header do Card com Status, Guilda e Botões de Edição */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="outline" className="text-[10px] font-bold">
-                          {guilda} • {guildaInfo.nome.split(' ')[0]}
-                        </Badge>
+                  <div className="space-y-2.5">
+                    {/* Header do Card */}
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="outline" className="text-[10px] font-bold">
+                        {guilda} • {guildaInfo.nome}
+                      </Badge>
+                      <div className="flex items-center gap-1">
                         {isDir ? (
                           <Badge className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] gap-1 shadow-xs">
                             👑 Diretoria Executiva
@@ -1226,26 +1293,22 @@ export default function CartoesMembrosTab() {
                             Frente de Atuação
                           </Badge>
                         )}
-                        {status === 'em_estruturacao' && (
-                          <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-500/30">
-                            Estruturação
-                          </Badge>
-                        )}
-                        {status === 'pausada' && (
-                          <Badge variant="outline" className="text-[9px] text-slate-400 border-slate-500/30">
-                            Pausada
-                          </Badge>
-                        )}
                       </div>
+                    </div>
 
-                      {/* Botões de Ação do ADM para a Frente */}
-                      <div className="flex items-center gap-1 shrink-0">
+                    {/* Título da Frente + ações do ADM */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                        {isDir && <Crown size={14} className="text-amber-500 shrink-0" />}
+                        <span>{papel.nome}</span>
+                      </h4>
+                      <div className="flex items-center gap-0.5 shrink-0">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          className="h-7 w-7 text-muted-foreground hover:text-primary"
                           onClick={() => handleOpenEditFrente(guilda, papel, assignedMembers)}
-                          title="Editar Nome, Descrição e Responsáveis desta frente"
+                          title="Editar frente (nome, descrição, responsáveis...)"
                         >
                           <Pencil size={13} />
                         </Button>
@@ -1253,9 +1316,9 @@ export default function CartoesMembrosTab() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
                             onClick={() => handleDeleteFrente(guilda, papel.nome)}
-                            title="Excluir esta frente"
+                            title="Excluir frente"
                           >
                             <Trash2 size={13} />
                           </Button>
@@ -1263,111 +1326,59 @@ export default function CartoesMembrosTab() {
                       </div>
                     </div>
 
-                    {/* Título da Frente */}
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5 leading-snug">
-                        {isDir && <Crown size={14} className="text-amber-500 shrink-0" />}
-                        <span>{papel.nome}</span>
-                      </h4>
-                    </div>
-
                     {/* Objetivo Oficial da Frente */}
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
-                      {papel.objetivo}
-                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">{papel.objetivo}</p>
 
-                    {/* Metadados Adicionais (KPIs e Modelo de Trabalho) */}
                     {(papel.indicadores || papel.modeloTrabalho) && (
-                      <div className="pt-1 space-y-1 text-[11px] bg-muted/20 p-2 rounded-lg border border-border/40">
+                      <div className="text-[11px] text-muted-foreground space-y-0.5">
                         {papel.indicadores && (
-                          <div className="flex items-start gap-1.5 text-muted-foreground">
-                            <Target size={12} className="text-primary shrink-0 mt-0.5" />
-                            <span className="line-clamp-2">
-                              <strong className="text-foreground font-medium">KPIs:</strong> {papel.indicadores}
-                            </span>
-                          </div>
+                          <p className="line-clamp-2">
+                            <strong className="text-foreground font-medium">KPIs:</strong> {papel.indicadores}
+                          </p>
                         )}
                         {papel.modeloTrabalho && (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Clock size={12} className="text-muted-foreground shrink-0" />
-                            <span className="truncate">
-                              <strong className="text-foreground font-medium">Rotina:</strong> {papel.modeloTrabalho}
-                            </span>
-                          </div>
+                          <p className="line-clamp-1">
+                            <strong className="text-foreground font-medium">Rotina:</strong> {papel.modeloTrabalho}
+                          </p>
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* Rodapé: Membros Alocados e Gestão de Responsáveis */}
+                  {/* Rodapé: Membros Alocados */}
                   <div className="pt-3 mt-3 border-t border-border/60 space-y-2">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-muted-foreground font-semibold flex items-center gap-1">
-                        <Users size={12} />
-                        Responsáveis Alocados ({assignedMembers.length}):
+                      <span className="text-muted-foreground font-semibold">
+                        {temTime ? 'Coordenador(a)' : 'Responsáveis'} ({coordenadores.length}):
                       </span>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-6 text-[10px] px-2 text-primary hover:bg-primary/10 gap-1 font-medium"
+                        className="h-6 text-[10px] px-2 text-primary hover:bg-primary/10 gap-1"
                         onClick={() => handleOpenEditFrente(guilda, papel, assignedMembers)}
-                        title="Gerenciar quem é responsável por esta frente"
                       >
-                        <SlidersHorizontal size={11} /> Gerenciar
+                        <Plus size={11} /> Gerenciar
                       </Button>
                     </div>
 
-                    {assignedMembers.length === 0 ? (
-                      <div className="p-2.5 rounded-lg bg-muted/20 border border-dashed border-border/60 text-center space-y-1">
-                        <p className="text-[11px] text-muted-foreground/70 italic">
-                          Nenhum membro vinculado a esta frente no momento.
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-6 text-[10px] px-2 gap-1 text-primary"
-                          onClick={() => handleOpenEditFrente(guilda, papel, assignedMembers)}
-                        >
-                          <Plus size={10} /> Alocar Responsável
-                        </Button>
-                      </div>
+                    {coordenadores.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground/60 italic">
+                        Nenhum membro vinculado a esta frente no momento.
+                      </p>
                     ) : (
-                      <div className="space-y-1.5">
-                        {assignedMembers.map(m => (
-                          <div
-                            key={m.id}
-                            className="flex items-center justify-between p-1.5 rounded-lg bg-muted/30 border border-border/40 text-xs hover:bg-muted/50 group transition-colors"
-                          >
-                            <div
-                              className="flex items-center gap-2 overflow-hidden cursor-pointer flex-1"
-                              onClick={() => handleOpenProfile(m.email)}
-                              title="Clique para ver o perfil completo do membro"
-                            >
-                              <div className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
-                                {m.nome.charAt(0)}
-                              </div>
-                              <span className="font-medium text-foreground truncate">{m.nome}</span>
-                            </div>
+                      <div className="space-y-1.5">{coordenadores.map(renderMemberRow)}</div>
+                    )}
 
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-[10px] text-muted-foreground font-mono">
-                                {m.status}
-                              </span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-0 opacity-80 group-hover:opacity-100"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  handleQuickRemoveMemberFromFrente(m, papel.nome);
-                                }}
-                                title="Desvincular este membro desta frente"
-                              >
-                                <X size={11} />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                    {temTime && (
+                      <div className="space-y-1.5 pt-1">
+                        <span className="text-[11px] text-muted-foreground font-semibold block">
+                          {labelTimeDaFrente(papel)} — assessores ({timeMembers.length}):
+                        </span>
+                        {timeMembers.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground/60 italic">Nenhum assessor no time.</p>
+                        ) : (
+                          <div className="space-y-1.5">{timeMembers.map(renderMemberRow)}</div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1385,112 +1396,144 @@ export default function CartoesMembrosTab() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ShieldAlert className="text-cyan-400" size={18} />
-              {editingCardId ? 'Editar Detalhes do Cartão' : 'Aplicação de Cartão Disciplinar'}
+              <ShieldAlert size={20} className={applyForm.tipo === 'vermelho' ? 'text-rose-500' : 'text-amber-500'} />
+              {editingCardId ? 'Editar Detalhes do Cartão Disciplinar' : 'Aplicação de Cartão Disciplinar (Guilda de OP)'}
             </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              {editingCardId
+                ? 'Modifique o motivo, data, gravidade ou categoria da advertência registrada.'
+                : 'Lançamento oficial no sistema de advertências da RioJunior.'}
+            </p>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Membro Penalizado</Label>
+          <div className="space-y-4 py-2 text-xs">
+            {/* Seleção do Membro */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Membro Penalizado</Label>
               <Select
                 value={applyForm.membroId}
                 onValueChange={val => setApplyForm({ ...applyForm, membroId: val })}
               >
                 <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Selecione o membro..." />
+                  <SelectValue placeholder="Selecione o membro" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60">
                   {membros.map(m => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.nome} ({m.guilda} • {m.cargo})
+                    <SelectItem key={m.id} value={m.id} className="text-xs">
+                      {m.nome} — {m.cargo} ({m.guilda})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo de Cartão</Label>
-                <Select
-                  value={applyForm.tipo}
-                  onValueChange={(val: CardTipo) => setApplyForm({ ...applyForm, tipo: val })}
+            {/* Tipo do Cartão (Gravidade) */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Tipo de Cartão (Gravidade da Infração)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setApplyForm({ ...applyForm, tipo: 'amarelo' })}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    applyForm.tipo === 'amarelo'
+                      ? 'border-amber-400 bg-amber-500/10 ring-2 ring-amber-400/20'
+                      : 'border-border bg-card opacity-60 hover:opacity-100'
+                  }`}
                 >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="amarelo">🟨 Cartão Amarelo (Moderado)</SelectItem>
-                    <SelectItem value="vermelho">🟥 Cartão Vermelho (Grave)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-3 h-4 bg-amber-400 rounded-xs shadow-xs" />
+                    <span className="font-bold text-foreground">Cartão Amarelo</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Infração Moderada (2 amarelos viram 1 vermelho).
+                  </p>
+                </button>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs">Data da Infração</Label>
-                <Input
-                  type="date"
-                  value={applyForm.data}
-                  onChange={e => setApplyForm({ ...applyForm, data: e.target.value })}
-                  className="h-9 text-xs"
-                />
+                <button
+                  type="button"
+                  onClick={() => setApplyForm({ ...applyForm, tipo: 'vermelho' })}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    applyForm.tipo === 'vermelho'
+                      ? 'border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/20'
+                      : 'border-border bg-card opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-3 h-4 bg-rose-500 rounded-xs shadow-xs" />
+                    <span className="font-bold text-foreground">Cartão Vermelho</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Infração Grave (2 vermelhos = desligamento).
+                  </p>
+                </button>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Categoria da Infração</Label>
+            {/* Categoria da Infração */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Categoria da Ocorrência</Label>
               <Select
                 value={applyForm.categoria}
                 onValueChange={val => setApplyForm({ ...applyForm, categoria: val })}
               >
-                <SelectTrigger className="h-9 text-xs">
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Falta em Reunião Geral (RV)">Falta em Reunião Geral (RV)</SelectItem>
-                  <SelectItem value="Não entrega de demanda regulamentar">Não entrega de demanda regulamentar</SelectItem>
-                  <SelectItem value="Atraso injustificado em rito ou evento">Atraso injustificado em rito ou evento</SelectItem>
-                  <SelectItem value="Conduta incompatível com os valores do MEJ">Conduta incompatível com os valores do MEJ</SelectItem>
-                  <SelectItem value="Descumprimento de prazos estratégicos">Descumprimento de prazos estratégicos</SelectItem>
-                  <SelectItem value="Falta de comunicação com a Guilda">Falta de comunicação com a Guilda</SelectItem>
-                  <SelectItem value="Outro motivo circunstanciado">Outro motivo circunstanciado</SelectItem>
+                  <SelectItem value="Falta em Reunião Geral (RV)" className="text-xs">Falta em Reunião Geral (RV)</SelectItem>
+                  <SelectItem value="Descumprimento de SLA / Entrega" className="text-xs">Descumprimento de SLA / Entrega</SelectItem>
+                  <SelectItem value="Comportamental / Clima" className="text-xs">Comportamental / Clima Organizacional</SelectItem>
+                  <SelectItem value="Violação Estatutária" className="text-xs">Violação Estatutária ou Regimental</SelectItem>
+                  <SelectItem value="Quebra de Confidencialidade" className="text-xs">Quebra de Confidencialidade</SelectItem>
+                  <SelectItem value="Ausência em Evento Obrigatório" className="text-xs">Ausência em Evento Obrigatório</SelectItem>
+                  <SelectItem value="Outros" className="text-xs">Outros Motivos Circunstanciados</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Motivo Circunstanciado da Infração</Label>
-              <Textarea
-                placeholder="Descreva detalhadamente o ocorrido, o rito ou o compromisso violado..."
+            {/* Motivo Circunstanciado */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Motivo Circunstanciado</Label>
+              <Input
+                placeholder="Descreva o que motivou a aplicação da advertência..."
                 value={applyForm.motivo}
                 onChange={e => setApplyForm({ ...applyForm, motivo: e.target.value })}
-                rows={3}
-                className="text-xs resize-none"
+                className="h-8 text-xs"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Observações Adicionais (opcional)</Label>
+            {/* Data do Ocorrido */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Data da Ocorrência</Label>
               <Input
-                placeholder="Contexto adicional, alinhamentos feitos ou recursos..."
+                type="date"
+                value={applyForm.data}
+                onChange={e => setApplyForm({ ...applyForm, data: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Observações Opcionais */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Observações / Encaminhamentos (Opcional)</Label>
+              <Input
+                placeholder="Alinhamentos adicionais, prazo de recurso ou combinados..."
                 value={applyForm.observacoes}
                 onChange={e => setApplyForm({ ...applyForm, observacoes: e.target.value })}
                 className="h-8 text-xs"
               />
             </div>
 
+            {/* Prévia do Impacto Regulamentar */}
             {impactPreview && (
-              <div
-                className={`p-3 rounded-xl border text-xs space-y-1.5 ${
-                  impactPreview.willDismiss
-                    ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
-                    : 'bg-muted/40 border-border text-muted-foreground'
-                }`}
-              >
-                <div className="font-semibold text-foreground flex items-center gap-1.5">
-                  <Info size={14} className="text-cyan-400" />
-                  Impacto Disciplinar Calculado:
+              <div className={`p-3 rounded-xl border text-xs leading-relaxed ${
+                impactPreview.willDismiss
+                  ? 'border-rose-400 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                  : 'border-amber-300 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+              }`}>
+                <div className="font-bold flex items-center gap-1.5 mb-1">
+                  <AlertTriangle size={14} />
+                  Impacto Regulamentar Previsto:
                 </div>
                 <p>{impactPreview.desc}</p>
               </div>
@@ -1503,10 +1546,10 @@ export default function CartoesMembrosTab() {
             </Button>
             <Button
               size="sm"
-              className="bg-cyan-600 hover:bg-cyan-700 text-white"
               onClick={handleApplyCardSubmit}
+              className={applyForm.tipo === 'vermelho' ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold'}
             >
-              {editingCardId ? 'Salvar Alterações' : 'Confirmar e Aplicar Cartão'}
+              {editingCardId ? 'Salvar Alterações no Cartão' : 'Confirmar Aplicação de Advertência'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1520,55 +1563,40 @@ export default function CartoesMembrosTab() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User size={18} className="text-primary" />
-              {isEditingMember ? 'Editar Dados do Membro' : 'Novo Membro da RioJunior'}
+              {isEditingMember ? 'Editar Dados do Membro' : 'Cadastrar Novo Membro'}
             </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Vínculo cadastral com as frentes da RioJunior e acesso à plataforma via e-mail.
+            </p>
           </DialogHeader>
 
-          <div className="space-y-3 py-2">
+          <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
               <Label className="text-xs">Nome Completo</Label>
               <Input
                 value={memberForm.nome || ''}
                 onChange={e => setMemberForm({ ...memberForm, nome: e.target.value })}
-                placeholder="Ex: Gabriel Nóbrega"
+                placeholder="Nome do membro"
                 className="h-8 text-xs"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">E-mail Oficial</Label>
-                <Input
-                  value={memberForm.email || ''}
-                  onChange={e => setMemberForm({ ...memberForm, email: e.target.value })}
-                  placeholder="nome@riojunior.com.br"
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Status</Label>
-                <Select
-                  value={memberForm.status || 'ativo'}
-                  onValueChange={(val: any) => setMemberForm({ ...memberForm, status: val })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="afastado">Afastado</SelectItem>
-                    <SelectItem value="desligado">Desligado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1">
+              <Label className="text-xs">E-mail Institucional (@riojunior.com.br)</Label>
+              <Input
+                value={memberForm.email || ''}
+                onChange={e => setMemberForm({ ...memberForm, email: e.target.value })}
+                placeholder="nome@riojunior.com.br"
+                className="h-8 text-xs"
+              />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Guilda */}
               <div className="space-y-1">
                 <Label className="text-xs">Guilda (Diretoria)</Label>
                 <Select
-                  value={memberForm.guilda || 'OP'}
+                  value={memberForm.guilda}
                   onValueChange={(val: GuildaKey) => {
                     const papeis = getPapeisByGuilda(val);
                     setMemberForm({
@@ -1583,27 +1611,28 @@ export default function CartoesMembrosTab() {
                   </SelectTrigger>
                   <SelectContent>
                     {Object.keys(GUILDAS_INFO).map(g => (
-                      <SelectItem key={g} value={g}>
-                        {g} • {GUILDAS_INFO[g as GuildaKey].nome.split(' ')[0]}
+                      <SelectItem key={g} value={g} className="text-xs">
+                        {g} - {GUILDAS_INFO[g as GuildaKey].nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Cargo / Frente */}
               <div className="space-y-1">
-                <Label className="text-xs">Cargo / Frente de Atuação</Label>
+                <Label className="text-xs">Cargo / Frente (Mapeamento 2027)</Label>
                 <Select
-                  value={memberForm.cargo || 'Gestão de Processos'}
+                  value={memberForm.cargo}
                   onValueChange={val => setMemberForm({ ...memberForm, cargo: val })}
                 >
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60">
                     {getPapeisByGuilda(memberForm.guilda || 'OP').map(p => (
-                      <SelectItem key={p.nome} value={p.nome}>
-                        {p.isDiretoria ? '👑 ' : ''}{p.nome}
+                      <SelectItem key={p.nome} value={p.nome} className="text-xs">
+                        {p.isDiretoria ? `👑 ${p.nome} (Diretoria)` : p.nome}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1611,7 +1640,7 @@ export default function CartoesMembrosTab() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">CPF</Label>
                 <Input
@@ -1623,8 +1652,8 @@ export default function CartoesMembrosTab() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">RG / Identidade</Label>
-                <div className="flex gap-1.5">
+                <Label className="text-xs">Identidade / Órgão</Label>
+                <div className="flex gap-2">
                   <Input
                     value={memberForm.identidade || ''}
                     onChange={e => setMemberForm({ ...memberForm, identidade: e.target.value })}
@@ -1664,28 +1693,24 @@ export default function CartoesMembrosTab() {
       </Dialog>
 
       {/* ========================================================
-          MODAL: CRIAÇÃO E EDIÇÃO DINÂMICA DE FRENTES & PAPÉIS
-          (Permite alterar nome, descrição, metas e responsáveis)
+          MODAL: EDIÇÃO / CRIAÇÃO DE FRENTE & PAPEL (ADMs)
           ======================================================== */}
       <Dialog open={isFrenteModalOpen} onOpenChange={setIsFrenteModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
+            <DialogTitle className="flex items-center gap-2">
               <FolderTree size={18} className="text-primary" />
-              {isEditingFrente
-                ? `Editar Frente: ${originalFrenteNome || frenteForm.nome}`
-                : 'Cadastrar Nova Frente / Papel'}
+              {isEditingFrente ? `Editar Frente: ${originalFrenteNome}` : 'Nova Frente / Papel'}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Altere o nome oficial, a descrição/objetivo, os indicadores e selecione quais membros da RioJunior são responsáveis por esta frente.
+              Altere nome, descrição, indicadores e defina quem são os responsáveis por esta frente.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
-            {/* Linha 1: Guilda e Status */}
+          <div className="space-y-4 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Guilda Responsável</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Guilda</Label>
                 <Select
                   value={frenteForm.guilda}
                   onValueChange={(val: GuildaKey) => setFrenteForm({ ...frenteForm, guilda: val })}
@@ -1703,7 +1728,7 @@ export default function CartoesMembrosTab() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs">Status da Frente</Label>
                 <Select
                   value={frenteForm.statusFrente}
@@ -1713,92 +1738,83 @@ export default function CartoesMembrosTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ativa">🟢 Ativa (Operação Regular)</SelectItem>
-                    <SelectItem value="em_estruturacao">🟡 Em Estruturação</SelectItem>
-                    <SelectItem value="pausada">⚪ Pausada Temporariamente</SelectItem>
+                    <SelectItem value="ativa">Ativa</SelectItem>
+                    <SelectItem value="em_estruturacao">Em estruturação</SelectItem>
+                    <SelectItem value="pausada">Pausada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Linha 2: Nome da Frente e Checkbox de Diretoria */}
-            <div className="space-y-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Nome da Frente / Papel</Label>
-                <Input
-                  value={frenteForm.nome}
-                  onChange={e => setFrenteForm({ ...frenteForm, nome: e.target.value })}
-                  placeholder="Ex: Prospecção Ativa, Gestão de Processos, Relações Públicas..."
-                  className="h-8 text-xs font-medium"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 pt-1">
-                <Checkbox
-                  id="isDiretoriaCheckbox"
-                  checked={frenteForm.isDiretoria}
-                  onCheckedChange={(checked: boolean) =>
-                    setFrenteForm({ ...frenteForm, isDiretoria: !!checked })
-                  }
-                />
-                <label
-                  htmlFor="isDiretoriaCheckbox"
-                  className="text-xs font-medium leading-none cursor-pointer flex items-center gap-1.5"
-                >
-                  <Crown size={13} className="text-amber-500" />
-                  Cargo de Nível de Diretoria Executiva da Guilda
-                </label>
-              </div>
-            </div>
-
-            {/* Linha 3: Objetivo e Descrição Oficial da Frente */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Descrição & Objetivo Oficial da Frente</Label>
-              <Textarea
-                value={frenteForm.objetivo}
-                onChange={e => setFrenteForm({ ...frenteForm, objetivo: e.target.value })}
-                placeholder="Descreva a finalidade, escopo de atuação e responsabilidades desta frente dentro da Federação..."
-                rows={4}
-                className="text-xs resize-none leading-relaxed"
+            <div className="space-y-1">
+              <Label className="text-xs">Nome da Frente / Papel</Label>
+              <Input
+                value={frenteForm.nome}
+                onChange={e => setFrenteForm({ ...frenteForm, nome: e.target.value })}
+                placeholder="Ex: Coordenadoria Geral do EFEJ"
+                className="h-8 text-xs"
               />
             </div>
 
-            {/* Linha 4: Indicadores (KPIs) e Modelo de Trabalho */}
+            <div className="space-y-1">
+              <Label className="text-xs">Descrição / Objetivo</Label>
+              <Textarea
+                value={frenteForm.objetivo}
+                onChange={e => setFrenteForm({ ...frenteForm, objetivo: e.target.value })}
+                rows={4}
+                className="text-xs resize-none"
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Indicadores & KPIs Principais</Label>
+              <div className="space-y-1">
+                <Label className="text-xs">Indicadores / KPIs</Label>
                 <Input
                   value={frenteForm.indicadores}
                   onChange={e => setFrenteForm({ ...frenteForm, indicadores: e.target.value })}
-                  placeholder="Ex: NPS, Taxa de Retenção, Metas de Faturamento..."
                   className="h-8 text-xs"
                 />
               </div>
-
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="text-xs">Modelo de Trabalho / Rotina</Label>
                 <Input
                   value={frenteForm.modeloTrabalho}
                   onChange={e => setFrenteForm({ ...frenteForm, modeloTrabalho: e.target.value })}
-                  placeholder="Ex: Híbrido com ritos semanais, Remoto..."
                   className="h-8 text-xs"
                 />
               </div>
             </div>
 
-            {/* Linha 5: Alocação de Membros Responsáveis */}
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={frenteForm.isDiretoria}
+                  onCheckedChange={c => setFrenteForm({ ...frenteForm, isDiretoria: !!c })}
+                />
+                <Crown size={13} className="text-amber-500" /> Cargo de Diretoria da guilda
+              </label>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={frenteForm.temTime}
+                  onCheckedChange={c => setFrenteForm({ ...frenteForm, temTime: !!c })}
+                />
+                <Users size={13} className="text-primary" /> Possui time de assessores (ex.: Time EFEJ)
+              </label>
+            </div>
+
+            {/* Responsáveis */}
             <div className="space-y-2 pt-2 border-t border-border">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <Label className="text-xs font-semibold flex items-center gap-1.5">
-                    <Users size={13} className="text-primary" />
-                    Responsáveis Vinculados à Frente ({frenteForm.assignedMemberIds.length} selecionados)
+                  <Label className="text-xs font-semibold">
+                    Membros vinculados ({frenteForm.assignedMemberIds.length})
                   </Label>
                   <p className="text-[11px] text-muted-foreground">
-                    Marque os membros responsáveis por liderar ou executar as atividades desta frente.
+                    {frenteForm.temTime
+                      ? 'Marque os membros e defina se cada um é Coordenador(a) ou integrante do Time.'
+                      : 'Marque os membros responsáveis por esta frente.'}
                   </p>
                 </div>
-
                 <div className="relative w-full sm:w-48">
                   <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -1810,53 +1826,19 @@ export default function CartoesMembrosTab() {
                 </div>
               </div>
 
-              {/* Botões de Seleção Rápida */}
-              <div className="flex items-center gap-2 text-[11px]">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-6 text-[10px] px-2"
-                  onClick={() => {
-                    const guildaMemberIds = membros
-                      .filter(m => m.guilda === frenteForm.guilda)
-                      .map(m => m.id);
-                    setFrenteForm(prev => ({
-                      ...prev,
-                      assignedMemberIds: Array.from(new Set([...prev.assignedMemberIds, ...guildaMemberIds]))
-                    }));
-                  }}
-                >
-                  + Todos de {frenteForm.guilda}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive"
-                  onClick={() => setFrenteForm(prev => ({ ...prev, assignedMemberIds: [] }))}
-                >
-                  Limpar Seleção
-                </Button>
-              </div>
-
-              {/* Lista Scrollável de Membros com Checkboxes */}
-              <div className="border border-border rounded-xl p-2 max-h-48 overflow-y-auto space-y-1 bg-muted/20">
+              <div className="border border-border rounded-xl p-2 max-h-56 overflow-y-auto space-y-1 bg-muted/20">
                 {membersAvailableForFrenteModal.length === 0 ? (
-                  <p className="text-center py-4 text-muted-foreground text-xs">
-                    Nenhum membro encontrado com este termo.
-                  </p>
+                  <p className="text-center py-4 text-muted-foreground text-xs">Nenhum membro encontrado.</p>
                 ) : (
                   membersAvailableForFrenteModal.map(m => {
                     const isSelected = frenteForm.assignedMemberIds.includes(m.id);
-                    const isFromSameGuilda = m.guilda === frenteForm.guilda;
-
+                    const isTime = frenteForm.timeMemberIds.includes(m.id);
                     return (
                       <div
                         key={m.id}
-                        className={`flex items-center justify-between p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        className={`flex items-center justify-between gap-2 p-1.5 rounded-lg border text-xs cursor-pointer transition-colors ${
                           isSelected
-                            ? 'bg-primary/10 border-primary/40 font-medium'
+                            ? 'bg-primary/10 border-primary/40'
                             : 'bg-card border-border/50 hover:bg-muted/40'
                         }`}
                         onClick={() => handleToggleMemberAssignment(m.id)}
@@ -1868,25 +1850,35 @@ export default function CartoesMembrosTab() {
                             onClick={e => e.stopPropagation()}
                           />
                           <div className="truncate">
-                            <span className="text-foreground">{m.nome}</span>
+                            <span className="text-foreground font-medium">{m.nome}</span>
                             <span className="text-[10px] text-muted-foreground ml-1.5">
                               ({m.guilda} • {m.cargo})
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
-                          {isFromSameGuilda && (
-                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
-                              {m.guilda}
-                            </Badge>
-                          )}
-                          {isSelected && (
-                            <Badge className="bg-primary text-primary-foreground text-[9px] px-1.5 py-0 h-4 font-bold">
-                              Alocado
-                            </Badge>
-                          )}
-                        </div>
+                        {isSelected && frenteForm.temTime && (
+                          <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={!isTime ? 'default' : 'outline'}
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => handleSetMemberVinculo(m.id, 'responsavel')}
+                            >
+                              Coordenador(a)
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={isTime ? 'default' : 'outline'}
+                              className="h-6 text-[10px] px-2"
+                              onClick={() => handleSetMemberVinculo(m.id, 'time')}
+                            >
+                              Time
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -1895,12 +1887,61 @@ export default function CartoesMembrosTab() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 pt-2 border-t border-border">
+          <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setIsFrenteModalOpen(false)}>
               Cancelar
             </Button>
-            <Button size="sm" onClick={() => handleSaveFrenteSubmit()}>
-              {isEditingFrente ? 'Salvar Alterações da Frente' : 'Criar Frente'}
+            <Button size="sm" onClick={handleSaveFrenteSubmit}>
+              {isEditingFrente ? 'Salvar Alterações' : 'Criar Frente'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================
+          MODAL: DESLIGAMENTO POR MOTIVO ESPECÍFICO (SEM CARTÃO)
+          ======================================================== */}
+      <Dialog open={isDesligarModalOpen} onOpenChange={setIsDesligarModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserX size={18} className="text-destructive" />
+              Desligar Membro
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Registre um desligamento ocorrido por motivo específico, sem relação com aplicação de cartões.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <p className="text-sm font-semibold text-foreground">{desligarTarget?.nome}</p>
+            <div className="space-y-1">
+              <Label className="text-xs">Data do desligamento</Label>
+              <Input
+                type="date"
+                value={desligarForm.data}
+                onChange={e => setDesligarForm({ ...desligarForm, data: e.target.value })}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Motivo do desligamento</Label>
+              <Textarea
+                value={desligarForm.motivo}
+                onChange={e => setDesligarForm({ ...desligarForm, motivo: e.target.value })}
+                placeholder="Ex: Pedido do próprio membro, mudança de cidade, decisão da Diretoria..."
+                rows={3}
+                className="text-xs resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsDesligarModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmDesligar}>
+              Confirmar Desligamento
             </Button>
           </DialogFooter>
         </DialogContent>

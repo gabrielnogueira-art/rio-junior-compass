@@ -21,6 +21,10 @@ export interface MembroRioJunior {
   guilda: GuildaKey;
   cargo: string;
   status: 'ativo' | 'atencao' | 'critico' | 'desligado';
+  /** Vínculo na frente: responsável/coordenador ou integrante do time (ex.: Time EFEJ) */
+  vinculoFrente?: 'responsavel' | 'time';
+  /** Desligamento por motivo específico, sem relação com aplicação de cartões */
+  desligamentoManual?: { motivo: string; data: string };
 }
 
 export interface CartaoAdvertencia {
@@ -924,6 +928,10 @@ class MembrosCartoesService {
   }
 
   public saveMembro(membro: MembroRioJunior): void {
+    // Desligamento manual prevalece sobre o status calculado pelos cartões
+    if (membro.desligamentoManual && membro.status !== 'desligado') {
+      membro = { ...membro, status: 'desligado' };
+    }
     const list = this.getMembros();
     const idx = list.findIndex(m => m.id === membro.id);
     if (idx >= 0) {
@@ -933,6 +941,30 @@ class MembrosCartoesService {
     }
     localStorage.setItem(STORAGE_KEY_MEMBROS, JSON.stringify(list));
     this.notify();
+  }
+
+  // Desliga o membro por motivo específico (sem depender de cartões)
+  public desligarMembro(id: string, motivo: string, data: string): void {
+    const m = this.getMembroById(id);
+    if (!m) return;
+    this.saveMembro({
+      ...m,
+      status: 'desligado',
+      desligamentoManual: { motivo: motivo.trim(), data }
+    });
+  }
+
+  // Reintegra o membro e recalcula o status com base nos cartões
+  public reintegrarMembro(id: string): void {
+    const m = this.getMembroById(id);
+    if (!m) return;
+    const stats = this.calculateCardStats(this.getCartoesByMembro(id));
+    let status: MembroRioJunior['status'] = 'ativo';
+    if (stats.isDesligamento) status = 'desligado';
+    else if (stats.totalVermelhos === 1) status = 'critico';
+    else if (stats.amarelosCount > 0) status = 'atencao';
+    const { desligamentoManual, ...rest } = m;
+    this.saveMembro({ ...rest, status });
   }
 
   public deleteMembro(id: string): void {

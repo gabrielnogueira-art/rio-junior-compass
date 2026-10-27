@@ -61,6 +61,39 @@ interface UserProfileModalProps {
   targetMemberEmail?: string;
 }
 
+const normalizeText = (t: string) =>
+  (t || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+// Caixas institucionais (e-mails de cargo) -> cargo correspondente no quadro
+const INSTITUTIONAL_MAILBOX_ROLES: Record<string, RegExp> = {
+  presidencia: /presidente executivo/i
+};
+
+// Localiza o membro do usuário: e-mail exato > nome completo único > caixa institucional
+function findMemberForUser(membros: MembroRioJunior[], email: string, nome: string): MembroRioJunior | undefined {
+  const mail = normalizeText(email);
+  if (mail) {
+    const byEmail = membros.find(m => normalizeText(m.email) === mail);
+    if (byEmail) return byEmail;
+  }
+  const nameNorm = normalizeText(nome);
+  if (nameNorm) {
+    const byName = membros.filter(m => normalizeText(m.nome) === nameNorm);
+    if (byName.length === 1) return byName[0];
+  }
+  const local = mail.split('@')[0];
+  const rolePattern = INSTITUTIONAL_MAILBOX_ROLES[local];
+  if (rolePattern) {
+    const byRole = membros.filter(m => rolePattern.test(m.cargo || ''));
+    if (byRole.length === 1) return byRole[0];
+  }
+  return undefined;
+}
+
 export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: UserProfileModalProps) {
   const { profile } = useAuth();
   const [membros, setMembros] = useState<MembroRioJunior[]>(membrosCartoesService.getMembros());
@@ -90,7 +123,9 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
   }, []);
 
   // Identifica o membro vinculado pelo e-mail
-  const loggedEmail = targetMemberEmail || profile?.email || 'gabriel.nogueira@riojunior.com.br';
+  const loggedEmail = targetMemberEmail || profile?.email || '';
+  // Nome do usuário logado só é usado quando o perfil aberto é o dele próprio
+  const selfNameHint = !targetMemberEmail || targetMemberEmail === profile?.email ? profile?.nome || '' : '';
 
   useEffect(() => {
     if (!open) {
@@ -99,19 +134,12 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
       setEditingCardId(null);
       return;
     }
-    // Procura membro por e-mail
-    const matched = membros.find(
-      m => (m.email || '').toLowerCase().trim() === loggedEmail.toLowerCase().trim()
-    );
-    if (matched) {
-      setSelectedMemberId(matched.id);
-    } else if (membros.length > 0 && !selectedMemberId) {
-      setSelectedMemberId(membros[0].id);
-    }
-  }, [open, loggedEmail, membros]);
+    const matched = findMemberForUser(membros, loggedEmail, selfNameHint);
+    setSelectedMemberId(matched ? matched.id : '');
+  }, [open, loggedEmail, selfNameHint, membros]);
 
   const currentMember = useMemo(() => {
-    return membros.find(m => m.id === selectedMemberId) || membros[0];
+    return membros.find(m => m.id === selectedMemberId);
   }, [membros, selectedMemberId]);
 
   // Carrega cartões e calcula estatísticas regulamentares
@@ -304,7 +332,22 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
     }
   };
 
-  if (!currentMember) return null;
+  if (!currentMember) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Perfil não encontrado</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Não localizamos você no quadro de membros da RioJunior
+            {loggedEmail ? ` (e-mail: ${loggedEmail})` : ''}. Peça à Guilda de Operações para vincular
+            o seu e-mail ao seu cadastro.
+          </p>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const isDiretoria =
     currentMember.cargo.toLowerCase().includes('diretor') ||
@@ -330,7 +373,20 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
                       👑 Diretoria Executiva
                     </Badge>
                   )}
-                  {stats.isDesligamento ? (
+                  {currentMember.vinculoFrente === 'time' && (
+                    <Badge variant="secondary" className="font-bold text-[10px]">
+                      {/efej/i.test(currentMember.cargo) ? 'Time EFEJ' : 'Time da Frente'}
+                    </Badge>
+                  )}
+                  {currentMember.desligamentoManual ? (
+                    <Badge
+                      variant="destructive"
+                      className="font-bold text-[10px]"
+                      title={currentMember.desligamentoManual.motivo}
+                    >
+                      Desligado em {currentMember.desligamentoManual.data}
+                    </Badge>
+                  ) : stats.isDesligamento ? (
                     <Badge variant="destructive" className="font-bold text-[10px] animate-pulse">
                       Desligamento Formal (2 Vermelhos)
                     </Badge>
@@ -361,24 +417,6 @@ export function UserProfileModal({ open, onOpenChange, targetMemberEmail }: User
               </div>
             </div>
 
-            {/* Alternador de Perfil para visualização de outros membros */}
-            <div className="sm:text-right shrink-0">
-              <Label className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">
-                Visualizar Membro:
-              </Label>
-              <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
-                <SelectTrigger className="h-8 text-xs w-48 bg-background/80">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {membros.map(m => (
-                    <SelectItem key={m.id} value={m.id} className="text-xs">
-                      {m.nome} ({m.guilda})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
 
