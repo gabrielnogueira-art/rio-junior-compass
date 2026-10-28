@@ -271,7 +271,7 @@ export const BankStatementImportModal = ({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".ofx,.xlsx,.xls,.csv"
+                    accept=".ofx,.xlsx,.xls,.csv,.txt"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -282,7 +282,7 @@ export const BankStatementImportModal = ({
                     {fileName || 'Clique para selecionar ou arraste o extrato bancário'}
                   </h4>
                   <p className="text-xs text-muted-foreground max-w-md">
-                    Formatos suportados: <strong>OFX</strong> (padrão de todos os bancos), <strong>Excel (.xlsx, .xls)</strong> como o extrato do Banco do Brasil ou Cora, e <strong>CSV</strong>.
+                    Formatos suportados: <strong>OFX</strong> (padrão de todos os bancos), <strong>Excel (.xlsx, .xls)</strong> como o extrato do Banco do Brasil ou Cora, <strong>CSV</strong> e <strong>TXT</strong>.
                   </p>
                   {isProcessing && (
                     <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-primary animate-pulse">
