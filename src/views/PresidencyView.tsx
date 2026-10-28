@@ -23,7 +23,7 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
   const { eventos, loading, createEvento, updateEvento, deleteEvento } = usePresidenciaEventos();
   const { config, loading: configLoading, updateConfig } = useConfiguracaoPresidencia();
 
-  const dataReferenciaStatus = config?.dataReferenciaStatus || '2026-01-07';
+  const dataReferenciaStatus = config?.dataReferenciaStatus || '2026-01-12';
   const anchorDate = new Date(dataReferenciaStatus + 'T12:00:00');
 
   return (
