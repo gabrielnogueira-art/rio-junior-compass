@@ -97,7 +97,7 @@ const Sidebar = ({ activeTab, setActiveTab, isAdmin, userName, userEmail, onLogo
         />
         <SidebarItem 
           icon={TrendingUp} 
-          label="VP Negócios" 
+          label="VPNeg" 
           active={activeTab === 'business'} 
           onClick={() => setActiveTab('business')}
         />

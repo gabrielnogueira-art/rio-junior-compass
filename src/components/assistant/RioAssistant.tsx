@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isToolUIPart, type UIMessage } from 'ai';
-import { MessageCircle, Paperclip, X, Compass } from 'lucide-react';
+import { MessageCircle, Paperclip, X, Compass, Mic, MicOff } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,6 +40,59 @@ export default function RioAssistant({ section, year }: { section: string; year:
 }
 
 function ChatWindow({ initial, section, year, onHistoryChange }: { initial: UIMessage[]; section: string; year: number; onHistoryChange: (messages: UIMessage[]) => void }) {
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setError('Seu navegador não suporta reconhecimento de voz direto.');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setError('');
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + ' ';
+        }
+        setDraft(prev => (prev ? prev + ' ' : '') + transcript.trim());
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event);
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.error(err);
+      setIsRecording(false);
+      setError('Não foi possível iniciar o microfone.');
+    }
+  };
+
   const textarea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
@@ -115,7 +168,24 @@ function ChatWindow({ initial, section, year, onHistoryChange }: { initial: UIMe
       <div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={busy} onClick={() => send('Analise os dados visíveis nesta página e destaque prioridades, riscos e próximos passos.')}><Compass size={14} />Analisar página</Button><span className="text-xs text-muted-foreground truncate">{section}</span></div>
       {attachment && <div className="flex items-center justify-between text-xs"><span className="truncate">{attachment.name}</span><Button size="icon-sm" variant="ghost" aria-label="Remover anexo" onClick={() => setAttachment(null)}><X /></Button></div>}
       <input type="file" ref={fileInput} aria-label="Anexar arquivo ao assistente" className="hidden" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.ofx,.csv,.txt" onChange={event => setAttachment(event.target.files?.[0] ?? null)} />
-      <PromptInput onSubmit={() => send(draft)}><PromptInputTextarea ref={textarea} value={draft} onChange={event => setDraft(event.target.value)} placeholder="Pergunte sobre esta página ou envie um extrato…" className="min-h-24" /><PromptInputFooter className="justify-between"><Button type="button" variant="ghost" size="icon-sm" aria-label="Anexar extrato ou arquivo" disabled={busy} onClick={() => fileInput.current?.click()}><Paperclip /></Button><PromptInputSubmit status={status} onStop={stop} disabled={!busy && !draft.trim() && !attachment} aria-label={busy ? 'Interromper resposta' : 'Enviar mensagem'} /></PromptInputFooter></PromptInput>
+      <PromptInput onSubmit={() => send(draft)}><PromptInputTextarea ref={textarea} value={draft} onChange={event => setDraft(event.target.value)} placeholder="Pergunte sobre esta página ou envie um extrato…" className="min-h-24" /><PromptInputFooter className="justify-between"><div className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="icon-sm" aria-label="Anexar extrato ou arquivo" disabled={busy} onClick={() => fileInput.current?.click()}>
+              <Paperclip />
+            </Button>
+            <Button 
+              type="button" 
+              variant={isRecording ? 'destructive' : 'ghost'} 
+              size="icon-sm" 
+              aria-label={isRecording ? 'Parar gravação de áudio' : 'Falar por áudio'} 
+              disabled={busy} 
+              onClick={toggleRecording}
+              className={isRecording ? 'animate-pulse text-white' : ''}
+              title={isRecording ? 'Ouvindo... Clique para pausar' : 'Falar por áudio (Voz para texto)'}
+            >
+              {isRecording ? <MicOff size={15} /> : <Mic size={15} />}
+            </Button>
+            {isRecording && <span className="text-[10px] text-red-500 font-semibold animate-pulse">Ouvindo…</span>}
+          </div><PromptInputSubmit status={status} onStop={stop} disabled={!busy && !draft.trim() && !attachment} aria-label={busy ? 'Interromper resposta' : 'Enviar mensagem'} /></PromptInputFooter></PromptInput>
     </div>
   </>;
 }

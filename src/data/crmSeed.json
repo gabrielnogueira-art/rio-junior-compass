@@ -1,0 +1,975 @@
+{
+  "fases": [
+    {
+      "id": "contato_aberto",
+      "nome": "Contato aberto",
+      "cor": "#64748b",
+      "ordem": 1,
+      "descricao": "Hora do show! Aqui ficam os cards que estão sendo feitos.",
+      "campos": [
+        {
+          "id": "nome_responsavel",
+          "label": "Nome do Responsável",
+          "tipo": "texto_curto",
+          "placeholder": "Lucas",
+          "obrigatorio": true
+        },
+        {
+          "id": "persona",
+          "label": "Persona / Qualificação",
+          "tipo": "etiquetas",
+          "opcoes": [
+            "Frio",
+            "Morno",
+            "Quente"
+          ]
+        },
+        {
+          "id": "data_rd",
+          "label": "Data da RD",
+          "tipo": "data",
+          "placeholder": "DD/MM/AAAA"
+        },
+        {
+          "id": "responsavel_parceiro",
+          "label": "Responsável do Parceiro",
+          "tipo": "texto_curto",
+          "placeholder": "Digite aqui ..."
+        },
+        {
+          "id": "quem_vai_tocar_rd",
+          "label": "Quem vai tocar a RD",
+          "tipo": "responsavel"
+        },
+        {
+          "id": "observacoes",
+          "label": "Observações",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "briefing",
+          "label": "Briefing",
+          "tipo": "texto_longo"
+        }
+      ]
+    },
+    {
+      "id": "rd_realizada",
+      "nome": "RD Realizada",
+      "cor": "#f97316",
+      "ordem": 2,
+      "descricao": "Reunião de Diagnóstico realizada com o parceiro em potencial.",
+      "campos": [
+        {
+          "id": "dores_identificadas",
+          "label": "Dores identificadas [Padronizar pra virar uma checklist talvez]",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "formato_participacao",
+          "label": "Formato de participação",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "razao_desinteresse_ap",
+          "label": "[ Crítico ] Por qual razão você acredita que não houve interesse na AP?",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "valor_proposta",
+          "label": "Valor da Proposta",
+          "tipo": "moeda",
+          "placeholder": "R$ 0,00"
+        },
+        {
+          "id": "link_proposta",
+          "label": "Link da proposta",
+          "tipo": "texto_curto",
+          "placeholder": "https://..."
+        },
+        {
+          "id": "data_ap",
+          "label": "Data da AP",
+          "tipo": "data"
+        }
+      ]
+    },
+    {
+      "id": "aps_realizada",
+      "nome": "APs Realizada",
+      "cor": "#84cc16",
+      "ordem": 3,
+      "descricao": "Apresentação de Proposta (AP) realizada.",
+      "campos": [
+        {
+          "id": "observacao",
+          "label": "Observação",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "contraproposta_parceiro",
+          "label": "Contraproposta do parceiro",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "pontos_positivos_negativos",
+          "label": "Pontos positivos e negativos da proposta",
+          "tipo": "texto_longo",
+          "obrigatorio": true
+        },
+        {
+          "id": "cota_parceiro",
+          "label": "Cota do Parceiro",
+          "tipo": "moeda",
+          "obrigatorio": true
+        },
+        {
+          "id": "cota_plus",
+          "label": "Cota Plus",
+          "tipo": "moeda",
+          "obrigatorio": true
+        },
+        {
+          "id": "cota_standard",
+          "label": "Cota Standard",
+          "tipo": "moeda",
+          "obrigatorio": true
+        },
+        {
+          "id": "documentos",
+          "label": "Documentos: Anexar proposta e apresentação",
+          "tipo": "anexo",
+          "obrigatorio": true
+        }
+      ]
+    },
+    {
+      "id": "contratos_assinatura",
+      "nome": "Contratos em Assinatura",
+      "cor": "#6366f1",
+      "ordem": 4,
+      "descricao": "Minuta de contrato enviada para conferência jurídica e assinatura.",
+      "campos": [
+        {
+          "id": "cpf_assinatura",
+          "label": "CPF pra assinatura",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "cnpj_empresa",
+          "label": "CNPJ da Empresa",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "estado_civil",
+          "label": "Estado Civil",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "ocupacao",
+          "label": "Ocupação",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "orgao_emissor",
+          "label": "Órgão Emissor",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "endereco_responsavel",
+          "label": "Endereço do Responsável",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "endereco_sede_empresa",
+          "label": "Endereço da sede da empresa",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "itens_vendidos_contrato",
+          "label": "Itens vendidos [Objeto do contrato]",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "rg",
+          "label": "RG",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "valor_contrato",
+          "label": "Valor",
+          "tipo": "moeda"
+        },
+        {
+          "id": "razao_social",
+          "label": "Razão Social",
+          "tipo": "texto_curto"
+        }
+      ]
+    },
+    {
+      "id": "parceria_fechada",
+      "nome": "Parceria Fechada",
+      "cor": "#06b6d4",
+      "ordem": 5,
+      "descricao": "Contrato assinado e parceria concretizada!",
+      "campos": [
+        {
+          "id": "proposta_anexada",
+          "label": "Proposta",
+          "tipo": "anexo",
+          "obrigatorio": true
+        },
+        {
+          "id": "contrato_anexado",
+          "label": "Contrato",
+          "tipo": "anexo"
+        },
+        {
+          "id": "valor_fechado",
+          "label": "Valor",
+          "tipo": "moeda",
+          "obrigatorio": true
+        },
+        {
+          "id": "itens_vendidos",
+          "label": "Itens vendidos",
+          "tipo": "etiquetas",
+          "obrigatorio": true
+        }
+      ]
+    },
+    {
+      "id": "propostas_sem_retorno",
+      "nome": "Propostas Sem devolutivas",
+      "cor": "#10b981",
+      "ordem": 6,
+      "descricao": "Follow-ups e retomadas periódicas de contato.",
+      "campos": [
+        {
+          "id": "retomada_1",
+          "label": "1º Retomada de contato",
+          "tipo": "data"
+        },
+        {
+          "id": "retomada_2",
+          "label": "2º Retomada de contato",
+          "tipo": "data"
+        },
+        {
+          "id": "retomada_3",
+          "label": "3º Retomada de contato",
+          "tipo": "data"
+        }
+      ]
+    },
+    {
+      "id": "proposta_recusada",
+      "nome": "Proposta Recusada",
+      "cor": "#ef4444",
+      "ordem": 7,
+      "descricao": "Proposta não aceita pelo parceiro no ciclo atual.",
+      "campos": [
+        {
+          "id": "link_proposta_recusada",
+          "label": "Link da Proposta",
+          "tipo": "texto_curto"
+        },
+        {
+          "id": "motivo_recusa",
+          "label": "Motivo da recusa / Feedback",
+          "tipo": "texto_longo"
+        }
+      ]
+    },
+    {
+      "id": "geladeira",
+      "nome": "Geladeira [ Crítico ]",
+      "cor": "#22c55e",
+      "ordem": 8,
+      "descricao": "Contatos pausados ou em stand-by temporário.",
+      "campos": [
+        {
+          "id": "motivo_geladeira",
+          "label": "Motivo da pausa / Congelamento",
+          "tipo": "texto_longo"
+        },
+        {
+          "id": "previsao_retomada",
+          "label": "Previsão de Retomada",
+          "tipo": "data"
+        }
+      ]
+    }
+  ],
+  "etiquetas": [
+    {
+      "id": "tag_quente",
+      "nome": "Quente",
+      "cor": "#ef4444",
+      "categoria": "temperatura"
+    },
+    {
+      "id": "tag_morno",
+      "nome": "Morno",
+      "cor": "#eab308",
+      "categoria": "temperatura"
+    },
+    {
+      "id": "tag_frio",
+      "nome": "Frio",
+      "cor": "#06b6d4",
+      "categoria": "temperatura"
+    },
+    {
+      "id": "tag_petroleo",
+      "nome": "Petróleo e Gás",
+      "cor": "#3b82f6",
+      "categoria": "segmento"
+    },
+    {
+      "id": "tag_consultoria",
+      "nome": "Consultoria",
+      "cor": "#8b5cf6",
+      "categoria": "segmento"
+    },
+    {
+      "id": "tag_produtos",
+      "nome": "Produtos/Serviços",
+      "cor": "#1d4ed8",
+      "categoria": "segmento"
+    },
+    {
+      "id": "tag_financas",
+      "nome": "Instituição Financeira",
+      "cor": "#ca8a04",
+      "categoria": "segmento"
+    },
+    {
+      "id": "tag_cosmeticos",
+      "nome": "Cosméticos",
+      "cor": "#64748b",
+      "categoria": "segmento"
+    },
+    {
+      "id": "tag_relacionamento",
+      "nome": "Relacionamento do ano anterior",
+      "cor": "#4c0519",
+      "categoria": "origem"
+    },
+    {
+      "id": "tag_indicacao_bj",
+      "nome": "Indicação BJ",
+      "cor": "#047857",
+      "categoria": "origem"
+    },
+    {
+      "id": "tag_indicacao_pos",
+      "nome": "Indicação Pós-Júnior",
+      "cor": "#16a34a",
+      "categoria": "origem"
+    },
+    {
+      "id": "tag_linkedin",
+      "nome": "LinkedIn",
+      "cor": "#6366f1",
+      "categoria": "origem"
+    }
+  ],
+  "cards": [
+    {
+      "id": "card_petrobras",
+      "titulo": "Petrobras",
+      "faseId": "contato_aberto",
+      "responsavelNome": "Lucas",
+      "responsaveis": [
+        "Presidência RioJunior",
+        "Rian Mendes"
+      ],
+      "pontoContato": "+55 22 98145-0482",
+      "email": "contato.parcerias@petrobras.com.br",
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Frio",
+        "Petróleo e Gás",
+        "Relacionamento do ano anterior"
+      ],
+      "valores": {
+        "nome_responsavel": "Lucas",
+        "persona": [
+          "Frio",
+          "Petróleo e Gás",
+          "Relacionamento do ano anterior"
+        ],
+        "quem_vai_tocar_rd": [
+          "Presidência RioJunior",
+          "Rian Mendes"
+        ],
+        "observacoes": "Contato de relacionamento histórico, alinhar interesse no EFEJ 2026."
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T10:00:00Z",
+          "usuario": "Presidência RioJunior"
+        }
+      ],
+      "criadoEm": "2026-01-23T10:00:00Z",
+      "atualizadoEm": "2026-01-23T10:00:00Z"
+    },
+    {
+      "id": "card_bradesco",
+      "titulo": "Bradesco",
+      "faseId": "contato_aberto",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "pontoContato": "+55 11 98822-1100",
+      "email": "relacionamento.universitario@bradesco.com.br",
+      "dataAbertura": "2026-01-23",
+      "dataVencimento": "2026-04-23",
+      "etiquetas": [
+        "Frio",
+        "Indicação BJ",
+        "Instituição Financeira"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes",
+        "data_rd": "2026-04-23",
+        "quem_vai_tocar_rd": [
+          "Rian Mendes"
+        ]
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T11:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T11:00:00Z",
+      "atualizadoEm": "2026-01-23T11:00:00Z"
+    },
+    {
+      "id": "card_grupo_rao",
+      "titulo": "Grupo Rão",
+      "faseId": "contato_aberto",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Morno",
+        "Relacionamento do ano anterior",
+        "Produtos/Serviços"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T12:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T12:00:00Z",
+      "atualizadoEm": "2026-01-23T12:00:00Z"
+    },
+    {
+      "id": "card_bridge",
+      "titulo": "Bridge",
+      "faseId": "contato_aberto",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Frio",
+        "Relacionamento do ano anterior",
+        "Consultoria"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T14:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T14:00:00Z",
+      "atualizadoEm": "2026-01-23T14:00:00Z"
+    },
+    {
+      "id": "card_stone",
+      "titulo": "Stone",
+      "faseId": "contato_aberto",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Frio",
+        "Indicação Pós-Júnior",
+        "Instituição Financeira"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T15:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T15:00:00Z",
+      "atualizadoEm": "2026-01-23T15:00:00Z"
+    },
+    {
+      "id": "card_elogroup",
+      "titulo": "EloGroup",
+      "faseId": "rd_realizada",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Presidência RioJunior",
+        "Rian Mendes"
+      ],
+      "pontoContato": "+55 21 96501-2335",
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Morno",
+        "Relacionamento do ano anterior",
+        "Consultoria"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes",
+        "data_rd": "2026-01-29",
+        "data_ap": "2026-04-14",
+        "dores_identificadas": "Quem participou da reunião (Marcela) não tinha muito conhecimento sobre as necessidades da Empresa, só indicou que a parceria é interessante. Vamos ter mais percepções na AP.",
+        "formato_participacao": "Participação por cota, visando pauta. Segunda Proposta: Visando Central e FU, transparência de budget por 5/6k",
+        "razao_desinteresse_ap": "Timing para marcar o próximo encontro (só fazer FUP)"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T10:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "rd_realizada",
+          "data": "2026-01-29T16:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T10:00:00Z",
+      "atualizadoEm": "2026-01-29T16:00:00Z"
+    },
+    {
+      "id": "card_supergasbras",
+      "titulo": "Supergasbras",
+      "faseId": "rd_realizada",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Frio",
+        "Relacionamento do ano anterior",
+        "Produtos/Serviços"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T10:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "rd_realizada",
+          "data": "2026-02-05T14:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T10:00:00Z",
+      "atualizadoEm": "2026-02-05T14:00:00Z"
+    },
+    {
+      "id": "card_guaracamp",
+      "titulo": "Guaracamp",
+      "faseId": "rd_realizada",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Morno",
+        "Indicação BJ",
+        "Produtos/Serviços"
+      ],
+      "valores": {
+        "nome_responsavel": "Rian Mendes"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T10:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "rd_realizada",
+          "data": "2026-02-12T11:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T10:00:00Z",
+      "atualizadoEm": "2026-02-12T11:00:00Z"
+    },
+    {
+      "id": "card_ibm",
+      "titulo": "IBM",
+      "faseId": "aps_realizada",
+      "responsavelNome": "Presidência RioJunior",
+      "responsaveis": [
+        "Presidência RioJunior"
+      ],
+      "dataAbertura": "2026-01-12",
+      "etiquetas": [
+        "Morno"
+      ],
+      "valores": {
+        "data_rd": "2026-01-21",
+        "data_ap": "2026-01-30",
+        "observacao": "A Mariana chegou a perguntar sobre visita das EJs e se mesmo sem fechar cota se eles poderiam realizar essas visitas ESCOLHENDO as EJs. Follow-UP realizado no dia 18/02 (por e-mail)",
+        "contraproposta_parceiro": "\"qual o investimento nesse plano de ações, se de toda tabela cada ação tenho acesso a pipeline\" - temos acesso aos dados? -> ver melhor qual cota pode fornecer isso",
+        "pontos_positivos_negativos": "Viram valor em estarem presentes com a RioJunior, entretanto ficaram confusos quanto o que cada cota daria no sentido de acesso a informações específicas -> Dados para captação ativa por parte da IBM",
+        "cota_parceiro": 15000,
+        "cota_plus": 25000,
+        "cota_standard": 10000
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-12T09:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "rd_realizada",
+          "data": "2026-01-21T15:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "aps_realizada",
+          "data": "2026-01-30T17:00:00Z",
+          "usuario": "Presidência RioJunior"
+        }
+      ],
+      "criadoEm": "2026-01-12T09:00:00Z",
+      "atualizadoEm": "2026-01-30T17:00:00Z"
+    },
+    {
+      "id": "card_icatu",
+      "titulo": "Icatu",
+      "faseId": "aps_realizada",
+      "responsavelNome": "Presidência RioJunior",
+      "responsaveis": [
+        "Presidência RioJunior"
+      ],
+      "dataAbertura": "2026-01-15",
+      "etiquetas": [
+        "Quente",
+        "Morno"
+      ],
+      "valores": {
+        "data_rd": "2026-01-23",
+        "data_ap": "2026-02-03",
+        "cota_parceiro": 20000,
+        "cota_plus": 30000
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-15T10:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "rd_realizada",
+          "data": "2026-01-23T11:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "aps_realizada",
+          "data": "2026-02-03T16:00:00Z",
+          "usuario": "Presidência RioJunior"
+        }
+      ],
+      "criadoEm": "2026-01-15T10:00:00Z",
+      "atualizadoEm": "2026-02-03T16:00:00Z"
+    },
+    {
+      "id": "card_teste1",
+      "titulo": "teste1",
+      "faseId": "contratos_assinatura",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-16",
+      "etiquetas": [
+        "LinkedIn",
+        "Indicação Pós-Júnior"
+      ],
+      "valores": {
+        "razao_social": "Teste 1 Soluções Corporativas Ltda",
+        "cnpj_empresa": "12.345.678/0001-90",
+        "valor_contrato": 12000,
+        "itens_vendidos_contrato": "1 Pauta Magna + Stand no evento de Formação"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-16T10:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "contratos_assinatura",
+          "data": "2026-02-15T14:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-16T10:00:00Z",
+      "atualizadoEm": "2026-02-15T14:00:00Z"
+    },
+    {
+      "id": "card_loreal",
+      "titulo": "L'Oréal",
+      "faseId": "parceria_fechada",
+      "responsavelNome": "Presidência RioJunior",
+      "responsaveis": [
+        "Presidência RioJunior",
+        "Rian Mendes"
+      ],
+      "pontoContato": "+55 21 99591-6615",
+      "email": "parcerias.brasil@loreal.com",
+      "dataAbertura": "2026-01-23",
+      "dataVencimento": "2026-03-31",
+      "etiquetas": [
+        "Frio",
+        "Cosméticos",
+        "Relacionamento do ano anterior"
+      ],
+      "anexos": [
+        {
+          "id": "anx_loreal",
+          "nome": "Contrato_Loreal_RioJunior_2026.pdf",
+          "tamanho": "1.4 MB"
+        }
+      ],
+      "valores": {
+        "valor_fechado": 35000,
+        "itens_vendidos": [
+          "Cosméticos",
+          "Frio",
+          "Relacionamento do ano anterior"
+        ],
+        "contrato_anexado": "Contrato_Loreal_RioJunior_2026.pdf"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T10:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "rd_realizada",
+          "data": "2026-02-10T14:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "aps_realizada",
+          "data": "2026-02-28T16:00:00Z",
+          "usuario": "Presidência RioJunior"
+        },
+        {
+          "fase": "parceria_fechada",
+          "data": "2026-03-31T17:00:00Z",
+          "usuario": "Presidência RioJunior"
+        }
+      ],
+      "criadoEm": "2026-01-23T10:00:00Z",
+      "atualizadoEm": "2026-03-31T17:00:00Z"
+    },
+    {
+      "id": "card_teste4",
+      "titulo": "teste4",
+      "faseId": "parceria_fechada",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-17",
+      "etiquetas": [
+        "LinkedIn"
+      ],
+      "valores": {
+        "valor_fechado": 18000,
+        "itens_vendidos": [
+          "LinkedIn"
+        ]
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-17T11:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "parceria_fechada",
+          "data": "2026-03-15T15:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-17T11:00:00Z",
+      "atualizadoEm": "2026-03-15T15:00:00Z"
+    },
+    {
+      "id": "card_teste7",
+      "titulo": "teste7",
+      "faseId": "propostas_sem_retorno",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-03-09",
+      "etiquetas": [
+        "LinkedIn",
+        "Indicação Pós-Júnior"
+      ],
+      "valores": {
+        "retomada_1": "2026-03-25"
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-03-09T09:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "propostas_sem_retorno",
+          "data": "2026-03-25T14:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-03-09T09:00:00Z",
+      "atualizadoEm": "2026-03-25T14:00:00Z"
+    },
+    {
+      "id": "card_teste5",
+      "titulo": "teste5",
+      "faseId": "proposta_recusada",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-18",
+      "etiquetas": [
+        "LinkedIn",
+        "Indicação Pós-Júnior"
+      ],
+      "valores": {
+        "link_proposta_recusada": "https://docs.google.com/presentation/d/proposta_teste5",
+        "motivo_recusa": "Parceiro optou por focar investimento interno em treinamento proprietário."
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-18T10:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "proposta_recusada",
+          "data": "2026-02-20T16:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-18T10:00:00Z",
+      "atualizadoEm": "2026-02-20T16:00:00Z"
+    },
+    {
+      "id": "card_caroline_andrade",
+      "titulo": "Caroline Andrade RH",
+      "faseId": "geladeira",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-03-05",
+      "dataVencimento": "2026-03-18",
+      "etiquetas": [
+        "Morno",
+        "Relacionamento do ano anterior",
+        "Produtos/Serviços"
+      ],
+      "valores": {
+        "data_rd": "2026-03-05",
+        "motivo_geladeira": "Mudança na gerência de RH da parceira. Retomada prevista para o segundo semestre."
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-03-05T10:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "geladeira",
+          "data": "2026-03-18T12:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-03-05T10:00:00Z",
+      "atualizadoEm": "2026-03-18T12:00:00Z"
+    },
+    {
+      "id": "card_livemode",
+      "titulo": "LiveMode",
+      "faseId": "geladeira",
+      "responsavelNome": "Rian Mendes",
+      "responsaveis": [
+        "Rian Mendes"
+      ],
+      "dataAbertura": "2026-01-23",
+      "etiquetas": [
+        "Frio",
+        "LinkedIn"
+      ],
+      "valores": {
+        "data_rd": "2026-02-10",
+        "motivo_geladeira": "Sem orçamento para novos projetos neste primeiro trimestre. Contatar em agosto."
+      },
+      "historico": [
+        {
+          "fase": "contato_aberto",
+          "data": "2026-01-23T14:00:00Z",
+          "usuario": "Rian Mendes"
+        },
+        {
+          "fase": "geladeira",
+          "data": "2026-02-15T10:00:00Z",
+          "usuario": "Rian Mendes"
+        }
+      ],
+      "criadoEm": "2026-01-23T14:00:00Z",
+      "atualizadoEm": "2026-02-15T10:00:00Z"
+    }
+  ]
+}
