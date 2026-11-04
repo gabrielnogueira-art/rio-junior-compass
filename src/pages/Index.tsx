@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu, ChevronDown, ShieldAlert, User } from 'lucide-react';
+import { Menu, ChevronDown, ShieldAlert, Trophy } from 'lucide-react';
 import { TabType } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/layout/Sidebar';
@@ -13,6 +13,7 @@ import PresidencyView from '@/views/PresidencyView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
 import BusinessView from '@/views/BusinessView';
 import UsersAdmin from '@/components/admin/UsersAdmin';
+import CandidatePortalView from '@/components/operations/CandidatePortalView';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useWebMCP } from 'use-webmcp-tool';
 import { runWebMCPTool } from '@/lib/webmcp-telemetry';
@@ -23,36 +24,97 @@ const Index = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const { profile, isAdmin, signOut } = useAuth();
+  const [previewExternalCandidate, setPreviewExternalCandidate] = useState(false);
+  const { profile, isAdmin, isExternalCandidate, signOut } = useAuth();
 
   const yearOptions = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i);
-  const visibleTabs: TabType[] = ['calendar', 'strategic', 'presidency', 'council', 'business', 'operations', 'ddr', 'formation', ...(isAdmin ? ['users' as const] : [])];
+  const visibleTabs: TabType[] = [
+    'calendar',
+    'strategic',
+    'presidency',
+    'council',
+    'business',
+    'operations',
+    'ddr',
+    'formation',
+    ...(isAdmin ? ['users' as const] : []),
+  ];
+
   function changeTab(tab: TabType) {
-    if (typeof tab !== 'string' || !visibleTabs.includes(tab)) throw new Error('Seção indisponível para sua conta.');
+    if (typeof tab !== 'string' || !visibleTabs.includes(tab))
+      throw new Error('Seção indisponível para sua conta.');
     setActiveTab(tab);
   }
   function changeYear(year: number) {
-    if (typeof year !== 'number' || !Number.isInteger(year) || !yearOptions.includes(year)) throw new Error('Ano indisponível no seletor.');
+    if (typeof year !== 'number' || !Number.isInteger(year) || !yearOptions.includes(year))
+      throw new Error('Ano indisponível no seletor.');
     setSelectedYear(year);
   }
+
   useWebMCP({
     name: 'read_current_section',
     description: 'Consulta a seção e o ano atualmente selecionados no painel RioJunior.',
     annotations: { readOnlyHint: true },
-    execute: () => runWebMCPTool('read_current_section', () => `Seção: ${activeTab}; ano: ${selectedYear}.`),
+    execute: () =>
+      runWebMCPTool('read_current_section', () => `Seção: ${activeTab}; ano: ${selectedYear}.`),
   });
   useWebMCP({
     name: 'open_section',
     description: 'Abre uma seção disponível no menu da RioJunior sem alterar registros.',
-    inputSchema: { type: 'object', properties: { section: { type: 'string', enum: visibleTabs, description: 'Identificador da seção do menu.' } }, required: ['section'] },
-    execute: ({ section }: { section: TabType }) => runWebMCPTool('open_section', () => { changeTab(section); return `Seção selecionada: ${section}.`; }),
+    inputSchema: {
+      type: 'object',
+      properties: {
+        section: {
+          type: 'string',
+          enum: visibleTabs,
+          description: 'Identificador da seção do menu.',
+        },
+      },
+      required: ['section'],
+    },
+    execute: ({ section }: { section: TabType }) =>
+      runWebMCPTool('open_section', () => {
+        changeTab(section);
+        return `Seção selecionada: ${section}.`;
+      }),
   });
   useWebMCP({
     name: 'select_year',
     description: 'Seleciona um ano disponível no seletor de vigência do painel.',
-    inputSchema: { type: 'object', properties: { year: { type: 'integer', enum: yearOptions, description: 'Ano de vigência disponível.' } }, required: ['year'] },
-    execute: ({ year }: { year: number }) => runWebMCPTool('select_year', () => { changeYear(year); return `Ano selecionado: ${year}.`; }),
+    inputSchema: {
+      type: 'object',
+      properties: {
+        year: {
+          type: 'integer',
+          enum: yearOptions,
+          description: 'Ano de vigência disponível.',
+        },
+      },
+      required: ['year'],
+    },
+    execute: ({ year }: { year: number }) =>
+      runWebMCPTool('select_year', () => {
+        changeYear(year);
+        return `Ano selecionado: ${year}.`;
+      }),
   });
+
+  // Se o usuário logado for um Candidato Externo do Processo Seletivo (ou se o Admin ativou o preview em tela cheia),
+  // renderiza EXCLUSIVAMENTE o Portal Gamificado do Processo Seletivo, bloqueando qualquer acesso às abas internas.
+  if (isExternalCandidate || previewExternalCandidate) {
+    return (
+      <CandidatePortalView
+        candidateEmail={profile?.email}
+        isStandaloneExternalLogin={true}
+        onLogout={signOut}
+        onExitPreview={
+          previewExternalCandidate && !isExternalCandidate
+            ? () => setPreviewExternalCandidate(false)
+            : undefined
+        }
+      />
+    );
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -70,9 +132,9 @@ const Index = () => {
         return isAdmin ? <UsersAdmin /> : <CalendarView selectedYear={selectedYear} />;
       case 'council':
         return (
-          <PlaceholderView 
-            title="Presidência do Conselho" 
-            description="Esta seção será desenvolvida em breve. Aqui você encontrará informações e atividades relacionadas ao Conselho da Federação." 
+          <PlaceholderView
+            title="Presidência do Conselho"
+            description="Esta seção será desenvolvida em breve. Aqui você encontrará informações e atividades relacionadas ao Conselho da Federação."
           />
         );
       case 'business':
@@ -98,7 +160,7 @@ const Index = () => {
       />
 
       {/* Mobile Menu */}
-      <MobileMenu 
+      <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         activeTab={activeTab}
@@ -113,8 +175,8 @@ const Index = () => {
         {/* Header with Year Selector */}
         <header className="h-16 bg-card border-b border-border sticky top-0 z-10 px-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)} 
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
               className="p-2 text-foreground hover:bg-secondary rounded-lg transition-colors lg:hidden"
             >
               <Menu size={24} />
@@ -127,20 +189,34 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Year Selector & Profile button */}
+          {/* Year Selector, Portal Candidato Preview & Profile button */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline">Ano de vigência:</span>
+            <button
+              onClick={() => setPreviewExternalCandidate(true)}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-xs font-bold text-purple-600 dark:text-purple-300 transition-all"
+              title="Simular visão restrita de Candidato Externo do Processo Seletivo"
+            >
+              <Trophy size={13} />
+              <span>Portal Candidato PS</span>
+            </button>
+
+            <span className="text-sm text-muted-foreground hidden md:inline">Ano de vigência:</span>
             <div className="relative">
               <select
                 value={selectedYear}
                 onChange={(e) => changeYear(Number(e.target.value))}
                 className="appearance-none bg-primary text-primary-foreground px-4 py-2 pr-8 rounded-lg font-bold text-sm cursor-pointer hover:opacity-90 transition-opacity border-0 focus:ring-2 focus:ring-primary/50 focus:outline-none"
               >
-                {yearOptions.map(year => (
-                  <option key={year} value={year}>{year}</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
                 ))}
               </select>
-              <ChevronDown size={16} className="absolute right-2 top-1/2 -translate-y-1/2 text-primary-foreground pointer-events-none" />
+              <ChevronDown
+                size={16}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-primary-foreground pointer-events-none"
+              />
             </div>
 
             {/* Botão Perfil & Cartões no Header */}
@@ -152,7 +228,9 @@ const Index = () => {
               <div className="h-6 w-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[11px]">
                 {profile?.nome ? profile.nome.charAt(0) : 'U'}
               </div>
-              <span className="hidden sm:inline">{profile?.nome?.split(' ')[0] || 'Meu Perfil'}</span>
+              <span className="hidden sm:inline">
+                {profile?.nome?.split(' ')[0] || 'Meu Perfil'}
+              </span>
               <ShieldAlert size={14} className="text-amber-500" />
             </button>
           </div>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { processoSeletivoService } from '@/services/processoSeletivoService';
 
 export interface Profile {
   id: string;
@@ -17,10 +18,12 @@ interface AuthContextType {
   profile: Profile | null;
   roles: string[];
   isAdmin: boolean;
+  isExternalCandidate: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   loginAsLocalDev: () => void;
+  loginAsCandidate: (email?: string, codigoAcesso?: string) => { ok: boolean; error?: string };
   isLocalhost: boolean;
 }
 
@@ -31,9 +34,11 @@ export const TIPOS_USUARIO: Record<string, string> = {
   professor_orientador: 'Professor Orientador',
   diretor_ej: 'Diretor de EJ',
   membro_ej: 'Membro de EJ',
+  candidato_ps: 'Candidato — Processo Seletivo / Aditivo',
 };
 
 const LOCAL_DEV_STORAGE_KEY = 'riojunior_local_dev_user_v1';
+const LOCAL_CANDIDATE_STORAGE_KEY = 'riojunior_external_candidate_session_v1';
 
 export const isLocalhost =
   typeof window !== 'undefined' &&
@@ -69,6 +74,33 @@ const DEV_SESSION: Session = {
   user: DEV_USER,
 };
 
+function buildCandidateSession(candEmail: string, candName: string, candId: string) {
+  const user: User = {
+    id: candId,
+    app_metadata: {},
+    user_metadata: { full_name: candName },
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
+    email: candEmail,
+  };
+  const session: Session = {
+    access_token: 'candidate-ps-token',
+    refresh_token: 'candidate-ps-refresh',
+    expires_in: 86400,
+    token_type: 'bearer',
+    user,
+  };
+  const profile: Profile = {
+    id: candId,
+    nome: candName,
+    email: candEmail,
+    tipo_solicitado: 'candidato_ps',
+    ej_id: null,
+    status: 'aprovado',
+  };
+  return { session, profile, roles: ['candidato_ps'] };
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -92,7 +124,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Se estiver no localhost e houver sessão dev ativa
+    // 1. Verifica se há sessão de Candidato Externo do Processo Seletivo ativa
+    const savedCandidateEmail = localStorage.getItem(LOCAL_CANDIDATE_STORAGE_KEY);
+    if (savedCandidateEmail) {
+      const cand = processoSeletivoService.getCandidatoByEmail(savedCandidateEmail);
+      if (cand) {
+        const built = buildCandidateSession(cand.email, cand.nome, cand.id);
+        setSession(built.session);
+        setProfile(built.profile);
+        setRoles(built.roles);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // 2. Se estiver no localhost e houver sessão dev admin ativa
     if (isLocalhost && localStorage.getItem(LOCAL_DEV_STORAGE_KEY) === 'true') {
       setSession(DEV_SESSION);
       setProfile(DEV_PROFILE);
@@ -103,6 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
+      if (localStorage.getItem(LOCAL_CANDIDATE_STORAGE_KEY)) return;
       if (isLocalhost && localStorage.getItem(LOCAL_DEV_STORAGE_KEY) === 'true') return;
 
       setSession(newSession);
@@ -123,6 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
       if (!mounted) return;
+      if (localStorage.getItem(LOCAL_CANDIDATE_STORAGE_KEY)) return;
       if (isLocalhost && localStorage.getItem(LOCAL_DEV_STORAGE_KEY) === 'true') {
         setSession(DEV_SESSION);
         setProfile(DEV_PROFILE);
@@ -146,6 +194,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = useCallback(async () => {
     localStorage.removeItem(LOCAL_DEV_STORAGE_KEY);
+    localStorage.removeItem(LOCAL_CANDIDATE_STORAGE_KEY);
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
@@ -153,6 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const loginAsLocalDev = useCallback(() => {
+    localStorage.removeItem(LOCAL_CANDIDATE_STORAGE_KEY);
     localStorage.setItem(LOCAL_DEV_STORAGE_KEY, 'true');
     setSession(DEV_SESSION);
     setProfile(DEV_PROFILE);
@@ -160,11 +210,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false);
   }, []);
 
+  const loginAsCandidate = useCallback(
+    (email?: string, codigoAcesso?: string): { ok: boolean; error?: string } => {
+      const state = processoSeletivoService.getState();
+      const target = email
+        ? state.candidatos.find((c) => c.email.toLowerCase() === email.trim().toLowerCase())
+        : state.candidatos[0];
+
+      if (!target) {
+        return {
+          ok: false,
+          error: 'E-mail de candidato não encontrado no Processo Seletivo atual.',
+        };
+      }
+
+      if (
+        codigoAcesso !== undefined &&
+        target.codigoAcesso &&
+        target.codigoAcesso.trim().toLowerCase() !== codigoAcesso.trim().toLowerCase()
+      ) {
+        return {
+          ok: false,
+          error: 'Código de acesso / senha do Processo Seletivo incorreto.',
+        };
+      }
+
+      localStorage.removeItem(LOCAL_DEV_STORAGE_KEY);
+      localStorage.setItem(LOCAL_CANDIDATE_STORAGE_KEY, target.email);
+      const built = buildCandidateSession(target.email, target.nome, target.id);
+      setSession(built.session);
+      setProfile(built.profile);
+      setRoles(built.roles);
+      setLoading(false);
+      return { ok: true };
+    },
+    []
+  );
+
   const refreshProfile = useCallback(async () => {
-    if (session?.user && session.user.id !== DEV_USER_ID) {
+    if (
+      session?.user &&
+      session.user.id !== DEV_USER_ID &&
+      !localStorage.getItem(LOCAL_CANDIDATE_STORAGE_KEY)
+    ) {
       await fetchProfileAndRoles(session.user.id);
     }
   }, [session, fetchProfileAndRoles]);
+
+  const isExternalCandidate =
+    profile?.tipo_solicitado === 'candidato_ps' || roles.includes('candidato_ps');
 
   return (
     <AuthContext.Provider
@@ -174,10 +268,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profile,
         roles,
         isAdmin: roles.includes('admin'),
+        isExternalCandidate,
         loading,
         signOut,
         refreshProfile,
         loginAsLocalDev,
+        loginAsCandidate,
         isLocalhost,
       }}
     >
