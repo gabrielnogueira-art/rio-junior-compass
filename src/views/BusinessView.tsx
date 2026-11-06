@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { 
   Briefcase, Plus, Trash2, CalendarRange, Sparkles, CheckCircle2, 
-  Kanban, ListFilter, Settings, TrendingUp, DollarSign, 
-  Users, Building2, Flame
+  LayoutKanban, ListFilter, TrendingUp, DollarSign, 
+  Building2, Flame, Calculator
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,7 @@ import { CRMListView } from '@/components/business/CRMListView';
 import { CRMCardModal } from '@/components/business/CRMCardModal';
 import { CRMAssistantModal } from '@/components/business/CRMAssistantModal';
 import { CRMConfigModal } from '@/components/business/CRMConfigModal';
+import { VPNegCalculatorView } from '@/components/business/VPNegCalculatorView';
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,7 +34,7 @@ interface BusinessViewProps {
 const BusinessView = ({ selectedYear }: BusinessViewProps) => {
   // Eventos & Grade de Conteudo (Venda de Pautas)
   const { eventos, loading: eventosLoading } = useEventos();
-  const { pautas, vendas, loading: gradeLoading, getConfig, registrarVenda, deleteVenda } = useGradeConteudo();
+  const { vendas, loading: gradeLoading, getConfig, registrarVenda, deleteVenda } = useGradeConteudo();
 
   // CRM Pipefy State & Hook
   const { 
@@ -55,7 +56,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
   } = useCRM();
 
   // Navigation tabs within VPNeg
-  const [activeTab, setActiveTab] = useState<'crm' | 'pautas' | 'metricas'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'calculadora' | 'pautas' | 'metricas'>('crm');
   const [crmViewMode, setCrmViewMode] = useState<'kanban' | 'lista'>('kanban');
 
   // Modals state
@@ -80,7 +81,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
   // Métricas do CRM
   const totalParceiros = cards.length;
   const leadsQuentes = cards.filter(c => c.etiquetas?.includes('Quente')).length;
-  const parceriasFechadas = cards.filter(c => c.faseId === 'parceria_fechada');
+  const parceriasFechadas = cards.filter(c => c.faseId === 'parceria_fechadas' || c.faseId === 'parceria_fechada');
   const valorTotalFechado = parceriasFechadas.reduce((acc, c) => acc + (Number(c.valores?.valor_fechado) || 0), 0);
 
   // Handlers para CRM
@@ -97,6 +98,18 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
     });
     setSelectedCard(novo);
     setIsCardModalOpen(true);
+  };
+
+  const handleApplyProposalToCard = (cardId: string, valorFinal: number, resumoItens: string) => {
+    const target = cards.find(c => c.id === cardId);
+    if (!target) return;
+    updateCard(cardId, {
+      valores: {
+        ...target.valores,
+        valor_proposta: valorFinal,
+        formato_proposta: resumoItens || target.valores?.formato_proposta,
+      },
+    });
   };
 
   // Handlers para Venda de Pautas
@@ -127,17 +140,28 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold text-foreground">VPNeg — Vice-Presidência de Negócios</h1>
               <Badge variant="outline" className="text-xs font-bold border-indigo-400 text-indigo-500">
-                Pipefy CRM
+                Pipefy CRM & Calculadora
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Funil de Parceiros comerciais, negociações de cotas e venda de pautas sincronizadas com FE.
+              Funil de Parceiros comerciais, Calculadora de Ações e Precificação 2026 e venda de pautas sincronizadas com FE.
             </p>
           </div>
         </div>
 
         {/* Action Button */}
         <div className="flex items-center gap-2">
+          {activeTab !== 'calculadora' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setActiveTab('calculadora')}
+              className="gap-1.5 text-xs h-9 border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
+            >
+              <Calculator size={14} /> Abrir Calculadora 2026
+            </Button>
+          )}
+
           {activeTab === 'crm' && (
             <Button 
               size="sm"
@@ -158,13 +182,19 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
-        <div className="flex items-center justify-between border-b border-border">
+        <div className="flex items-center justify-between border-b border-border overflow-x-auto">
           <TabsList className="bg-transparent h-10 p-0 gap-6">
             <TabsTrigger 
               value="crm" 
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 text-xs font-bold gap-2"
             >
-              <Kanban size={15} /> CRM de Parceiros (Pipefy)
+              <LayoutKanban size={15} /> CRM de Parceiros (Pipefy)
+            </TabsTrigger>
+            <TabsTrigger 
+              value="calculadora" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 text-xs font-bold gap-2"
+            >
+              <Calculator size={15} /> Calculadora & Precificação
             </TabsTrigger>
             <TabsTrigger 
               value="pautas" 
@@ -189,7 +219,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                 className="h-7 text-xs gap-1.5 px-2.5"
                 onClick={() => setCrmViewMode('kanban')}
               >
-                <Kanban size={13} /> Kanban
+                <LayoutKanban size={13} /> Kanban
               </Button>
               <Button
                 variant={crmViewMode === 'lista' ? 'secondary' : 'ghost'}
@@ -228,7 +258,15 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
           )}
         </TabsContent>
 
-        {/* TAB 2: Venda de Pautas (Original Feature integrada com FE) */}
+        {/* TAB 2: Calculadora & Precificação VPNeg 2026 */}
+        <TabsContent value="calculadora" className="m-0">
+          <VPNegCalculatorView
+            cards={cards}
+            onApplyProposalToCard={handleApplyProposalToCard}
+          />
+        </TabsContent>
+
+        {/* TAB 3: Venda de Pautas (Original Feature integrada com FE) */}
         <TabsContent value="pautas" className="m-0 space-y-6">
           {/* Resumo */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -364,7 +402,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
           )}
         </TabsContent>
 
-        {/* TAB 3: Métricas Comerciais */}
+        {/* TAB 4: Métricas Comerciais */}
         <TabsContent value="metricas" className="m-0 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
