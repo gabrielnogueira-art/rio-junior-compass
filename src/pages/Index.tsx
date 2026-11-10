@@ -27,7 +27,7 @@ import BusinessView from '@/views/BusinessView';
 import OperationsView from '@/views/OperationsView';
 import DDRView from '@/views/DDRView';
 import FormacaoEmpreendedoraView from '@/views/FormacaoEmpreendedoraView';
-import CandidatePortalView from '@/views/CandidatePortalView';
+import CandidatePortalView from '@/components/operations/CandidatePortalView';
 import COEJSection from '@/components/presidency/coej/COEJSection';
 import { getDatabase } from '@/components/presidency/coej/database.js';
 import { GlobalStickyNotes } from '@/components/GlobalStickyNotes';
@@ -40,7 +40,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import logoHeader from '@/assets/logo-riojunior-header.png';
+const logoHeader = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="48"><text x="0" y="36" font-family="Arial,sans-serif" font-weight="700" font-size="32" fill="%231e4fa3">Rio<tspan fill="%2316a34a">Junior</tspan></text></svg>'.replace(/%23/g, '#'));
 
 type Tab = 'presidencia' | 'empresarial' | 'operacoes' | 'ddr' | 'formacao';
 
