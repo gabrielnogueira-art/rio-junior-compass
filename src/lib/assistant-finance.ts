@@ -37,7 +37,7 @@ export function normalizeBank(bankName: string, availableBanks: string[] = ['Cor
 }
 
 export const proposedMovementSchema = z.object({
-  data: z.string().transform(normalizeDate),
+  data: z.string().transform(normalizeDate).refine(d => { const t = new Date(`${d}T00:00:00Z`); return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d; }, 'Data inválida'),
   descricao: z.string().min(1).max(500),
   valor: z.union([z.number(), z.string()]).transform(v => {
     if (typeof v === 'number') return Math.abs(v);
