@@ -5,9 +5,9 @@ test('extratos preservam centavos e distinguem entradas e saídas', () => {
   const items = proposedBatchSchema.parse([receita, { ...receita, tipo: 'Despesa', valor: 20.50 }]);
   expect(items[0].valor - items[1].valor).toBe(79.75);
 });
-test('revisão rejeita datas impossíveis e valores negativos', () => {
+test('revisão rejeita datas impossíveis e valores zerados', () => {
   expect(proposedBatchSchema.safeParse([{ ...receita, data: '2026-02-30' }]).success).toBe(false);
-  expect(proposedBatchSchema.safeParse([{ ...receita, valor: -10 }]).success).toBe(false);
+  expect(proposedBatchSchema.safeParse([{ ...receita, valor: 0 }]).success).toBe(false);
 });
 test('duplicatas do mesmo extrato não duplicam o caixa', () => {
   expect(uniqueProposals([receita, receita, { ...receita, banco: 'Bradesco' }])).toHaveLength(2);

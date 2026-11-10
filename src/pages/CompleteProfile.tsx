@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2, LogOut, CheckCircle2, Sparkles } from 'lucide-react';
 import { DDR_EMPRESAS_JUNIORES } from '@/data/ddrDatabase';
 import { resolveAccountByEmail, saveStoredAccountLink } from '@/utils/accountLinkResolver';
-import logoHeader from '@/assets/logo-riojunior-header.png';
+const logoHeader = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="48"><text x="0" y="36" font-family="Arial,sans-serif" font-weight="700" font-size="32" fill="%231e4fa3">Rio<tspan fill="%2316a34a">Junior</tspan></text></svg>'.replace(/%23/g, '#'));
 
 export default function CompleteProfile() {
   const { user, profile, loading: authLoading, refreshProfile, signOut } = useAuth();

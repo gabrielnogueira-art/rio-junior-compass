@@ -1,73 +1,112 @@
 import { useState } from 'react';
-import { OKR, GovernanceChecklist, GovProgramRow } from '@/types';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Target, Landmark, Scale, ShieldCheck, Network } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { DirectorateAccessGuard } from '@/components/DirectorateAccessGuard';
-import OKRsSection from '@/components/presidency/OKRsSection';
-import InstitutionalSection from '@/components/presidency/InstitutionalSection';
-import GovernanceCouncilSection from '@/components/presidency/GovernanceCouncilSection';
-import LegalComplianceSection from '@/components/presidency/LegalComplianceSection';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Crown, CalendarIcon, GraduationCap, Bus } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import AbatimentosTab from '@/components/presidency/AbatimentosTab';
+import ArticulacoesTab from '@/components/presidency/ArticulacoesTab';
+import CalendarioEstrategicoTab from '@/components/presidency/CalendarioEstrategicoTab';
 import COEJSection from '@/components/presidency/coej/COEJSection';
+import AcessibilidadeSection from '@/components/presidency/AcessibilidadeSection';
+import { usePresidenciaEventos } from '@/hooks/usePresidenciaEventos';
+import { useConfiguracaoPresidencia } from '@/hooks/useConfiguracaoPresidencia';
 
-interface Props {
-  okrs: OKR[];
-  onOKRsChange: (d: OKR[]) => void;
-  govChecklist: GovernanceChecklist[];
-  onGovChecklistChange: (d: GovernanceChecklist[]) => void;
-  govPrograms: GovProgramRow[];
-  onGovProgramsChange: (d: GovProgramRow[]) => void;
+interface PresidencyViewProps {
+  selectedYear: number;
 }
 
-export default function PresidencyView(props: Props) {
-  const { canEditPresEx } = useAuth();
-  const [activeSubTab, setActiveSubTab] = useState('okrs');
+const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
+  const { eventos, loading, createEvento, updateEvento, deleteEvento } = usePresidenciaEventos();
+  const { config, loading: configLoading, updateConfig } = useConfiguracaoPresidencia();
+
+  const dataReferenciaStatus = config?.dataReferenciaStatus || '2026-01-12';
+  const anchorDate = new Date(dataReferenciaStatus + 'T12:00:00');
 
   return (
-    <DirectorateAccessGuard
-      canEdit={canEditPresEx}
-      directorateName="Presidência Executiva (PresEx)"
-      directorateShort="PresEx"
-    >
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-5">
-        <TabsList className="bg-secondary/60 border border-border/60 h-11 p-1 flex-wrap">
-          <TabsTrigger value="okrs" className="text-xs gap-1.5 px-4">
-            <Target className="h-3.5 w-3.5" /> OKRs, Farol &amp; Gestão à Vista
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Crown className="text-primary" size={22} />
+        </div>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-foreground">Presidência Executiva</h1>
+          <p className="text-sm text-muted-foreground">Gerenciamento de eventos estratégicos e governança acadêmica COEJ</p>
+        </div>
+      </div>
+
+      {/* Global SEBRAE anchor date */}
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+        <span className="text-sm font-medium text-foreground">📅 Data Âncora Status SEBRAE (global):</span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(anchorDate, "dd/MM/yyyy")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={anchorDate}
+              onSelect={(date) => {
+                if (date) updateConfig(format(date, 'yyyy-MM-dd'));
+              }}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+        <span className="text-xs text-muted-foreground">Recorrência quinzenal a partir desta data</span>
+      </div>
+
+      <Tabs defaultValue="abatimentos" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
+          <TabsTrigger value="abatimentos">Abatimentos em Andamento</TabsTrigger>
+          <TabsTrigger value="articulacoes">Articulações</TabsTrigger>
+          <TabsTrigger value="calendario">Calendário Estratégico</TabsTrigger>
+          <TabsTrigger value="coej" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <GraduationCap className="h-4 w-4 text-amber-400" />
+            <span>COEJ (Orientadores)</span>
           </TabsTrigger>
-          <TabsTrigger value="institucional" className="text-xs gap-1.5 px-4">
-            <Landmark className="h-3.5 w-3.5" /> Articulação Institucional &amp; Gov.
-          </TabsTrigger>
-          <TabsTrigger value="conselho" className="text-xs gap-1.5 px-4">
-            <Scale className="h-3.5 w-3.5" /> Governança &amp; Conselho
-          </TabsTrigger>
-          <TabsTrigger value="compliance" className="text-xs gap-1.5 px-4">
-            <ShieldCheck className="h-3.5 w-3.5" /> Compliance &amp; Jurídico
-          </TabsTrigger>
-          <TabsTrigger value="coej" className="text-xs gap-1.5 px-4">
-            <Network className="h-3.5 w-3.5" /> COEJ
+          <TabsTrigger value="acessibilidade" className="flex items-center gap-2">
+            <Bus className="h-4 w-4 text-emerald-500" />
+            <span>Acessibilidade</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="okrs" className="mt-0">
-          <OKRsSection okrs={props.okrs} onOKRsChange={props.onOKRsChange} />
+        <TabsContent value="abatimentos">
+          <AbatimentosTab
+            eventos={eventos}
+            loading={loading || configLoading}
+            createEvento={createEvento}
+            updateEvento={updateEvento}
+            deleteEvento={deleteEvento}
+            dataReferenciaStatus={dataReferenciaStatus}
+          />
         </TabsContent>
 
-        <TabsContent value="institucional" className="mt-0">
-          <InstitutionalSection govPrograms={props.govPrograms} onGovProgramsChange={props.onGovProgramsChange} />
+        <TabsContent value="articulacoes">
+          <ArticulacoesTab eventos={eventos} loading={loading} />
         </TabsContent>
 
-        <TabsContent value="conselho" className="mt-0">
-          <GovernanceCouncilSection />
+        <TabsContent value="calendario">
+          <CalendarioEstrategicoTab eventos={eventos} loading={loading || configLoading} dataReferenciaStatus={dataReferenciaStatus} />
         </TabsContent>
 
-        <TabsContent value="compliance" className="mt-0">
-          <LegalComplianceSection govChecklist={props.govChecklist} onGovChecklistChange={props.onGovChecklistChange} />
+        <TabsContent value="coej">
+          <COEJSection selectedYear={selectedYear} />
         </TabsContent>
 
-        <TabsContent value="coej" className="mt-0">
-          <COEJSection />
+        <TabsContent value="acessibilidade">
+          <AcessibilidadeSection eventos={eventos} />
         </TabsContent>
       </Tabs>
-    </DirectorateAccessGuard>
+    </div>
   );
-}
+};
+
+export default PresidencyView;

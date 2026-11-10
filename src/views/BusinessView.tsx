@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { 
   Briefcase, Plus, Trash2, CalendarRange, Sparkles, CheckCircle2, 
-  LayoutKanban, ListFilter, TrendingUp, DollarSign, 
+  Kanban, ListFilter, TrendingUp, DollarSign, 
   Building2, Flame, Calculator
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -196,7 +196,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
               value="crm" 
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 text-xs font-bold gap-2"
             >
-              <LayoutKanban size={15} /> CRM de Parceiros (Pipefy)
+              <Kanban size={15} /> CRM de Parceiros (Pipefy)
             </TabsTrigger>
             <TabsTrigger 
               value="calculadora" 
@@ -227,7 +227,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
                 className="h-7 text-xs gap-1.5 px-2.5"
                 onClick={() => setCrmViewMode('kanban')}
               >
-                <LayoutKanban size={13} /> Kanban
+                <Kanban size={13} /> Kanban
               </Button>
               <Button
                 variant={crmViewMode === 'lista' ? 'secondary' : 'ghost'}
