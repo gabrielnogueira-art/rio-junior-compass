@@ -51,7 +51,9 @@ export const proposedMovementSchema = z.object({
 
 export const proposedBatchSchema = z.array(proposedMovementSchema).min(1).max(1000);
 
-export function validatedProposals(value: unknown, availableBanks: string[] = ['Cora', 'Asaas', 'PagBank', 'Banco do Brasil', 'Bradesco']) {
+export interface ProposedMovement { data: string; descricao: string; valor: number; tipo: 'Receita' | 'Despesa'; banco: string; documento: string | null }
+
+export function validatedProposals(value: unknown, availableBanks: string[] = ['Cora', 'Asaas', 'PagBank', 'Banco do Brasil', 'Bradesco']): ProposedMovement[] {
   const parsed = proposedBatchSchema.safeParse(value);
   if (!parsed.success) {
     if (Array.isArray(value)) {
@@ -71,7 +73,7 @@ export function validatedProposals(value: unknown, availableBanks: string[] = ['
   }
 
   return parsed.data.map(item => ({
-    ...item,
+    ...(item as Omit<ProposedMovement, 'documento'>),
     banco: normalizeBank(item.banco, availableBanks),
     documento: item.documento ?? null,
   }));
@@ -81,7 +83,7 @@ export function movementKey(item: { data: string; descricao: string; valor: numb
   return [item.banco.toLowerCase(), item.data, item.tipo, Math.round(item.valor * 100), (item.documento || item.descricao).toLowerCase().trim()].join('|');
 }
 
-export function uniqueProposals(items: unknown, availableBanks?: string[]) {
+export function uniqueProposals(items: unknown, availableBanks?: string[]): ProposedMovement[] {
   const seen = new Set<string>();
   return validatedProposals(items, availableBanks).filter(item => {
     const key = movementKey(item);
