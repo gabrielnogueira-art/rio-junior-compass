@@ -14,12 +14,15 @@ import COEJSection from '@/components/presidency/coej/COEJSection';
 import AcessibilidadeSection from '@/components/presidency/AcessibilidadeSection';
 import { usePresidenciaEventos } from '@/hooks/usePresidenciaEventos';
 import { useConfiguracaoPresidencia } from '@/hooks/useConfiguracaoPresidencia';
+import { useAuth } from '@/hooks/useAuth';
+import { DirectorateAccessGuard } from '@/components/DirectorateAccessGuard';
 
 interface PresidencyViewProps {
   selectedYear: number;
 }
 
 const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
+  const { canEditPresEx } = useAuth();
   const { eventos, loading, createEvento, updateEvento, deleteEvento } = usePresidenciaEventos();
   const { config, loading: configLoading, updateConfig } = useConfiguracaoPresidencia();
 
@@ -27,85 +30,98 @@ const PresidencyView = ({ selectedYear }: PresidencyViewProps) => {
   const anchorDate = new Date(dataReferenciaStatus + 'T12:00:00');
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Crown className="text-primary" size={22} />
+    <DirectorateAccessGuard
+      canEdit={canEditPresEx}
+      directorateName="Presidência Executiva (PresEx)"
+      directorateShort="PresEx"
+    >
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Crown className="text-primary" size={22} />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-foreground">Presidência Executiva</h1>
+            <p className="text-sm text-muted-foreground">Gerenciamento de eventos estratégicos e governança acadêmica COEJ</p>
+          </div>
         </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">Presidência Executiva</h1>
-          <p className="text-sm text-muted-foreground">Gerenciamento de eventos estratégicos e governança acadêmica COEJ</p>
-        </div>
-      </div>
 
-      {/* Global SEBRAE anchor date */}
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-        <span className="text-sm font-medium text-foreground">📅 Data Âncora Status SEBRAE (global):</span>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal")}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {format(anchorDate, "dd/MM/yyyy")}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={anchorDate}
-              onSelect={(date) => {
-                if (date) updateConfig(format(date, 'yyyy-MM-dd'));
-              }}
-              initialFocus
-              className="p-3 pointer-events-auto"
+        {/* Global SEBRAE anchor date */}
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+          <span className="text-sm font-medium text-foreground">📅 Data Âncora Status SEBRAE (global):</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!canEditPresEx}
+                className={cn("justify-start text-left font-normal")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(anchorDate, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            {canEditPresEx && (
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={anchorDate}
+                  onSelect={(date) => {
+                    if (date && canEditPresEx) updateConfig(format(date, 'yyyy-MM-dd'));
+                  }}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            )}
+          </Popover>
+          <span className="text-xs text-muted-foreground">Recorrência quinzenal a partir desta data</span>
+        </div>
+
+        <Tabs defaultValue="abatimentos" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
+            <TabsTrigger value="abatimentos">Abatimentos em Andamento</TabsTrigger>
+            <TabsTrigger value="articulacoes">Articulações</TabsTrigger>
+            <TabsTrigger value="calendario">Calendário Estratégico</TabsTrigger>
+            <TabsTrigger value="coej" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <GraduationCap className="h-4 w-4 text-amber-400" />
+              <span>COEJ (Orientadores)</span>
+            </TabsTrigger>
+            <TabsTrigger value="acessibilidade" className="flex items-center gap-2">
+              <Bus className="h-4 w-4 text-emerald-500" />
+              <span>Acessibilidade</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="abatimentos">
+            <AbatimentosTab
+              eventos={eventos}
+              loading={loading || configLoading}
+              createEvento={createEvento}
+              updateEvento={updateEvento}
+              deleteEvento={deleteEvento}
+              dataReferenciaStatus={dataReferenciaStatus}
             />
-          </PopoverContent>
-        </Popover>
-        <span className="text-xs text-muted-foreground">Recorrência quinzenal a partir desta data</span>
+          </TabsContent>
+
+          <TabsContent value="articulacoes">
+            <ArticulacoesTab eventos={eventos} loading={loading} />
+          </TabsContent>
+
+          <TabsContent value="calendario">
+            <CalendarioEstrategicoTab eventos={eventos} loading={loading || configLoading} dataReferenciaStatus={dataReferenciaStatus} />
+          </TabsContent>
+
+          <TabsContent value="coej">
+            <COEJSection selectedYear={selectedYear} />
+          </TabsContent>
+
+          <TabsContent value="acessibilidade">
+            <AcessibilidadeSection eventos={eventos} />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="abatimentos" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
-          <TabsTrigger value="abatimentos">Abatimentos em Andamento</TabsTrigger>
-          <TabsTrigger value="articulacoes">Articulações</TabsTrigger>
-          <TabsTrigger value="calendario">Calendário Estratégico</TabsTrigger>
-          <TabsTrigger value="coej" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <GraduationCap className="h-4 w-4 text-amber-400" />
-            <span>COEJ (Orientadores)</span>
-          </TabsTrigger>
-          <TabsTrigger value="acessibilidade" className="flex items-center gap-2">
-            <Bus className="h-4 w-4 text-emerald-500" />
-            <span>Acessibilidade</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="abatimentos">
-          <AbatimentosTab
-            eventos={eventos}
-            loading={loading || configLoading}
-            createEvento={createEvento}
-            updateEvento={updateEvento}
-            deleteEvento={deleteEvento}
-            dataReferenciaStatus={dataReferenciaStatus}
-          />
-        </TabsContent>
-
-        <TabsContent value="articulacoes">
-          <ArticulacoesTab eventos={eventos} loading={loading} />
-        </TabsContent>
-
-        <TabsContent value="calendario">
-          <CalendarioEstrategicoTab eventos={eventos} loading={loading || configLoading} dataReferenciaStatus={dataReferenciaStatus} />
-        </TabsContent>
-
-        <TabsContent value="coej">
-          <COEJSection selectedYear={selectedYear} />
-        </TabsContent>
-
-        <TabsContent value="acessibilidade">
-          <AcessibilidadeSection eventos={eventos} />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </DirectorateAccessGuard>
   );
 };
 

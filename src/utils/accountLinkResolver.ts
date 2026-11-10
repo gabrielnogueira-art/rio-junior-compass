@@ -5,7 +5,7 @@
 import { GuildaKey, GUILDAS_INFO } from '@/data/rolesGuildasData';
 import { membrosCartoesService, MembroRioJunior } from '@/services/membrosCartoesService';
 import { processoSeletivoService, PSCandidato } from '@/services/processoSeletivoService';
-import { getDatabase } from '@/components/presidency/coej/database.js';
+import { getDatabase } from '@/components/presidency/coej/database';
 
 export type EffectiveUserType =
   | 'admin'

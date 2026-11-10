@@ -18,6 +18,7 @@ import {
   Wallet,
   CheckCircle2,
   Clock,
+  Lock,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +56,8 @@ import AnuidadesSection from '@/components/operations/AnuidadesSection';
 import VisitasGuardioesSection from '@/components/shared/VisitasGuardioesSection';
 import GestaoTimeOverviewTab from '@/components/operations/GestaoTimeOverviewTab';
 import ProcessoSeletivoTab from '@/components/operations/ProcessoSeletivoTab';
+import { useAuth } from '@/hooks/useAuth';
+import { DirectorateAccessGuard } from '@/components/DirectorateAccessGuard';
 
 interface OperationsViewProps {
   selectedYear: number;
@@ -63,12 +66,22 @@ interface OperationsViewProps {
 type MacroPillarType = 'time' | 'processoSeletivo' | 'financeiro' | 'processos';
 
 const OperationsView = ({ selectedYear }: OperationsViewProps) => {
-  // Macro-Pilar ativo no Nível 1 (Gente/Time, Processo Seletivo, Financeiro ou Processos)
-  const [activeMacroPillar, setActiveMacroPillar] = useState<MacroPillarType>('time');
+  const { canEditOP, canViewGestaoTimeOP } = useAuth();
+
+  // Macro-Pilar ativo no Nível 1 (Gente/Time restrito aos ADMs; demais abas acessíveis a todo o time)
+  const [activeMacroPillar, setActiveMacroPillar] = useState<MacroPillarType>(() =>
+    canViewGestaoTimeOP ? 'time' : 'processoSeletivo'
+  );
   // Sub-aba ativa dentro do Pilar Financeiro
   const [activeFinanceSubTab, setActiveFinanceSubTab] = useState<string>('dashboard');
   // Sub-aba ativa dentro do Pilar de Processos
   const [activeProcessSubTab, setActiveProcessSubTab] = useState<string>('visitas');
+
+  useEffect(() => {
+    if (!canViewGestaoTimeOP && activeMacroPillar === 'time') {
+      setActiveMacroPillar('processoSeletivo');
+    }
+  }, [canViewGestaoTimeOP, activeMacroPillar]);
 
   const [loading, setLoading] = useState(true);
   const [backendConnected, setBackendConnected] = useState(false);
@@ -358,7 +371,7 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
           </p>
         </div>
 
-        {activeMacroPillar === 'financeiro' && (
+        {activeMacroPillar === 'financeiro' && canEditOP && (
           <button
             onClick={() => setIsManageTaxonomyOpen(true)}
             className="px-3 py-2 rounded-xl border border-border bg-secondary hover:bg-muted text-foreground font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs shrink-0"
@@ -374,12 +387,22 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
       {/* NÍVEL 1: OS 4 MACRO-PILARES DE OPERAÇÕES (SEM ROLAGEM EXCESSIVA)  */}
       {/* ================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {/* Pilar 1: Gestão de Time & Cultura */}
+        {/* Pilar 1: Gestão de Time & Cultura (Restrito aos ADMs por hora) */}
         <button
           type="button"
-          onClick={() => setActiveMacroPillar('time')}
+          onClick={() => {
+            if (!canViewGestaoTimeOP) {
+              toast.error(
+                'A seção de Gestão de Time e Jornada em Operações está restrita aos Administradores (ADMs) por hora.'
+              );
+              return;
+            }
+            setActiveMacroPillar('time');
+          }}
           className={`text-left p-4 rounded-2xl border transition-all space-y-2 ${
-            activeMacroPillar === 'time'
+            !canViewGestaoTimeOP
+              ? 'border-border bg-muted/40 opacity-60 cursor-not-allowed'
+              : activeMacroPillar === 'time'
               ? 'border-2 border-cyan-500 bg-cyan-500/5 shadow-sm'
               : 'border-border bg-card hover:border-cyan-500/40 opacity-85 hover:opacity-100'
           }`}
@@ -388,16 +411,24 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
               Pilar 1 • Gente & Cultura
             </span>
-            <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400">
-              {membrosCount} ativos
-            </span>
+            {canViewGestaoTimeOP ? (
+              <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400">
+                {membrosCount} ativos
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                <Lock size={10} /> Restrito ADMs
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Users size={18} className="text-cyan-500 shrink-0" />
             <h3 className="text-sm font-extrabold text-foreground">Gestão de Time & Jornada</h3>
           </div>
           <p className="text-xs text-muted-foreground line-clamp-2">
-            Termômetro das 6 Guildas, retenção, alocação das 26 frentes e sistema de cartões.
+            {canViewGestaoTimeOP
+              ? 'Termômetro das 6 Guildas, retenção, alocação das 26 frentes e sistema de cartões.'
+              : 'Acesso restrito aos Administradores (ADMs) por hora.'}
           </p>
         </button>
 
@@ -484,273 +515,278 @@ const OperationsView = ({ selectedYear }: OperationsViewProps) => {
       </div>
 
       {/* ================================================================= */}
-      {/* CONTEÚDO DO PILAR 1: GESTÃO DE TIME & CULTURA                     */}
+      {/* CONTEÚDO DO PILAR 1: GESTÃO DE TIME & CULTURA (RESTRITO A ADMs)   */}
       {/* ================================================================= */}
-      {activeMacroPillar === 'time' && (
+      {activeMacroPillar === 'time' && canViewGestaoTimeOP && (
         <GestaoTimeOverviewTab
           onNavigateToPS={() => setActiveMacroPillar('processoSeletivo')}
         />
       )}
 
       {/* ================================================================= */}
-      {/* CONTEÚDO DO PILAR 2: PROCESSO SELETIVO & ADITIVO (100% EDITÁVEL)  */}
+      {/* PILARES 2, 3 E 4: ACESSÍVEIS AO TIME, EDITÁVEIS PELO TIME DE OP   */}
       {/* ================================================================= */}
-      {activeMacroPillar === 'processoSeletivo' && <ProcessoSeletivoTab />}
+      {activeMacroPillar !== 'time' && (
+        <DirectorateAccessGuard
+          canEdit={canEditOP}
+          directorateName="Diretoria de Operações (OP)"
+          directorateShort="OP"
+        >
+          {/* CONTEÚDO DO PILAR 2: PROCESSO SELETIVO & ADITIVO */}
+          {activeMacroPillar === 'processoSeletivo' && <ProcessoSeletivoTab />}
 
-      {/* ================================================================= */}
-      {/* CONTEÚDO DO PILAR 3: GESTÃO FINANCEIRA CONSOLIDADA (9 SUB-ABAS)   */}
-      {/* ================================================================= */}
-      {activeMacroPillar === 'financeiro' && (
-        <div className="space-y-6">
-          <Tabs
-            value={activeFinanceSubTab}
-            onValueChange={setActiveFinanceSubTab}
-            className="space-y-6"
-          >
-            <div className="bg-card border border-border rounded-2xl p-3 space-y-2 shadow-xs">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                  Repartições do Pilar Financeiro
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Selecione o demonstrativo ou ferramenta financeira abaixo
-                </span>
-              </div>
-              <div className="overflow-x-auto pb-1">
-                <TabsList className="inline-flex h-auto p-1 bg-muted/60 rounded-xl space-x-1 whitespace-nowrap">
-                  <TabsTrigger
-                    value="dashboard"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <LayoutDashboard size={14} /> Visão Geral
-                  </TabsTrigger>
-
-                  <TabsTrigger
-                    value="extrato"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <DollarSign size={14} />
-                    <span>Extrato</span>
-                    <span className="text-xs px-1.5 py-0.2 rounded-full bg-primary/20 text-primary font-extrabold">
-                      {summary?.totalMovimentacoes?.toLocaleString('pt-BR') || 0}
+          {/* CONTEÚDO DO PILAR 3: GESTÃO FINANCEIRA CONSOLIDADA (9 SUB-ABAS) */}
+          {activeMacroPillar === 'financeiro' && (
+            <div className="space-y-6">
+              <Tabs
+                value={activeFinanceSubTab}
+                onValueChange={setActiveFinanceSubTab}
+                className="space-y-6"
+              >
+                <div className="bg-card border border-border rounded-2xl p-3 space-y-2 shadow-xs">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      Repartições do Pilar Financeiro
                     </span>
-                  </TabsTrigger>
+                    <span className="text-xs text-muted-foreground">
+                      Selecione o demonstrativo ou ferramenta financeira abaixo
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto pb-1">
+                    <TabsList className="inline-flex h-auto p-1 bg-muted/60 rounded-xl space-x-1 whitespace-nowrap">
+                      <TabsTrigger
+                        value="dashboard"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <LayoutDashboard size={14} /> Visão Geral
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="iniciativas"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <Target size={14} /> Iniciativas & Eventos
-                  </TabsTrigger>
+                      <TabsTrigger
+                        value="extrato"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <DollarSign size={14} />
+                        <span>Extrato</span>
+                        <span className="text-xs px-1.5 py-0.2 rounded-full bg-primary/20 text-primary font-extrabold">
+                          {summary?.totalMovimentacoes?.toLocaleString('pt-BR') || 0}
+                        </span>
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="caixaMinimo"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <ShieldCheck size={14} /> Caixa Mínimo
-                  </TabsTrigger>
+                      <TabsTrigger
+                        value="iniciativas"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <Target size={14} /> Iniciativas & Eventos
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="bancario"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <Building2 size={14} /> Visão Bancária
-                  </TabsTrigger>
+                      <TabsTrigger
+                        value="caixaMinimo"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <ShieldCheck size={14} /> Caixa Mínimo
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="planoContas"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <BookOpen size={14} /> Plano de Contas
-                  </TabsTrigger>
+                      <TabsTrigger
+                        value="bancario"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <Building2 size={14} /> Visão Bancária
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="dfc"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <FileText size={14} /> DFC
-                  </TabsTrigger>
+                      <TabsTrigger
+                        value="planoContas"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <BookOpen size={14} /> Plano de Contas
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="projecao"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <BarChart3 size={14} /> Projeção
-                  </TabsTrigger>
+                      <TabsTrigger
+                        value="dfc"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <FileText size={14} /> DFC
+                      </TabsTrigger>
 
-                  <TabsTrigger
-                    value="anuidades"
-                    className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
-                  >
-                    <HandCoins size={14} /> Anuidades
+                      <TabsTrigger
+                        value="projecao"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <BarChart3 size={14} /> Projeção
+                      </TabsTrigger>
+
+                      <TabsTrigger
+                        value="anuidades"
+                        className="flex items-center gap-1.5 text-xs font-bold py-2 px-3"
+                      >
+                        <HandCoins size={14} /> Anuidades
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                </div>
+
+                <TabsContent value="dashboard" className="space-y-6">
+                  <MovimentacoesDashboard
+                    summary={summary}
+                    analiseGeral={analiseGeral}
+                    recentTransactions={transactions}
+                    backendConnected={backendConnected}
+                    onOpenNewTx={() => {
+                      setTxToEdit(null);
+                      setIsTxModalOpen(true);
+                    }}
+                    onOpenTransfer={() => setIsTransferModalOpen(true)}
+                    onOpenImportStatement={() => setIsImportModalOpen(true)}
+                    onSyncExcel={() => {}}
+                    onExportCSV={handleExportCSV}
+                    onSelectAccountFilter={handleSelectAccountFilter}
+                    onViewAllTx={() => setActiveFinanceSubTab('extrato')}
+                  />
+                </TabsContent>
+
+                <TabsContent value="extrato" className="space-y-6">
+                  <MovimentacoesTable
+                    transactions={transactions}
+                    total={totalCount}
+                    filteredReceitas={filteredReceitas}
+                    filteredDespesas={filteredDespesas}
+                    filteredSaldo={filteredSaldo}
+                    page={page}
+                    limit={limit}
+                    onPageChange={setPage}
+                    onLimitChange={setLimit}
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onResetFilters={handleResetFilters}
+                    taxonomy={taxonomy}
+                    onViewDetails={(tx) => {
+                      setSelectedTx(tx);
+                      setIsDetailsModalOpen(true);
+                    }}
+                    onEdit={(tx) => {
+                      setTxToEdit(tx);
+                      setIsTxModalOpen(true);
+                    }}
+                    onDuplicate={handleDuplicateTransaction}
+                    onDelete={handleDeleteTransaction}
+                    onExportCSV={handleExportCSV}
+                    onOpenNewTx={() => {
+                      setTxToEdit(null);
+                      setIsTxModalOpen(true);
+                    }}
+                    onOpenTransfer={() => setIsTransferModalOpen(true)}
+                    onOpenImportStatement={() => setIsImportModalOpen(true)}
+                  />
+                </TabsContent>
+
+                <TabsContent value="iniciativas" className="space-y-6">
+                  <IniciativasView iniciativas={iniciativas} />
+                </TabsContent>
+
+                <TabsContent value="caixaMinimo" className="space-y-6">
+                  <CaixaMinimoView months={caixaMinimo} />
+                </TabsContent>
+
+                <TabsContent value="bancario" className="space-y-6">
+                  <BankAccountsView data={bankData} />
+                </TabsContent>
+
+                <TabsContent value="planoContas" className="space-y-6">
+                  <PlanoContasView planoContas={planoContas} />
+                </TabsContent>
+
+                <TabsContent value="dfc" className="space-y-6">
+                  <DFCReportsView dfc={dfcData} summary={summary} />
+                </TabsContent>
+
+                <TabsContent value="projecao" className="space-y-6">
+                  <FinancialProjectionChart selectedYear={selectedYear} />
+                </TabsContent>
+
+                <TabsContent value="anuidades" className="space-y-6">
+                  <AnuidadesSection selectedYear={selectedYear} />
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+
+          {/* CONTEÚDO DO PILAR 4: PROCESSOS, ROTINAS & VISITAS */}
+          {activeMacroPillar === 'processos' && (
+            <div className="space-y-6">
+              <Tabs
+                value={activeProcessSubTab}
+                onValueChange={setActiveProcessSubTab}
+                className="space-y-5"
+              >
+                <TabsList className="inline-flex h-auto p-1 bg-muted/60 rounded-xl space-x-1">
+                  <TabsTrigger value="visitas" className="text-xs font-bold py-2 px-3.5 gap-1.5">
+                    <MapPin size={14} /> Visitas dos Guardiões (OP & DDR)
+                  </TabsTrigger>
+                  <TabsTrigger value="cadencia" className="text-xs font-bold py-2 px-3.5 gap-1.5">
+                    <Workflow size={14} /> Cadência de Ritos & Processos das Guildas
                   </TabsTrigger>
                 </TabsList>
-              </div>
+
+                <TabsContent value="visitas" className="space-y-6">
+                  <VisitasGuardioesSection selectedYear={selectedYear} modo="op" />
+                </TabsContent>
+
+                <TabsContent value="cadencia" className="space-y-4">
+                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-xs">
+                    <div>
+                      <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 font-bold">
+                        Gestão de Processos Internos (OP)
+                      </Badge>
+                      <h3 className="text-lg font-extrabold text-foreground mt-1">
+                        Governança de Ritos Semanais, Ferramentas & SLAs entre Guildas
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        Acompanhamento de rotinas operacionais da Federação para potencializar a produtividade de PRESEX, VPNEG, DDR, FE, OP e PRESCON.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                      <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-sm">📅 Reuniões de Guilda (RVs)</span>
+                          <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                            100% em dia
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground">
+                          Pautas e atas registradas semanalmente pelas 6 Guildas com controle de presença integrado ao sistema de cartões.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-sm">🤝 Rito Geral (RG Mensal)</span>
+                          <Badge className="bg-cyan-500/15 text-cyan-600 border-cyan-500/30">
+                            Todo 1º Sábado
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground">
+                          Alinhamento estratégico de resultados da rede, prestação de contas e momentos de cultura do Time RioJunior.
+                        </p>
+                      </div>
+
+                      <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-sm">🛠️ Ecossistema Digital RJ</span>
+                          <Badge className="bg-purple-500/15 text-purple-600 border-purple-500/30">
+                            Ativo
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground">
+                          Gestão de contas institucionais (@riojunior.com.br), CRM de Parcerias, Portal COEJ e Painel Estratégico.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
-
-            <TabsContent value="dashboard" className="space-y-6">
-              <MovimentacoesDashboard
-                summary={summary}
-                analiseGeral={analiseGeral}
-                recentTransactions={transactions}
-                backendConnected={backendConnected}
-                onOpenNewTx={() => {
-                  setTxToEdit(null);
-                  setIsTxModalOpen(true);
-                }}
-                onOpenTransfer={() => setIsTransferModalOpen(true)}
-                onOpenImportStatement={() => setIsImportModalOpen(true)}
-                onSyncExcel={() => {}}
-                onExportCSV={handleExportCSV}
-                onSelectAccountFilter={handleSelectAccountFilter}
-                onViewAllTx={() => setActiveFinanceSubTab('extrato')}
-              />
-            </TabsContent>
-
-            <TabsContent value="extrato" className="space-y-6">
-              <MovimentacoesTable
-                transactions={transactions}
-                total={totalCount}
-                filteredReceitas={filteredReceitas}
-                filteredDespesas={filteredDespesas}
-                filteredSaldo={filteredSaldo}
-                page={page}
-                limit={limit}
-                onPageChange={setPage}
-                onLimitChange={setLimit}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onResetFilters={handleResetFilters}
-                taxonomy={taxonomy}
-                onViewDetails={(tx) => {
-                  setSelectedTx(tx);
-                  setIsDetailsModalOpen(true);
-                }}
-                onEdit={(tx) => {
-                  setTxToEdit(tx);
-                  setIsTxModalOpen(true);
-                }}
-                onDuplicate={handleDuplicateTransaction}
-                onDelete={handleDeleteTransaction}
-                onExportCSV={handleExportCSV}
-                onOpenNewTx={() => {
-                  setTxToEdit(null);
-                  setIsTxModalOpen(true);
-                }}
-                onOpenTransfer={() => setIsTransferModalOpen(true)}
-                onOpenImportStatement={() => setIsImportModalOpen(true)}
-              />
-            </TabsContent>
-
-            <TabsContent value="iniciativas" className="space-y-6">
-              <IniciativasView iniciativas={iniciativas} />
-            </TabsContent>
-
-            <TabsContent value="caixaMinimo" className="space-y-6">
-              <CaixaMinimoView months={caixaMinimo} />
-            </TabsContent>
-
-            <TabsContent value="bancario" className="space-y-6">
-              <BankAccountsView data={bankData} />
-            </TabsContent>
-
-            <TabsContent value="planoContas" className="space-y-6">
-              <PlanoContasView planoContas={planoContas} />
-            </TabsContent>
-
-            <TabsContent value="dfc" className="space-y-6">
-              <DFCReportsView dfc={dfcData} summary={summary} />
-            </TabsContent>
-
-            <TabsContent value="projecao" className="space-y-6">
-              <FinancialProjectionChart selectedYear={selectedYear} />
-            </TabsContent>
-
-            <TabsContent value="anuidades" className="space-y-6">
-              <AnuidadesSection selectedYear={selectedYear} />
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
-
-      {/* ================================================================= */}
-      {/* CONTEÚDO DO PILAR 4: PROCESSOS, ROTINAS & VISITAS                 */}
-      {/* ================================================================= */}
-      {activeMacroPillar === 'processos' && (
-        <div className="space-y-6">
-          <Tabs
-            value={activeProcessSubTab}
-            onValueChange={setActiveProcessSubTab}
-            className="space-y-5"
-          >
-            <TabsList className="inline-flex h-auto p-1 bg-muted/60 rounded-xl space-x-1">
-              <TabsTrigger value="visitas" className="text-xs font-bold py-2 px-3.5 gap-1.5">
-                <MapPin size={14} /> Visitas dos Guardiões (OP & DDR)
-              </TabsTrigger>
-              <TabsTrigger value="cadencia" className="text-xs font-bold py-2 px-3.5 gap-1.5">
-                <Workflow size={14} /> Cadência de Ritos & Processos das Guildas
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="visitas" className="space-y-6">
-              <VisitasGuardioesSection selectedYear={selectedYear} modo="op" />
-            </TabsContent>
-
-            <TabsContent value="cadencia" className="space-y-4">
-              <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-xs">
-                <div>
-                  <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 font-bold">
-                    Gestão de Processos Internos (OP)
-                  </Badge>
-                  <h3 className="text-lg font-extrabold text-foreground mt-1">
-                    Governança de Ritos Semanais, Ferramentas & SLAs entre Guildas
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Acompanhamento de rotinas operacionais da Federação para potencializar a produtividade de PRESEX, VPNEG, DDR, FE, OP e PRESCON.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-sm">📅 Reuniões de Guilda (RVs)</span>
-                      <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
-                        100% em dia
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground">
-                      Pautas e atas registradas semanalmente pelas 6 Guildas com controle de presença integrado ao sistema de cartões.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-sm">🤝 Rito Geral (RG Mensal)</span>
-                      <Badge className="bg-cyan-500/15 text-cyan-600 border-cyan-500/30">
-                        Todo 1º Sábado
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground">
-                      Alinhamento estratégico de resultados da rede, prestação de contas e momentos de cultura do Time RioJunior.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-xl border border-border bg-secondary/30 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-sm">🛠️ Ecossistema Digital RJ</span>
-                      <Badge className="bg-purple-500/15 text-purple-600 border-purple-500/30">
-                        Ativo
-                      </Badge>
-                    </div>
-                    <p className="text-muted-foreground">
-                      Gestão de contas institucionais (@riojunior.com.br), CRM de Parcerias, Portal COEJ e Painel Estratégico.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+          )}
+        </DirectorateAccessGuard>
       )}
 
       {/* Modals Financeiros */}

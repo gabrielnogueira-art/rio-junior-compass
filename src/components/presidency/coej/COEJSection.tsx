@@ -1,5 +1,5 @@
 // src/components/presidency/coej/COEJSection.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Building2, 
   BarChart3, 
@@ -19,7 +19,8 @@ import {
   Search,
   CheckCircle2,
   FileText,
-  User
+  User,
+  Lock
 } from 'lucide-react';
 
 import { 
@@ -35,27 +36,82 @@ import IESERecognitionTab from './IESERecognitionTab';
 import TransparencyReportA4 from './TransparencyReportA4';
 import DataFeedTab from './DataFeedTab';
 import ProfessorProfileModal from './ProfessorProfileModal';
+import { useAuth } from '@/hooks/useAuth';
 import './coej.css';
 
 interface COEJSectionProps {
   selectedYear?: number;
+  restrictedMode?: 'orientador' | 'membro_ej' | null;
+  allowedEjIds?: string[];
 }
 
-export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
+export default function COEJSection({
+  selectedYear = 2026,
+  restrictedMode,
+  allowedEjIds,
+}: COEJSectionProps) {
+  const { effectiveUserType, allowedProfessorEjIds, accountLink } = useAuth();
+
+  const effectiveRestrictedMode: 'orientador' | 'membro_ej' | null =
+    restrictedMode !== undefined
+      ? restrictedMode
+      : effectiveUserType === 'professor_orientador'
+      ? 'orientador'
+      : effectiveUserType === 'diretor_ej' || effectiveUserType === 'membro_ej'
+      ? 'membro_ej'
+      : null;
+
+  const isRestrictedUser = effectiveRestrictedMode !== null;
+
+  const effectiveAllowedEjIds = useMemo(() => {
+    if (allowedEjIds && allowedEjIds.length > 0) return allowedEjIds;
+    if (allowedProfessorEjIds && allowedProfessorEjIds.length > 0) return allowedProfessorEjIds;
+    return [];
+  }, [allowedEjIds, allowedProfessorEjIds]);
+
   const [db, setDb] = useState(() => getDatabase());
   const [activeTab, setActiveTab] = useState<'dashboard' | 'iese' | 'datafeed' | 'report'>('dashboard');
   const [currentPeriod, setCurrentPeriod] = useState<string>('Trimestral (Q3)');
   const [selectedEJId, setSelectedEJId] = useState<string>('ej_002'); // Padrão: Nexus Consultoria Jr (UFF)
-  const [userRole, setUserRole] = useState<'orientador' | 'membro_ej'>('orientador');
+  const [userRole, setUserRole] = useState<'orientador' | 'membro_ej'>(
+    effectiveRestrictedMode || 'orientador'
+  );
   const [searchEJ, setSearchEJ] = useState<string>('');
   
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
 
-  // Lista consolidada de EJs
+  useEffect(() => {
+    if (effectiveRestrictedMode) {
+      setUserRole(effectiveRestrictedMode);
+    }
+  }, [effectiveRestrictedMode]);
+
+  // Lista consolidada de EJs (filtrada se o usuário for Professor Orientador ou Membro/Diretor de EJ)
   const listaEJs = useMemo(() => {
-    return db.Empresas_Juniores || [];
-  }, [db]);
+    const allEjs = db.Empresas_Juniores || [];
+    if (!isRestrictedUser) {
+      return allEjs;
+    }
+    if (effectiveAllowedEjIds.length > 0) {
+      const filtered = allEjs.filter((e: any) => effectiveAllowedEjIds.includes(e.id_ej));
+      if (filtered.length > 0) return filtered;
+    }
+    if (accountLink?.ies) {
+      const byIes = allEjs.filter(
+        (e: any) => (e.ies || '').toLowerCase() === accountLink.ies?.toLowerCase()
+      );
+      if (byIes.length > 0) return byIes;
+    }
+    return allEjs.slice(0, 1);
+  }, [db, isRestrictedUser, effectiveAllowedEjIds, accountLink?.ies]);
+
+  // Garante que a EJ selecionada pertença às EJs permitidas do usuário
+  useEffect(() => {
+    if (listaEJs.length > 0 && !listaEJs.some((e: any) => e.id_ej === selectedEJId)) {
+      setSelectedEJId(listaEJs[0].id_ej);
+    }
+  }, [listaEJs, selectedEJId]);
 
   // EJ selecionada
   const currentEJ = useMemo(() => {
@@ -240,7 +296,7 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
       <div className="bg-gradient-to-r from-blue-950/70 via-slate-900/80 to-blue-900/60 border border-blue-500/30 rounded-2xl p-6 shadow-xl backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
                 <GraduationCap className="w-3.5 h-3.5" />
                 COEJ • Conselho de Orientadores
@@ -248,6 +304,12 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
                 Presidência Executiva
               </span>
+              {isRestrictedUser && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <Lock className="w-3 h-3" />
+                  Acesso Vinculado ({listaEJs.length} {listaEJs.length === 1 ? 'EJ vinculada' : 'EJs vinculadas'})
+                </span>
+              )}
               <span className="text-xs text-slate-400 hidden sm:inline">• Lei Federal nº 13.267/2016</span>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
@@ -280,13 +342,15 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
               <span>Relatório A4 (PDF)</span>
             </button>
 
-            <button
-              onClick={handleResetData}
-              className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800 transition"
-              title="Restaurar dados padrões de demonstração do COEJ"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
+            {!isRestrictedUser && (
+              <button
+                onClick={handleResetData}
+                className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800 transition"
+                title="Restaurar dados padrões de demonstração do COEJ"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -308,12 +372,14 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
                 </div>
               </div>
             </div>
-            <button 
-              onClick={() => setUserRole('orientador')}
-              className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 transition shadow"
-            >
-              Alternar para Visão do Orientador
-            </button>
+            {!isRestrictedUser && (
+              <button 
+                onClick={() => setUserRole('orientador')}
+                className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 transition shadow"
+              >
+                Alternar para Visão do Orientador
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-gradient-to-r from-blue-900/30 via-slate-900/90 to-blue-950/40 border border-blue-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -330,12 +396,14 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
                 </div>
               </div>
             </div>
-            <button 
-              onClick={() => setUserRole('membro_ej')}
-              className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
-            >
-              Simular Edição pela EJ
-            </button>
+            {!isRestrictedUser && (
+              <button 
+                onClick={() => setUserRole('membro_ej')}
+                className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
+              >
+                Simular Edição pela EJ
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -345,7 +413,7 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
         {/* Seletor Rápido de EJs Demonstrativas e Dropdown Geral */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium flex-wrap">
               <span>Federação RioJunior</span>
               <ChevronRight className="w-3.5 h-3.5" />
               <span className="text-amber-400 font-semibold">{currentEJ.nome}</span>
@@ -361,61 +429,88 @@ export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
             </div>
           </div>
 
-          {/* Quick Select Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-400">Atalhos COEJ:</span>
-            <button 
-              onClick={() => setSelectedEJId('ej_002')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_002' 
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
-            >
-              Nexus Jr (Cluster 2 - UFF)
-            </button>
-            <button 
-              onClick={() => setSelectedEJId('ej_001')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_001' 
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
-            >
-              Poli Jr (Cluster 5 - UFRJ)
-            </button>
-            <button 
-              onClick={() => setSelectedEJId('ej_003')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_003' 
-                  ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
-            >
-              BioInova (Aspirante - UERJ)
-            </button>
-            <button 
-              onClick={() => setSelectedEJId('ej_004')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_004' 
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
-            >
-              Ibmec Jr (Cluster 4 - Ibmec)
-            </button>
-          </div>
+          {/* Quick Select Buttons (somente para visão irrestrita ou se o professor tiver mais de 1 EJ vinculada) */}
+          {!isRestrictedUser ? (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-slate-400">Atalhos COEJ:</span>
+              <button 
+                onClick={() => setSelectedEJId('ej_002')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                  selectedEJId === 'ej_002' 
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' 
+                    : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
+                }`}
+              >
+                Nexus Jr (Cluster 2 - UFF)
+              </button>
+              <button 
+                onClick={() => setSelectedEJId('ej_001')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                  selectedEJId === 'ej_001' 
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm' 
+                    : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
+                }`}
+              >
+                Poli Jr (Cluster 5 - UFRJ)
+              </button>
+              <button 
+                onClick={() => setSelectedEJId('ej_003')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                  selectedEJId === 'ej_003' 
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-sm' 
+                    : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
+                }`}
+              >
+                BioInova (Aspirante - UERJ)
+              </button>
+              <button 
+                onClick={() => setSelectedEJId('ej_004')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                  selectedEJId === 'ej_004' 
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm' 
+                    : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
+                }`}
+              >
+                Ibmec Jr (Cluster 4 - Ibmec)
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4" />
+                Suas EJs vinculadas:
+              </span>
+              {listaEJs.map((ej: any) => (
+                <button
+                  key={ej.id_ej}
+                  onClick={() => setSelectedEJId(ej.id_ej)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                    selectedEJId === ej.id_ej
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                      : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
+                  }`}
+                >
+                  {ej.nome} ({ej.cluster || 'Cluster 1'})
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Dropdown de Todas as 75 EJs da RioJunior com busca */}
+        {/* Dropdown de EJs com busca */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-slate-800/80">
           <div className="md:col-span-8 flex items-center gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-1.5">
             <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="text-xs font-semibold text-slate-400 shrink-0">Selecionar Empresa Júnior ({listaEJs.length} EJs):</span>
+            <span className="text-xs font-semibold text-slate-400 shrink-0">
+              {isRestrictedUser
+                ? `Suas Empresas Juniores (${listaEJs.length}):`
+                : `Selecionar Empresa Júnior (${listaEJs.length} EJs):`}
+            </span>
             <select
               value={selectedEJId}
               onChange={(e) => setSelectedEJId(e.target.value)}
-              className="w-full bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer"
+              disabled={listaEJs.length <= 1}
+              className="w-full bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer disabled:cursor-default"
             >
               {ejsFiltradas.map((ej: any) => (
                 <option key={ej.id_ej} value={ej.id_ej} className="bg-slate-900 text-white">
