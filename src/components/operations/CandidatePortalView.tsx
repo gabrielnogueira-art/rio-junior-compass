@@ -820,3 +820,4 @@ export default function CandidatePortalView({
     </div>
   );
 }
+
