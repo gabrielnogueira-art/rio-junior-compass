@@ -23,8 +23,14 @@ export interface MembroRioJunior {
   status: 'ativo' | 'atencao' | 'critico' | 'desligado';
   /** Vínculo na frente: responsável/coordenador ou integrante do time (ex.: Time EFEJ) */
   vinculoFrente?: 'responsavel' | 'time';
-  /** Desligamento por motivo específico, sem relação com aplicação de cartões */
-  desligamentoManual?: { motivo: string; data: string };
+  /** Desligamento por motivo específico ou pedido de desligamento voluntário */
+  desligamentoManual?: {
+    motivo: string;
+    data: string;
+    tipo?: 'pedido_desligamento' | 'desligamento_especifico';
+  };
+  /** Indica que o membro fez um pedido de desligamento voluntário e consta como desligado */
+  pedidoDesligamento?: boolean;
 }
 
 export interface CartaoAdvertencia {
@@ -927,10 +933,27 @@ class MembrosCartoesService {
     return this.getMembros().find(m => m.id === id);
   }
 
+  public getMembroByEmail(email?: string | null): MembroRioJunior | undefined {
+    if (!email) return undefined;
+    const norm = email.trim().toLowerCase();
+    return this.getMembros().find(m => m.email.trim().toLowerCase() === norm);
+  }
+
   public saveMembro(membro: MembroRioJunior): void {
-    // Desligamento manual prevalece sobre o status calculado pelos cartões
-    if (membro.desligamentoManual && membro.status !== 'desligado') {
+    // Pedido de desligamento ou desligamento manual prevalece sobre o status calculado pelos cartões
+    if ((membro.desligamentoManual || membro.pedidoDesligamento) && membro.status !== 'desligado') {
       membro = { ...membro, status: 'desligado' };
+    }
+    if (membro.pedidoDesligamento && !membro.desligamentoManual) {
+      membro = {
+        ...membro,
+        status: 'desligado',
+        desligamentoManual: {
+          motivo: 'Pedido de desligamento solicitado pelo próprio membro',
+          data: new Date().toISOString().split('T')[0],
+          tipo: 'pedido_desligamento'
+        }
+      };
     }
     const list = this.getMembros();
     const idx = list.findIndex(m => m.id === membro.id);
@@ -943,15 +966,33 @@ class MembrosCartoesService {
     this.notify();
   }
 
-  // Desliga o membro por motivo específico (sem depender de cartões)
-  public desligarMembro(id: string, motivo: string, data: string): void {
+  // Desliga o membro por motivo específico ou pedido de desligamento (sem depender de cartões)
+  public desligarMembro(
+    id: string,
+    motivo: string,
+    data: string,
+    tipo: 'pedido_desligamento' | 'desligamento_especifico' = 'desligamento_especifico'
+  ): void {
     const m = this.getMembroById(id);
     if (!m) return;
+    const isPedido = tipo === 'pedido_desligamento';
     this.saveMembro({
       ...m,
       status: 'desligado',
-      desligamentoManual: { motivo: motivo.trim(), data }
+      pedidoDesligamento: isPedido,
+      desligamentoManual: {
+        motivo: motivo.trim() || (isPedido ? 'Pedido de desligamento solicitado pelo membro' : 'Desligamento administrativo'),
+        data: data || new Date().toISOString().split('T')[0],
+        tipo
+      }
     });
+  }
+
+  // Atalho direto para marcar que o membro fez pedido de desligamento e consta como desligado
+  public registrarPedidoDesligamento(id: string, data?: string, observacao?: string): void {
+    const dataFinal = data || new Date().toISOString().split('T')[0];
+    const motivoFinal = (observacao || '').trim() || 'Pedido de desligamento solicitado pelo próprio membro';
+    this.desligarMembro(id, motivoFinal, dataFinal, 'pedido_desligamento');
   }
 
   // Reintegra o membro e recalcula o status com base nos cartões
@@ -963,7 +1004,7 @@ class MembrosCartoesService {
     if (stats.isDesligamento) status = 'desligado';
     else if (stats.totalVermelhos === 1) status = 'critico';
     else if (stats.amarelosCount > 0) status = 'atencao';
-    const { desligamentoManual, ...rest } = m;
+    const { desligamentoManual, pedidoDesligamento, ...rest } = m;
     this.saveMembro({ ...rest, status });
   }
 

@@ -52,8 +52,13 @@ export default function GestaoTimeOverviewTab({ onNavigateToPS }: GestaoTimeOver
     const ativos = membros.filter((m) => m.status === 'ativo').length;
     const atencao = membros.filter((m) => m.status === 'atencao').length;
     const critico = membros.filter((m) => m.status === 'critico').length;
-    const desligados = membros.filter((m) => m.status === 'desligado').length;
-    const emOperacao = ativos + atencao + critico;
+    const desligados = membros.filter(
+      (m) => m.status === 'desligado' || !!m.desligamentoManual || !!m.pedidoDesligamento
+    ).length;
+    const pedidosDesligamento = membros.filter(
+      (m) => !!m.pedidoDesligamento || m.desligamentoManual?.tipo === 'pedido_desligamento'
+    ).length;
+    const emOperacao = total - desligados;
     const retencaoPct = total > 0 ? Math.round((emOperacao / total) * 100) : 100;
     const saudeVerdePct = emOperacao > 0 ? Math.round((ativos / emOperacao) * 100) : 100;
 
@@ -86,6 +91,7 @@ export default function GestaoTimeOverviewTab({ onNavigateToPS }: GestaoTimeOver
       atencao,
       critico,
       desligados,
+      pedidosDesligamento,
       retencaoPct,
       saudeVerdePct,
       totalFrentes,
@@ -163,7 +169,7 @@ export default function GestaoTimeOverviewTab({ onNavigateToPS }: GestaoTimeOver
                 </span>
               </p>
               <p className="text-xs text-muted-foreground">
-                {stats.ativos} regulares • {stats.desligados} desligamento(s) no ciclo
+                {stats.ativos} regulares • {stats.desligados} desligado(s) ({stats.pedidosDesligamento} por pedido)
               </p>
             </div>
 
@@ -382,3 +388,4 @@ export default function GestaoTimeOverviewTab({ onNavigateToPS }: GestaoTimeOver
     </div>
   );
 }
+

@@ -7,35 +7,19 @@ import {
   ShieldAlert,
   Users,
   AlertTriangle,
-  CheckCircle2,
-  XCircle,
   Plus,
   Pencil,
   Trash2,
   Search,
-  Filter,
   User,
-  Mail,
-  Building2,
-  Briefcase,
-  IdCard,
-  Sparkles,
-  Info,
-  Calendar,
-  RefreshCw,
   FileSpreadsheet,
   Eye,
-  Flame,
-  ArrowRight,
   FolderTree,
   Crown,
-  ShieldCheck,
-  Award,
   X,
   UserX,
-  UserCheck
+  UserCheck,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,20 +34,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   membrosCartoesService,
   MembroRioJunior,
   CartaoAdvertencia,
-  CardTipo
+  CardTipo,
 } from '@/services/membrosCartoesService';
 import {
   GUILDAS_INFO,
   GuildaKey,
   getPapeisByGuilda,
   getGuildaInfo,
-  PapelRioJunior
+  PapelRioJunior,
 } from '@/data/rolesGuildasData';
 import { frentesService } from '@/services/frentesService';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
@@ -123,15 +107,20 @@ export default function CartoesMembrosTab() {
     modeloTrabalho: '',
     statusFrente: 'ativa',
     assignedMemberIds: [],
-    timeMemberIds: []
+    timeMemberIds: [],
   });
 
-  // Desligamento por motivo específico (sem cartão)
+  // Desligamento por motivo específico ou pedido de desligamento (sem cartão)
   const [isDesligarModalOpen, setIsDesligarModalOpen] = useState(false);
   const [desligarTarget, setDesligarTarget] = useState<MembroRioJunior | null>(null);
-  const [desligarForm, setDesligarForm] = useState({
+  const [desligarForm, setDesligarForm] = useState<{
+    tipo: 'pedido_desligamento' | 'desligamento_especifico';
+    motivo: string;
+    data: string;
+  }>({
+    tipo: 'pedido_desligamento',
     motivo: '',
-    data: new Date().toISOString().split('T')[0]
+    data: new Date().toISOString().split('T')[0],
   });
 
   // Formulário de Aplicação / Edição de Cartão
@@ -141,7 +130,7 @@ export default function CartoesMembrosTab() {
     categoria: 'Falta em Reunião Geral (RV)',
     motivo: '',
     observacoes: '',
-    data: new Date().toISOString().split('T')[0]
+    data: new Date().toISOString().split('T')[0],
   });
 
   // Formulário de Cadastro / Edição de Membro
@@ -149,7 +138,7 @@ export default function CartoesMembrosTab() {
   const [memberForm, setMemberForm] = useState<Partial<MembroRioJunior>>({
     guilda: 'OP',
     cargo: 'Gestão de Processos',
-    status: 'ativo'
+    status: 'ativo',
   });
 
   // Sincroniza estado com o serviço
@@ -159,7 +148,7 @@ export default function CartoesMembrosTab() {
       setCartoes(membrosCartoesService.getCartoes());
     });
     const unsubFrentes = frentesService.subscribe(() => {
-      setFrentesVersion(v => v + 1);
+      setFrentesVersion((v) => v + 1);
       setMembros(membrosCartoesService.getMembros());
     });
     return () => {
@@ -170,7 +159,7 @@ export default function CartoesMembrosTab() {
 
   // Membros filtrados
   const filteredMembros = useMemo(() => {
-    return membros.filter(m => {
+    return membros.filter((m) => {
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -180,7 +169,15 @@ export default function CartoesMembrosTab() {
         m.guilda.toLowerCase().includes(q);
 
       const matchGuilda = guildaFilter === 'all' || m.guilda === guildaFilter;
-      const matchStatus = statusFilter === 'all' || m.status === statusFilter;
+      const isPedidoDeslig =
+        !!m.pedidoDesligamento || m.desligamentoManual?.tipo === 'pedido_desligamento';
+      const isDesligadoGeral =
+        m.status === 'desligado' || !!m.desligamentoManual || !!m.pedidoDesligamento;
+      const matchStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'pedido_desligamento' && isPedidoDeslig) ||
+        (statusFilter === 'desligado' && isDesligadoGeral) ||
+        m.status === statusFilter;
 
       return matchSearch && matchGuilda && matchStatus;
     });
@@ -191,7 +188,7 @@ export default function CartoesMembrosTab() {
     const guildasToInspect: GuildaKey[] =
       selectedFrenteGuilda === 'all'
         ? (['PRESEX', 'VPNEG', 'DDR', 'FE', 'OP', 'PRESCON'] as GuildaKey[])
-        : ([selectedFrenteGuilda as GuildaKey]);
+        : [selectedFrenteGuilda as GuildaKey];
 
     const result: Array<{
       guilda: GuildaKey;
@@ -200,10 +197,10 @@ export default function CartoesMembrosTab() {
       assignedMembers: MembroRioJunior[];
     }> = [];
 
-    guildasToInspect.forEach(gKey => {
+    guildasToInspect.forEach((gKey) => {
       const papeis = getPapeisByGuilda(gKey);
       const gInfo = getGuildaInfo(gKey);
-      papeis.forEach(papel => {
+      papeis.forEach((papel) => {
         const q = frentesSearch.toLowerCase().trim();
         const matchesSearch =
           !q ||
@@ -213,12 +210,15 @@ export default function CartoesMembrosTab() {
           gInfo.nome.toLowerCase().includes(q);
 
         if (matchesSearch) {
-          const assigned = membros.filter(m => {
+          const assigned = membros.filter((m) => {
             if (m.guilda !== gKey) return false;
             const mCargo = (m.cargo || '').toLowerCase().trim();
             const pNome = papel.nome.toLowerCase().trim();
             if (mCargo === pNome) return true;
-            if (pNome.includes('relações públicas') && (mCargo.includes('relações públicas') || mCargo === 'rp' || mCargo.includes('rp ('))) {
+            if (
+              pNome.includes('relações públicas') &&
+              (mCargo.includes('relações públicas') || mCargo === 'rp' || mCargo.includes('rp ('))
+            ) {
               return true;
             }
             return false;
@@ -227,7 +227,7 @@ export default function CartoesMembrosTab() {
             guilda: gKey,
             guildaInfo: gInfo,
             papel,
-            assignedMembers: assigned
+            assignedMembers: assigned,
           });
         }
       });
@@ -242,19 +242,29 @@ export default function CartoesMembrosTab() {
     let atencao = 0;
     let critico = 0;
     let desligados = 0;
+    let pedidosDesligamento = 0;
     let totalAmarelos = 0;
     let totalVermelhos = 0;
 
-    membros.forEach(m => {
-      const mCards = cartoes.filter(c => c.membroId === m.id);
+    membros.forEach((m) => {
+      const mCards = cartoes.filter((c) => c.membroId === m.id);
       const st = membrosCartoesService.calculateCardStats(mCards);
       totalAmarelos += st.amarelosCount;
       totalVermelhos += st.totalVermelhos;
 
-      if (m.desligamentoManual || st.isDesligamento) desligados++;
-      else if (st.totalVermelhos === 1) critico++;
-      else if (st.amarelosCount > 0) atencao++;
-      else conformes++;
+      const isPedido =
+        !!m.pedidoDesligamento || m.desligamentoManual?.tipo === 'pedido_desligamento';
+      if (isPedido) pedidosDesligamento++;
+
+      if (m.desligamentoManual || m.pedidoDesligamento || m.status === 'desligado' || st.isDesligamento) {
+        desligados++;
+      } else if (st.totalVermelhos === 1) {
+        critico++;
+      } else if (st.amarelosCount > 0) {
+        atencao++;
+      } else {
+        conformes++;
+      }
     });
 
     return {
@@ -263,20 +273,21 @@ export default function CartoesMembrosTab() {
       atencao,
       critico,
       desligados,
+      pedidosDesligamento,
       totalAmarelos,
       totalVermelhos,
-      totalCartoesRegistrados: cartoes.length
+      totalCartoesRegistrados: cartoes.length,
     };
   }, [membros, cartoes]);
 
   // Membro selecionado no form de aplicação
   const penalizedMember = useMemo(() => {
-    return membros.find(m => m.id === applyForm.membroId);
+    return membros.find((m) => m.id === applyForm.membroId);
   }, [membros, applyForm.membroId]);
 
   const penalizedCurrentStats = useMemo(() => {
     if (!penalizedMember) return null;
-    const cards = cartoes.filter(c => c.membroId === penalizedMember.id);
+    const cards = cartoes.filter((c) => c.membroId === penalizedMember.id);
     return membrosCartoesService.calculateCardStats(cards);
   }, [penalizedMember, cartoes]);
 
@@ -292,7 +303,10 @@ export default function CartoesMembrosTab() {
         nextV,
         nextA: currentA,
         willDismiss: nextV >= 2,
-        desc: nextV >= 2 ? '⚠️ ATENÇÃO: Atingirá 2 cartões vermelhos (DESLIGAMENTO DA RIOJUNIOR)!' : 'Ficará com 1 Cartão Vermelho (Status Crítico).'
+        desc:
+          nextV >= 2
+            ? '⚠️ ATENÇÃO: Atingirá 2 cartões vermelhos (DESLIGAMENTO DA RIOJUNIOR)!'
+            : 'Ficará com 1 Cartão Vermelho (Status Crítico).',
       };
     } else {
       if (currentA === 1) {
@@ -301,14 +315,16 @@ export default function CartoesMembrosTab() {
           nextV,
           nextA: 0,
           willDismiss: nextV >= 2,
-          desc: '🔄 2º Cartão Amarelo! Converte automaticamente em +1 CARTÃO VERMELHO.' + (nextV >= 2 ? ' Resultará em DESLIGAMENTO!' : ' Membro entrará em status Crítico.')
+          desc:
+            '🔄 2º Cartão Amarelo! Converte automaticamente em +1 CARTÃO VERMELHO.' +
+            (nextV >= 2 ? ' Resultará em DESLIGAMENTO!' : ' Membro entrará em status Crítico.'),
         };
       } else {
         return {
           nextV: currentV,
           nextA: currentA + 1,
           willDismiss: false,
-          desc: '1º Cartão Amarelo (Infração moderada - Status Atenção).'
+          desc: '1º Cartão Amarelo (Infração moderada - Status Atenção).',
         };
       }
     }
@@ -323,7 +339,7 @@ export default function CartoesMembrosTab() {
       categoria: 'Falta em Reunião Geral (RV)',
       motivo: '',
       observacoes: '',
-      data: new Date().toISOString().split('T')[0]
+      data: new Date().toISOString().split('T')[0],
     });
     setIsApplyModalOpen(true);
   };
@@ -337,7 +353,7 @@ export default function CartoesMembrosTab() {
       categoria: card.categoria,
       motivo: card.motivo,
       observacoes: card.observacoes || '',
-      data: card.data
+      data: card.data,
     });
     setIsApplyModalOpen(true);
   };
@@ -364,11 +380,11 @@ export default function CartoesMembrosTab() {
             categoria: applyForm.categoria,
             motivo: applyForm.motivo.trim(),
             data: applyForm.data,
-            observacoes: applyForm.observacoes.trim() || undefined
+            observacoes: applyForm.observacoes.trim() || undefined,
           });
           toast({
             title: 'Cartão atualizado com sucesso!',
-            description: 'Os dados do cartão foram alterados e o status disciplinar recalculado.'
+            description: 'Os dados do cartão foram alterados e o status disciplinar recalculado.',
           });
         }
       } else {
@@ -379,11 +395,11 @@ export default function CartoesMembrosTab() {
           motivo: applyForm.motivo.trim(),
           data: applyForm.data,
           observacoes: applyForm.observacoes.trim() || undefined,
-          aplicadoPor: 'Guilda de Operações (OP)'
+          aplicadoPor: 'Guilda de Operações (OP)',
         });
         toast({
           title: `Cartão ${applyForm.tipo === 'vermelho' ? 'Vermelho' : 'Amarelo'} aplicado!`,
-          description: 'A infração foi registrada e calculada com base no regimento da RioJunior.'
+          description: 'A infração foi registrada e calculada com base no regimento da RioJunior.',
         });
       }
 
@@ -402,7 +418,7 @@ export default function CartoesMembrosTab() {
       membrosCartoesService.deleteCartao(id);
       toast({
         title: 'Cartão revogado com sucesso!',
-        description: 'O registro foi removido e os indicadores disciplinares foram recalculados.'
+        description: 'O registro foi removido e os indicadores disciplinares foram recalculados.',
       });
     }
   };
@@ -432,7 +448,7 @@ export default function CartoesMembrosTab() {
       nacionalidade: 'brasileira',
       estadoCivil: 'solteiro',
       profissao: 'estudante',
-      status: 'ativo'
+      status: 'ativo',
     });
     setIsEditingMember(false);
     setIsMemberModalOpen(true);
@@ -463,7 +479,9 @@ export default function CartoesMembrosTab() {
         dataEntrada: new Date().toISOString().split('T')[0],
         guilda: memberForm.guilda || 'OP',
         cargo: memberForm.cargo || 'Gestão de Processos',
-        status: 'ativo'
+        status: memberForm.pedidoDesligamento ? 'desligado' : 'ativo',
+        pedidoDesligamento: memberForm.pedidoDesligamento,
+        desligamentoManual: memberForm.desligamentoManual,
       };
       membrosCartoesService.saveMembro(newMembro);
       toast({ title: 'Membro cadastrado com sucesso!' });
@@ -500,7 +518,7 @@ export default function CartoesMembrosTab() {
       modeloTrabalho: '',
       statusFrente: 'ativa',
       assignedMemberIds: [],
-      timeMemberIds: []
+      timeMemberIds: [],
     });
     setIsFrenteModalOpen(true);
   };
@@ -519,32 +537,32 @@ export default function CartoesMembrosTab() {
       indicadores: papel.indicadores || '',
       modeloTrabalho: papel.modeloTrabalho || '',
       statusFrente: papel.statusFrente || 'ativa',
-      assignedMemberIds: currentAssigned.map(m => m.id),
-      timeMemberIds: currentAssigned.filter(m => m.vinculoFrente === 'time').map(m => m.id)
+      assignedMemberIds: currentAssigned.map((m) => m.id),
+      timeMemberIds: currentAssigned.filter((m) => m.vinculoFrente === 'time').map((m) => m.id),
     });
     setIsFrenteModalOpen(true);
   };
 
   const handleToggleMemberAssignment = (membroId: string) => {
-    setFrenteForm(prev => {
+    setFrenteForm((prev) => {
       const exists = prev.assignedMemberIds.includes(membroId);
       return {
         ...prev,
         assignedMemberIds: exists
-          ? prev.assignedMemberIds.filter(id => id !== membroId)
+          ? prev.assignedMemberIds.filter((id) => id !== membroId)
           : [...prev.assignedMemberIds, membroId],
-        timeMemberIds: exists ? prev.timeMemberIds.filter(id => id !== membroId) : prev.timeMemberIds
+        timeMemberIds: exists ? prev.timeMemberIds.filter((id) => id !== membroId) : prev.timeMemberIds,
       };
     });
   };
 
   const handleSetMemberVinculo = (membroId: string, vinculo: 'responsavel' | 'time') => {
-    setFrenteForm(prev => ({
+    setFrenteForm((prev) => ({
       ...prev,
       timeMemberIds:
         vinculo === 'time'
           ? Array.from(new Set([...prev.timeMemberIds, membroId]))
-          : prev.timeMemberIds.filter(id => id !== membroId)
+          : prev.timeMemberIds.filter((id) => id !== membroId),
     }));
   };
 
@@ -566,7 +584,7 @@ export default function CartoesMembrosTab() {
         temTime: frenteForm.temTime,
         indicadores: frenteForm.indicadores.trim() || undefined,
         modeloTrabalho: frenteForm.modeloTrabalho.trim() || undefined,
-        statusFrente: frenteForm.statusFrente
+        statusFrente: frenteForm.statusFrente,
       };
       const timeIds = frenteForm.temTime ? frenteForm.timeMemberIds : [];
 
@@ -580,7 +598,7 @@ export default function CartoesMembrosTab() {
         );
         toast({
           title: 'Frente atualizada com sucesso!',
-          description: `As alterações de "${papelPayload.nome}" e de seus responsáveis foram salvas.`
+          description: `As alterações de "${papelPayload.nome}" e de seus responsáveis foram salvas.`,
         });
       } else {
         frentesService.createFrente(frenteForm.guilda, papelPayload);
@@ -592,7 +610,7 @@ export default function CartoesMembrosTab() {
         );
         toast({
           title: 'Nova frente cadastrada!',
-          description: `A frente "${papelPayload.nome}" foi criada na guilda ${frenteForm.guilda}.`
+          description: `A frente "${papelPayload.nome}" foi criada na guilda ${frenteForm.guilda}.`,
         });
       }
       setIsFrenteModalOpen(false);
@@ -626,7 +644,7 @@ export default function CartoesMembrosTab() {
 
   const membersAvailableForFrenteModal = useMemo(() => {
     const q = memberSearchInModal.toLowerCase().trim();
-    return membros.filter(m => {
+    return membros.filter((m) => {
       if (!q) return true;
       return (
         m.nome.toLowerCase().includes(q) ||
@@ -638,25 +656,48 @@ export default function CartoesMembrosTab() {
   }, [membros, memberSearchInModal]);
 
   // ========================================================
-  // DESLIGAMENTO POR MOTIVO ESPECÍFICO (SEM CARTÃO)
+  // DESLIGAMENTO POR MOTIVO ESPECÍFICO OU PEDIDO DE DESLIGAMENTO
   // ========================================================
 
-  const handleOpenDesligar = (m: MembroRioJunior) => {
+  const handleOpenDesligar = (
+    m: MembroRioJunior,
+    tipo: 'pedido_desligamento' | 'desligamento_especifico' = 'pedido_desligamento'
+  ) => {
     setDesligarTarget(m);
-    setDesligarForm({ motivo: '', data: new Date().toISOString().split('T')[0] });
+    setDesligarForm({
+      tipo,
+      motivo:
+        tipo === 'pedido_desligamento'
+          ? 'Pedido de desligamento solicitado pelo próprio membro'
+          : '',
+      data: new Date().toISOString().split('T')[0],
+    });
     setIsDesligarModalOpen(true);
   };
 
   const handleConfirmDesligar = () => {
     if (!desligarTarget) return;
-    if (!desligarForm.motivo.trim()) {
+    const motivoFinal =
+      desligarForm.motivo.trim() ||
+      (desligarForm.tipo === 'pedido_desligamento'
+        ? 'Pedido de desligamento solicitado pelo próprio membro'
+        : '');
+    if (!motivoFinal) {
       toast({ title: 'Informe o motivo do desligamento!', variant: 'destructive' });
       return;
     }
-    membrosCartoesService.desligarMembro(desligarTarget.id, desligarForm.motivo, desligarForm.data);
+    membrosCartoesService.desligarMembro(
+      desligarTarget.id,
+      motivoFinal,
+      desligarForm.data,
+      desligarForm.tipo
+    );
     toast({
-      title: 'Membro desligado',
-      description: `${desligarTarget.nome} foi desligado(a) da RioJunior (motivo registrado).`
+      title:
+        desligarForm.tipo === 'pedido_desligamento'
+          ? 'Pedido de desligamento registrado'
+          : 'Membro desligado',
+      description: `${desligarTarget.nome} passa a constar como desligado(a) na base da RioJunior.`,
     });
     setIsDesligarModalOpen(false);
     setDesligarTarget(null);
@@ -692,7 +733,7 @@ export default function CartoesMembrosTab() {
               </Badge>
             </div>
             <h2 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
-              Sistema Disciplinar, Membros & Frentes RioJunior
+              Sistema Disciplinar, Membros &amp; Frentes RioJunior
             </h2>
             <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
               Gestão integrada do quadro de membros da Federação baseada na planilha oficial{' '}
@@ -717,7 +758,6 @@ export default function CartoesMembrosTab() {
               <Plus size={14} />
               Novo Membro
             </Button>
-            {/* Botão de reset removido para preservar dados dos membros */}
           </div>
         </div>
 
@@ -752,7 +792,11 @@ export default function CartoesMembrosTab() {
           <div className="p-3 rounded-xl bg-background/60 border border-border/50">
             <span className="text-[10px] text-muted-foreground uppercase font-bold block">Desligamentos</span>
             <span className="text-xl font-black text-destructive">{summaryStats.desligados}</span>
-            <span className="text-[10px] text-muted-foreground block">2 cartões vermelhos</span>
+            <span className="text-[10px] text-muted-foreground block">
+              {summaryStats.pedidosDesligamento > 0
+                ? `${summaryStats.pedidosDesligamento} por pedido`
+                : 'Cartões ou pedido'}
+            </span>
           </div>
 
           <div className="p-3 rounded-xl bg-background/60 border border-border/50">
@@ -779,23 +823,23 @@ export default function CartoesMembrosTab() {
             </TabsTrigger>
             <TabsTrigger value="frentes" className="gap-2 text-xs">
               <FolderTree size={14} />
-              <span>Aba de Frentes & Papéis</span>
+              <span>Frentes &amp; Papéis 2027</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
         {/* --------------------------------------------------------
-            ABA 1: LISTAGEM DE MEMBROS DA FEDERAÇÃO
+            ABA 1: TABELA DE MEMBROS & STATUS DISCIPLINAR
             -------------------------------------------------------- */}
         <TabsContent value="membros" className="space-y-4">
-          {/* Barra de Filtros */}
-          <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-card p-3 rounded-xl border border-border">
+          {/* Barra de Busca e Filtros */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-card p-3 rounded-xl border border-border">
             <div className="relative w-full md:w-80">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Buscar membro, e-mail ou cargo..."
+                placeholder="Buscar membro por nome, email ou cargo..."
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-8 text-xs"
               />
             </div>
@@ -807,8 +851,10 @@ export default function CartoesMembrosTab() {
                   <SelectValue placeholder="Todas Guildas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">Todas Guildas</SelectItem>
-                  {Object.keys(GUILDAS_INFO).map(g => (
+                  <SelectItem value="all" className="text-xs">
+                    Todas Guildas
+                  </SelectItem>
+                  {Object.keys(GUILDAS_INFO).map((g) => (
                     <SelectItem key={g} value={g} className="text-xs">
                       {g} - {GUILDAS_INFO[g as GuildaKey].nome}
                     </SelectItem>
@@ -818,15 +864,28 @@ export default function CartoesMembrosTab() {
 
               {/* Filtro por Status Disciplinar */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-8 text-xs w-36">
+                <SelectTrigger className="h-8 text-xs w-44">
                   <SelectValue placeholder="Status Disciplinar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">Todos os Status</SelectItem>
-                  <SelectItem value="ativo" className="text-xs">Conforme (Ativo)</SelectItem>
-                  <SelectItem value="atencao" className="text-xs">Atenção (1 Amarelo)</SelectItem>
-                  <SelectItem value="critico" className="text-xs">Crítico (1 Vermelho)</SelectItem>
-                  <SelectItem value="desligado" className="text-xs">Desligado (2 Vermelhos)</SelectItem>
+                  <SelectItem value="all" className="text-xs">
+                    Todos os Status
+                  </SelectItem>
+                  <SelectItem value="ativo" className="text-xs">
+                    Conforme (Ativo)
+                  </SelectItem>
+                  <SelectItem value="atencao" className="text-xs">
+                    Atenção (1 Amarelo)
+                  </SelectItem>
+                  <SelectItem value="critico" className="text-xs">
+                    Crítico (1 Vermelho)
+                  </SelectItem>
+                  <SelectItem value="desligado" className="text-xs">
+                    Desligado (Todos)
+                  </SelectItem>
+                  <SelectItem value="pedido_desligamento" className="text-xs">
+                    Pedido de Desligamento
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -838,7 +897,7 @@ export default function CartoesMembrosTab() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-muted/40 text-muted-foreground uppercase text-[10px] font-bold tracking-wider border-b border-border">
                   <tr>
-                    <th className="py-3 px-4">Nome & Contato</th>
+                    <th className="py-3 px-4">Nome &amp; Contato</th>
                     <th className="py-3 px-4">Guilda</th>
                     <th className="py-3 px-4">Cargo / Frente Mapeada</th>
                     <th className="py-3 px-4 text-center">Cartões</th>
@@ -854,12 +913,14 @@ export default function CartoesMembrosTab() {
                       </td>
                     </tr>
                   ) : (
-                    filteredMembros.map(m => {
-                      const mCards = cartoes.filter(c => c.membroId === m.id);
+                    filteredMembros.map((m) => {
+                      const mCards = cartoes.filter((c) => c.membroId === m.id);
                       const mStats = membrosCartoesService.calculateCardStats(mCards);
                       const isDiretoria =
                         m.cargo.toLowerCase().includes('diretor') ||
                         m.cargo.toLowerCase().includes('presidente');
+                      const isPedidoDeslig =
+                        !!m.pedidoDesligamento || m.desligamentoManual?.tipo === 'pedido_desligamento';
 
                       return (
                         <tr key={m.id} className="hover:bg-muted/20 transition-colors">
@@ -912,7 +973,11 @@ export default function CartoesMembrosTab() {
                                 }`}
                                 title={`${mStats.amarelosCount} Cartão(ões) Amarelo(s)`}
                               >
-                                <div className={`w-2.5 h-3.5 rounded-xs ${mStats.amarelosCount > 0 ? 'bg-amber-400' : 'bg-muted-foreground/30'}`} />
+                                <div
+                                  className={`w-2.5 h-3.5 rounded-xs ${
+                                    mStats.amarelosCount > 0 ? 'bg-amber-400' : 'bg-muted-foreground/30'
+                                  }`}
+                                />
                                 <span>{mStats.amarelosCount}</span>
                               </div>
 
@@ -925,7 +990,11 @@ export default function CartoesMembrosTab() {
                                 }`}
                                 title={`${mStats.totalVermelhos} Cartão(ões) Vermelho(s) (${mStats.vermelhosDiretosCount} diretos + ${mStats.vermelhosConvertidos} por conversão)`}
                               >
-                                <div className={`w-2.5 h-3.5 rounded-xs ${mStats.totalVermelhos > 0 ? 'bg-rose-500' : 'bg-muted-foreground/30'}`} />
+                                <div
+                                  className={`w-2.5 h-3.5 rounded-xs ${
+                                    mStats.totalVermelhos > 0 ? 'bg-rose-500' : 'bg-muted-foreground/30'
+                                  }`}
+                                />
                                 <span>{mStats.totalVermelhos}</span>
                               </div>
                             </div>
@@ -933,7 +1002,19 @@ export default function CartoesMembrosTab() {
 
                           {/* Status */}
                           <td className="py-3 px-4 text-center">
-                            {m.desligamentoManual ? (
+                            {isPedidoDeslig ? (
+                              <Badge
+                                variant="destructive"
+                                className="text-[10px] py-0 px-2"
+                                title={
+                                  m.desligamentoManual
+                                    ? `Pedido de Desligamento (${m.desligamentoManual.data}): ${m.desligamentoManual.motivo}`
+                                    : 'Pedido de Desligamento solicitado pelo membro'
+                                }
+                              >
+                                Desligado (Pedido)
+                              </Badge>
+                            ) : m.desligamentoManual ? (
                               <Badge
                                 variant="destructive"
                                 className="text-[10px] py-0 px-2"
@@ -941,7 +1022,7 @@ export default function CartoesMembrosTab() {
                               >
                                 Desligado
                               </Badge>
-                            ) : mStats.isDesligamento ? (
+                            ) : m.status === 'desligado' || mStats.isDesligamento ? (
                               <Badge variant="destructive" className="text-[10px] py-0 px-2 animate-pulse">
                                 Desligamento (2V)
                               </Badge>
@@ -986,50 +1067,30 @@ export default function CartoesMembrosTab() {
                                 variant="ghost"
                                 className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                                 onClick={() => handleOpenEditMember(m)}
-                                title="Editar Cadastro / Frente"
+                                title="Editar Cadastro / Frente / Pedido de Desligamento"
                               >
                                 <Pencil size={13} />
                               </Button>
-                              {m.desligamentoManual ? (
-
+                              {m.desligamentoManual || m.pedidoDesligamento ? (
                                 <Button
-
                                   size="sm"
-
                                   variant="ghost"
-
                                   className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
-
                                   onClick={() => handleReintegrar(m)}
-
                                   title="Reintegrar membro"
-
                                 >
-
                                   <UserCheck size={13} />
-
                                 </Button>
-
                               ) : (
-
                                 <Button
-
                                   size="sm"
-
                                   variant="ghost"
-
                                   className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-
-                                  onClick={() => handleOpenDesligar(m)}
-
-                                  title="Desligar membro (motivo específico)"
-
+                                  onClick={() => handleOpenDesligar(m, 'pedido_desligamento')}
+                                  title="Registrar Pedido de Desligamento ou Desligar Membro"
                                 >
-
                                   <UserX size={13} />
-
                                 </Button>
-
                               )}
                               <Button
                                 size="sm"
@@ -1095,17 +1156,17 @@ export default function CartoesMembrosTab() {
                       </td>
                     </tr>
                   ) : (
-                    cartoes.map(c => {
-                      const m = membros.find(mem => mem.id === c.membroId);
+                    cartoes.map((c) => {
+                      const m = membros.find((mem) => mem.id === c.membroId);
 
                       return (
                         <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="py-3 px-4 font-mono text-[11px] text-muted-foreground">
-                            {c.data}
-                          </td>
+                          <td className="py-3 px-4 font-mono text-[11px] text-muted-foreground">{c.data}</td>
                           <td className="py-3 px-4">
                             <span className="font-semibold text-foreground block">{c.membroNome}</span>
-                            <span className="text-[11px] text-muted-foreground">{m?.cargo || m?.guilda || c.membroEmail}</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {m?.cargo || m?.guilda || c.membroEmail}
+                            </span>
                           </td>
                           <td className="py-3 px-4 text-center">
                             {c.tipo === 'vermelho' ? (
@@ -1131,9 +1192,7 @@ export default function CartoesMembrosTab() {
                               </p>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-muted-foreground">
-                            {c.aplicadoPor}
-                          </td>
+                          <td className="py-3 px-4 text-muted-foreground">{c.aplicadoPor}</td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button
@@ -1176,7 +1235,7 @@ export default function CartoesMembrosTab() {
               <div>
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <FolderTree size={16} className="text-primary" />
-                  Mapeamento Oficial de Papéis & Frentes RioJunior 2027
+                  Mapeamento Oficial de Papéis &amp; Frentes RioJunior 2027
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Catálogo das frentes de atuação de cada Guilda. Administradores podem editar nome, descrição, responsáveis e demais dados.
@@ -1189,7 +1248,7 @@ export default function CartoesMembrosTab() {
                   <Input
                     placeholder="Filtrar frente por nome ou objetivo..."
                     value={frentesSearch}
-                    onChange={e => setFrentesSearch(e.target.value)}
+                    onChange={(e) => setFrentesSearch(e.target.value)}
                     className="pl-8 h-8 text-xs"
                   />
                 </div>
@@ -1209,7 +1268,7 @@ export default function CartoesMembrosTab() {
               >
                 Todas as Guildas ({Object.keys(GUILDAS_INFO).length})
               </Button>
-              {Object.keys(GUILDAS_INFO).map(g => {
+              {Object.keys(GUILDAS_INFO).map((g) => {
                 const info = GUILDAS_INFO[g as GuildaKey];
                 const isSelected = selectedFrenteGuilda === g;
                 return (
@@ -1232,8 +1291,8 @@ export default function CartoesMembrosTab() {
             {frentesList.map(({ guilda, guildaInfo, papel, assignedMembers }) => {
               const isDir = !!papel.isDiretoria;
               const temTime = papelTemTime(papel);
-              const coordenadores = assignedMembers.filter(m => m.vinculoFrente !== 'time');
-              const timeMembers = assignedMembers.filter(m => m.vinculoFrente === 'time');
+              const coordenadores = assignedMembers.filter((m) => m.vinculoFrente !== 'time');
+              const timeMembers = assignedMembers.filter((m) => m.vinculoFrente === 'time');
 
               const renderMemberRow = (m: MembroRioJunior) => (
                 <div
@@ -1256,7 +1315,7 @@ export default function CartoesMembrosTab() {
                       size="icon"
                       variant="ghost"
                       className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleQuickRemoveMemberFromFrente(m, papel.nome);
                       }}
@@ -1397,7 +1456,9 @@ export default function CartoesMembrosTab() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ShieldAlert size={20} className={applyForm.tipo === 'vermelho' ? 'text-rose-500' : 'text-amber-500'} />
-              {editingCardId ? 'Editar Detalhes do Cartão Disciplinar' : 'Aplicação de Cartão Disciplinar (Guilda de OP)'}
+              {editingCardId
+                ? 'Editar Detalhes do Cartão Disciplinar'
+                : 'Aplicação de Cartão Disciplinar (Guilda de OP)'}
             </DialogTitle>
             <p className="text-xs text-muted-foreground">
               {editingCardId
@@ -1412,13 +1473,13 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs font-semibold">Membro Penalizado</Label>
               <Select
                 value={applyForm.membroId}
-                onValueChange={val => setApplyForm({ ...applyForm, membroId: val })}
+                onValueChange={(val) => setApplyForm({ ...applyForm, membroId: val })}
               >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Selecione o membro" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {membros.map(m => (
+                  {membros.map((m) => (
                     <SelectItem key={m.id} value={m.id} className="text-xs">
                       {m.nome} — {m.cargo} ({m.guilda})
                     </SelectItem>
@@ -1474,19 +1535,33 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs font-semibold">Categoria da Ocorrência</Label>
               <Select
                 value={applyForm.categoria}
-                onValueChange={val => setApplyForm({ ...applyForm, categoria: val })}
+                onValueChange={(val) => setApplyForm({ ...applyForm, categoria: val })}
               >
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Falta em Reunião Geral (RV)" className="text-xs">Falta em Reunião Geral (RV)</SelectItem>
-                  <SelectItem value="Descumprimento de SLA / Entrega" className="text-xs">Descumprimento de SLA / Entrega</SelectItem>
-                  <SelectItem value="Comportamental / Clima" className="text-xs">Comportamental / Clima Organizacional</SelectItem>
-                  <SelectItem value="Violação Estatutária" className="text-xs">Violação Estatutária ou Regimental</SelectItem>
-                  <SelectItem value="Quebra de Confidencialidade" className="text-xs">Quebra de Confidencialidade</SelectItem>
-                  <SelectItem value="Ausência em Evento Obrigatório" className="text-xs">Ausência em Evento Obrigatório</SelectItem>
-                  <SelectItem value="Outros" className="text-xs">Outros Motivos Circunstanciados</SelectItem>
+                  <SelectItem value="Falta em Reunião Geral (RV)" className="text-xs">
+                    Falta em Reunião Geral (RV)
+                  </SelectItem>
+                  <SelectItem value="Descumprimento de SLA / Entrega" className="text-xs">
+                    Descumprimento de SLA / Entrega
+                  </SelectItem>
+                  <SelectItem value="Comportamental / Clima" className="text-xs">
+                    Comportamental / Clima Organizacional
+                  </SelectItem>
+                  <SelectItem value="Violação Estatutária" className="text-xs">
+                    Violação Estatutária ou Regimental
+                  </SelectItem>
+                  <SelectItem value="Quebra de Confidencialidade" className="text-xs">
+                    Quebra de Confidencialidade
+                  </SelectItem>
+                  <SelectItem value="Ausência em Evento Obrigatório" className="text-xs">
+                    Ausência em Evento Obrigatório
+                  </SelectItem>
+                  <SelectItem value="Outros" className="text-xs">
+                    Outros Motivos Circunstanciados
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1497,7 +1572,7 @@ export default function CartoesMembrosTab() {
               <Input
                 placeholder="Descreva o que motivou a aplicação da advertência..."
                 value={applyForm.motivo}
-                onChange={e => setApplyForm({ ...applyForm, motivo: e.target.value })}
+                onChange={(e) => setApplyForm({ ...applyForm, motivo: e.target.value })}
                 className="h-8 text-xs"
               />
             </div>
@@ -1508,7 +1583,7 @@ export default function CartoesMembrosTab() {
               <Input
                 type="date"
                 value={applyForm.data}
-                onChange={e => setApplyForm({ ...applyForm, data: e.target.value })}
+                onChange={(e) => setApplyForm({ ...applyForm, data: e.target.value })}
                 className="h-8 text-xs"
               />
             </div>
@@ -1519,18 +1594,20 @@ export default function CartoesMembrosTab() {
               <Input
                 placeholder="Alinhamentos adicionais, prazo de recurso ou combinados..."
                 value={applyForm.observacoes}
-                onChange={e => setApplyForm({ ...applyForm, observacoes: e.target.value })}
+                onChange={(e) => setApplyForm({ ...applyForm, observacoes: e.target.value })}
                 className="h-8 text-xs"
               />
             </div>
 
             {/* Prévia do Impacto Regulamentar */}
             {impactPreview && (
-              <div className={`p-3 rounded-xl border text-xs leading-relaxed ${
-                impactPreview.willDismiss
-                  ? 'border-rose-400 bg-rose-500/10 text-rose-800 dark:text-rose-300'
-                  : 'border-amber-300 bg-amber-500/10 text-amber-900 dark:text-amber-200'
-              }`}>
+              <div
+                className={`p-3 rounded-xl border text-xs leading-relaxed ${
+                  impactPreview.willDismiss
+                    ? 'border-rose-400 bg-rose-500/10 text-rose-800 dark:text-rose-300'
+                    : 'border-amber-300 bg-amber-500/10 text-amber-900 dark:text-amber-200'
+                }`}
+              >
                 <div className="font-bold flex items-center gap-1.5 mb-1">
                   <AlertTriangle size={14} />
                   Impacto Regulamentar Previsto:
@@ -1547,7 +1624,11 @@ export default function CartoesMembrosTab() {
             <Button
               size="sm"
               onClick={handleApplyCardSubmit}
-              className={applyForm.tipo === 'vermelho' ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold'}
+              className={
+                applyForm.tipo === 'vermelho'
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold'
+              }
             >
               {editingCardId ? 'Salvar Alterações no Cartão' : 'Confirmar Aplicação de Advertência'}
             </Button>
@@ -1575,7 +1656,7 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs">Nome Completo</Label>
               <Input
                 value={memberForm.nome || ''}
-                onChange={e => setMemberForm({ ...memberForm, nome: e.target.value })}
+                onChange={(e) => setMemberForm({ ...memberForm, nome: e.target.value })}
                 placeholder="Nome do membro"
                 className="h-8 text-xs"
               />
@@ -1585,7 +1666,7 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs">E-mail Institucional (@riojunior.com.br)</Label>
               <Input
                 value={memberForm.email || ''}
-                onChange={e => setMemberForm({ ...memberForm, email: e.target.value })}
+                onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
                 placeholder="nome@riojunior.com.br"
                 className="h-8 text-xs"
               />
@@ -1602,7 +1683,7 @@ export default function CartoesMembrosTab() {
                     setMemberForm({
                       ...memberForm,
                       guilda: val,
-                      cargo: papeis[0]?.nome || memberForm.cargo
+                      cargo: papeis[0]?.nome || memberForm.cargo,
                     });
                   }}
                 >
@@ -1610,7 +1691,7 @@ export default function CartoesMembrosTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(GUILDAS_INFO).map(g => (
+                    {Object.keys(GUILDAS_INFO).map((g) => (
                       <SelectItem key={g} value={g} className="text-xs">
                         {g} - {GUILDAS_INFO[g as GuildaKey].nome}
                       </SelectItem>
@@ -1624,13 +1705,13 @@ export default function CartoesMembrosTab() {
                 <Label className="text-xs">Cargo / Frente (Mapeamento 2027)</Label>
                 <Select
                   value={memberForm.cargo}
-                  onValueChange={val => setMemberForm({ ...memberForm, cargo: val })}
+                  onValueChange={(val) => setMemberForm({ ...memberForm, cargo: val })}
                 >
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {getPapeisByGuilda(memberForm.guilda || 'OP').map(p => (
+                    {getPapeisByGuilda(memberForm.guilda || 'OP').map((p) => (
                       <SelectItem key={p.nome} value={p.nome} className="text-xs">
                         {p.isDiretoria ? `👑 ${p.nome} (Diretoria)` : p.nome}
                       </SelectItem>
@@ -1645,7 +1726,7 @@ export default function CartoesMembrosTab() {
                 <Label className="text-xs">CPF</Label>
                 <Input
                   value={memberForm.cpf || ''}
-                  onChange={e => setMemberForm({ ...memberForm, cpf: e.target.value })}
+                  onChange={(e) => setMemberForm({ ...memberForm, cpf: e.target.value })}
                   placeholder="000.000.000-00"
                   className="h-8 text-xs"
                 />
@@ -1656,13 +1737,13 @@ export default function CartoesMembrosTab() {
                 <div className="flex gap-2">
                   <Input
                     value={memberForm.identidade || ''}
-                    onChange={e => setMemberForm({ ...memberForm, identidade: e.target.value })}
+                    onChange={(e) => setMemberForm({ ...memberForm, identidade: e.target.value })}
                     placeholder="Número RG"
                     className="h-8 text-xs flex-1"
                   />
                   <Input
                     value={memberForm.orgaoExpedidor || ''}
-                    onChange={e => setMemberForm({ ...memberForm, orgaoExpedidor: e.target.value })}
+                    onChange={(e) => setMemberForm({ ...memberForm, orgaoExpedidor: e.target.value })}
                     placeholder="Órgão"
                     className="h-8 text-xs w-28"
                   />
@@ -1674,10 +1755,55 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs">Endereço Residencial</Label>
               <Input
                 value={memberForm.endereco || ''}
-                onChange={e => setMemberForm({ ...memberForm, endereco: e.target.value })}
+                onChange={(e) => setMemberForm({ ...memberForm, endereco: e.target.value })}
                 placeholder="Rua, número, bairro, cidade - RJ, CEP"
                 className="h-8 text-xs"
               />
+            </div>
+
+            {/* Opção de Pedido de Desligamento direto no cadastro do membro */}
+            <div className="pt-2 border-t border-border/60">
+              <label className="flex items-start gap-2.5 p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/5 cursor-pointer hover:bg-rose-500/10 transition-colors">
+                <Checkbox
+                  checked={
+                    !!memberForm.pedidoDesligamento ||
+                    memberForm.desligamentoManual?.tipo === 'pedido_desligamento'
+                  }
+                  onCheckedChange={(checked) => {
+                    const isChecked = !!checked;
+                    if (isChecked) {
+                      setMemberForm({
+                        ...memberForm,
+                        status: 'desligado',
+                        pedidoDesligamento: true,
+                        desligamentoManual: {
+                          motivo:
+                            memberForm.desligamentoManual?.motivo ||
+                            'Pedido de desligamento solicitado pelo próprio membro',
+                          data:
+                            memberForm.desligamentoManual?.data ||
+                            new Date().toISOString().split('T')[0],
+                          tipo: 'pedido_desligamento',
+                        },
+                      });
+                    } else {
+                      const { desligamentoManual, pedidoDesligamento, ...rest } = memberForm;
+                      setMemberForm({
+                        ...rest,
+                        status: 'ativo',
+                      });
+                    }
+                  }}
+                />
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-rose-700 dark:text-rose-300 block">
+                    Fez Pedido de Desligamento (Constar como Desligado)
+                  </span>
+                  <span className="text-[11px] text-muted-foreground block">
+                    Marque esta opção caso a pessoa não tenha sido desligada por cartões, mas tenha solicitado seu desligamento voluntário.
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
 
@@ -1719,7 +1845,7 @@ export default function CartoesMembrosTab() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(GUILDAS_INFO).map(g => (
+                    {Object.keys(GUILDAS_INFO).map((g) => (
                       <SelectItem key={g} value={g}>
                         {g} • {GUILDAS_INFO[g as GuildaKey].nome}
                       </SelectItem>
@@ -1750,7 +1876,7 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs">Nome da Frente / Papel</Label>
               <Input
                 value={frenteForm.nome}
-                onChange={e => setFrenteForm({ ...frenteForm, nome: e.target.value })}
+                onChange={(e) => setFrenteForm({ ...frenteForm, nome: e.target.value })}
                 placeholder="Ex: Coordenadoria Geral do EFEJ"
                 className="h-8 text-xs"
               />
@@ -1760,7 +1886,7 @@ export default function CartoesMembrosTab() {
               <Label className="text-xs">Descrição / Objetivo</Label>
               <Textarea
                 value={frenteForm.objetivo}
-                onChange={e => setFrenteForm({ ...frenteForm, objetivo: e.target.value })}
+                onChange={(e) => setFrenteForm({ ...frenteForm, objetivo: e.target.value })}
                 rows={4}
                 className="text-xs resize-none"
               />
@@ -1771,7 +1897,7 @@ export default function CartoesMembrosTab() {
                 <Label className="text-xs">Indicadores / KPIs</Label>
                 <Input
                   value={frenteForm.indicadores}
-                  onChange={e => setFrenteForm({ ...frenteForm, indicadores: e.target.value })}
+                  onChange={(e) => setFrenteForm({ ...frenteForm, indicadores: e.target.value })}
                   className="h-8 text-xs"
                 />
               </div>
@@ -1779,7 +1905,7 @@ export default function CartoesMembrosTab() {
                 <Label className="text-xs">Modelo de Trabalho / Rotina</Label>
                 <Input
                   value={frenteForm.modeloTrabalho}
-                  onChange={e => setFrenteForm({ ...frenteForm, modeloTrabalho: e.target.value })}
+                  onChange={(e) => setFrenteForm({ ...frenteForm, modeloTrabalho: e.target.value })}
                   className="h-8 text-xs"
                 />
               </div>
@@ -1789,14 +1915,14 @@ export default function CartoesMembrosTab() {
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <Checkbox
                   checked={frenteForm.isDiretoria}
-                  onCheckedChange={c => setFrenteForm({ ...frenteForm, isDiretoria: !!c })}
+                  onCheckedChange={(c) => setFrenteForm({ ...frenteForm, isDiretoria: !!c })}
                 />
                 <Crown size={13} className="text-amber-500" /> Cargo de Diretoria da guilda
               </label>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <Checkbox
                   checked={frenteForm.temTime}
-                  onCheckedChange={c => setFrenteForm({ ...frenteForm, temTime: !!c })}
+                  onCheckedChange={(c) => setFrenteForm({ ...frenteForm, temTime: !!c })}
                 />
                 <Users size={13} className="text-primary" /> Possui time de assessores (ex.: Time EFEJ)
               </label>
@@ -1820,7 +1946,7 @@ export default function CartoesMembrosTab() {
                   <Input
                     placeholder="Filtrar membros..."
                     value={memberSearchInModal}
-                    onChange={e => setMemberSearchInModal(e.target.value)}
+                    onChange={(e) => setMemberSearchInModal(e.target.value)}
                     className="pl-7 h-7 text-[11px]"
                   />
                 </div>
@@ -1830,7 +1956,7 @@ export default function CartoesMembrosTab() {
                 {membersAvailableForFrenteModal.length === 0 ? (
                   <p className="text-center py-4 text-muted-foreground text-xs">Nenhum membro encontrado.</p>
                 ) : (
-                  membersAvailableForFrenteModal.map(m => {
+                  membersAvailableForFrenteModal.map((m) => {
                     const isSelected = frenteForm.assignedMemberIds.includes(m.id);
                     const isTime = frenteForm.timeMemberIds.includes(m.id);
                     return (
@@ -1847,7 +1973,7 @@ export default function CartoesMembrosTab() {
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => handleToggleMemberAssignment(m.id)}
-                            onClick={e => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
                           />
                           <div className="truncate">
                             <span className="text-foreground font-medium">{m.nome}</span>
@@ -1858,7 +1984,7 @@ export default function CartoesMembrosTab() {
                         </div>
 
                         {isSelected && frenteForm.temTime && (
-                          <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                             <Button
                               type="button"
                               size="sm"
@@ -1899,37 +2025,93 @@ export default function CartoesMembrosTab() {
       </Dialog>
 
       {/* ========================================================
-          MODAL: DESLIGAMENTO POR MOTIVO ESPECÍFICO (SEM CARTÃO)
+          MODAL: PEDIDO DE DESLIGAMENTO OU DESLIGAMENTO ESPECÍFICO
           ======================================================== */}
       <Dialog open={isDesligarModalOpen} onOpenChange={setIsDesligarModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserX size={18} className="text-destructive" />
-              Desligar Membro
+              Registrar Pedido de Desligamento / Desligar
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Registre um desligamento ocorrido por motivo específico, sem relação com aplicação de cartões.
+              Marque se o membro fez um pedido de desligamento voluntário ou desligamento administrativo para que conste como desligado.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3 py-2">
             <p className="text-sm font-semibold text-foreground">{desligarTarget?.nome}</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Tipo de Desligamento</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDesligarForm({
+                      ...desligarForm,
+                      tipo: 'pedido_desligamento',
+                      motivo:
+                        desligarForm.motivo ||
+                        'Pedido de desligamento solicitado pelo próprio membro',
+                    })
+                  }
+                  className={`p-2.5 rounded-xl border text-left transition-all text-xs ${
+                    desligarForm.tipo === 'pedido_desligamento'
+                      ? 'border-rose-500 bg-rose-500/10 font-bold text-foreground ring-2 ring-rose-500/20'
+                      : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span className="block font-bold">Pedido de Desligamento</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    Solicitado voluntariamente pelo membro (constar como desligado)
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDesligarForm({
+                      ...desligarForm,
+                      tipo: 'desligamento_especifico',
+                      motivo:
+                        desligarForm.motivo ===
+                        'Pedido de desligamento solicitado pelo próprio membro'
+                          ? ''
+                          : desligarForm.motivo,
+                    })
+                  }
+                  className={`p-2.5 rounded-xl border text-left transition-all text-xs ${
+                    desligarForm.tipo === 'desligamento_especifico'
+                      ? 'border-rose-500 bg-rose-500/10 font-bold text-foreground ring-2 ring-rose-500/20'
+                      : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span className="block font-bold">Desligamento Administrativo</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    Desligamento por decisão da Diretoria / motivo específico
+                  </span>
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-1">
               <Label className="text-xs">Data do desligamento</Label>
               <Input
                 type="date"
                 value={desligarForm.data}
-                onChange={e => setDesligarForm({ ...desligarForm, data: e.target.value })}
+                onChange={(e) => setDesligarForm({ ...desligarForm, data: e.target.value })}
                 className="h-8 text-xs"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Motivo do desligamento</Label>
+              <Label className="text-xs">
+                {desligarForm.tipo === 'pedido_desligamento'
+                  ? 'Observação / Motivo do pedido (opcional)'
+                  : 'Motivo do desligamento'}
+              </Label>
               <Textarea
                 value={desligarForm.motivo}
-                onChange={e => setDesligarForm({ ...desligarForm, motivo: e.target.value })}
-                placeholder="Ex: Pedido do próprio membro, mudança de cidade, decisão da Diretoria..."
+                onChange={(e) => setDesligarForm({ ...desligarForm, motivo: e.target.value })}
+                placeholder="Ex: Pedido do próprio membro, mudança de rotina acadêmica, decisão da Diretoria..."
                 rows={3}
                 className="text-xs resize-none"
               />
@@ -1941,7 +2123,9 @@ export default function CartoesMembrosTab() {
               Cancelar
             </Button>
             <Button variant="destructive" size="sm" onClick={handleConfirmDesligar}>
-              Confirmar Desligamento
+              {desligarForm.tipo === 'pedido_desligamento'
+                ? 'Confirmar Pedido de Desligamento'
+                : 'Confirmar Desligamento'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,612 +1,371 @@
-// src/components/presidency/coej/COEJSection.tsx
-import React, { useState, useMemo } from 'react';
-import { 
-  Building2, 
-  BarChart3, 
-  Award, 
-  Database, 
-  Printer, 
-  Calendar, 
-  RefreshCw, 
-  Info, 
-  Sparkles,
-  Layers,
-  ChevronRight,
-  ShieldCheck,
-  UserCheck,
-  Users2,
-  GraduationCap,
-  Search,
-  CheckCircle2,
-  FileText,
-  User
-} from 'lucide-react';
-
-import { 
-  getDatabase, 
-  saveDatabase, 
-  resetDatabase, 
-  getDadosConsolidadosEJ 
-} from './database';
-
-import LowMaturityDashboard from './LowMaturityDashboard';
-import HighMaturityDashboard from './HighMaturityDashboard';
-import IESERecognitionTab from './IESERecognitionTab';
-import TransparencyReportA4 from './TransparencyReportA4';
-import DataFeedTab from './DataFeedTab';
-import ProfessorProfileModal from './ProfessorProfileModal';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getDatabase, saveDatabase, resetDatabase, getDadosConsolidadosEJ } from './database.js';
+import { Building2, GraduationCap, ShieldCheck, RefreshCw, Landmark, Lock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import OverviewDashboard from './views/OverviewDashboard.jsx';
+import MercadoFinanceiroView from './views/MercadoFinanceiroView.jsx';
+import ExtensaoIESView from './views/ExtensaoIESView.jsx';
+import JuridicoInternoView from './views/JuridicoInternoView.jsx';
+import RelatorioFormModal from './views/RelatorioFormModal.jsx';
+import OrientadorPainelModal from './views/OrientadorPainelModal.jsx';
+import RelatorioInstitucionalPrintModal from './views/RelatorioInstitucionalPrintModal.jsx';
+import IESEPainelView from './views/IESEPainelView.jsx';
+import CadastroProfessorModal from './views/CadastroProfessorModal.jsx';
+import CadastroEJModal from './views/CadastroEJModal.jsx';
 import './coej.css';
 
 interface COEJSectionProps {
-  selectedYear?: number;
+  /** Quando verdadeiro, restringe o painel COEJ às EJs vinculadas ao Professor ou Membro/Diretor de EJ */
+  restrictedMode?: 'orientador' | 'membro_ej' | null;
+  allowedEjIds?: string[];
 }
 
-export default function COEJSection({ selectedYear = 2026 }: COEJSectionProps) {
+export default function COEJSection({ restrictedMode = null, allowedEjIds = [] }: COEJSectionProps) {
+  const { isAdmin, effectiveUserType, allowedProfessorEjIds, accountLink } = useAuth();
   const [db, setDb] = useState(() => getDatabase());
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'iese' | 'datafeed' | 'report'>('dashboard');
-  const [currentPeriod, setCurrentPeriod] = useState<string>('Trimestral (Q3)');
-  const [selectedEJId, setSelectedEJId] = useState<string>('ej_002'); // Padrão: Nexus Consultoria Jr (UFF)
-  const [userRole, setUserRole] = useState<'orientador' | 'membro_ej'>('orientador');
-  const [searchEJ, setSearchEJ] = useState<string>('');
-  
-  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
-  const [showPrintModal, setShowPrintModal] = useState<boolean>(false);
 
-  // Lista consolidada de EJs
+  const effectiveRestriction: 'orientador' | 'membro_ej' | null = useMemo(() => {
+    if (restrictedMode) return restrictedMode;
+    if (!isAdmin) {
+      if (effectiveUserType === 'professor_orientador') return 'orientador';
+      if (effectiveUserType === 'diretor_ej' || effectiveUserType === 'membro_ej') return 'membro_ej';
+    }
+    return null;
+  }, [restrictedMode, isAdmin, effectiveUserType]);
+
+  const effectiveAllowedEjIds = useMemo(() => {
+    const ids = allowedEjIds.length > 0 ? allowedEjIds : allowedProfessorEjIds;
+    return ids;
+  }, [allowedEjIds, allowedProfessorEjIds]);
+
+  const [userRole, setUserRole] = useState<string>(() => {
+    if (effectiveRestriction === 'orientador') return 'orientador';
+    if (effectiveRestriction === 'membro_ej') return 'membro_ej';
+    return 'orientador';
+  });
+
+  // Lista de EJs visíveis (restrita às EJs do professor/membro quando aplicável)
   const listaEJs = useMemo(() => {
-    return db.Empresas_Juniores || [];
+    const todas = db.Empresas_Juniores || [];
+    if (effectiveRestriction && effectiveAllowedEjIds.length > 0) {
+      const filtradas = todas.filter((ej: any) => effectiveAllowedEjIds.includes(ej.id_ej));
+      if (filtradas.length > 0) return filtradas;
+    }
+    // Se for professor orientador e tiver IES vinculada no cadastro, filtra pelas EJs daquela IES/professor
+    if (effectiveRestriction === 'orientador' && accountLink.ies) {
+      const iesNorm = accountLink.ies.toUpperCase();
+      const porIes = todas.filter((ej: any) => (ej.ies || '').toUpperCase().includes(iesNorm));
+      if (porIes.length > 0) return porIes;
+    }
+    return todas;
+  }, [db.Empresas_Juniores, effectiveRestriction, effectiveAllowedEjIds, accountLink.ies]);
+
+  const [selectedEjId, setSelectedEjId] = useState<string>(() => {
+    if (effectiveAllowedEjIds.length > 0) return effectiveAllowedEjIds[0];
+    return 'ej_002';
+  });
+
+  useEffect(() => {
+    if (effectiveRestriction === 'orientador') {
+      setUserRole('orientador');
+    } else if (effectiveRestriction === 'membro_ej') {
+      setUserRole('membro_ej');
+    }
+  }, [effectiveRestriction]);
+
+  useEffect(() => {
+    if (listaEJs.length > 0 && !listaEJs.some((e: any) => e.id_ej === selectedEjId)) {
+      setSelectedEjId(listaEJs[0].id_ej);
+    }
+  }, [listaEJs, selectedEjId]);
+
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [showOrientadorModal, setShowOrientadorModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showProfModal, setShowProfModal] = useState(false);
+  const [showEJModal, setShowEJModal] = useState(false);
+
+  useEffect(() => {
+    saveDatabase(db);
   }, [db]);
 
-  // EJ selecionada
-  const currentEJ = useMemo(() => {
-    return listaEJs.find((e: any) => e.id_ej === selectedEJId) || listaEJs[0] || {
-      id_ej: 'ej_002',
-      nome: 'Nexus Consultoria Júnior',
-      cluster: 'Cluster 2',
-      tipo_maturidade: 'Baixa',
-      ies: 'Universidade Federal Fluminense (UFF)',
-      regiao: 'Centro Norte',
-      membros_ativos: 18
-    };
-  }, [listaEJs, selectedEJId]);
+  const dadosAtuais = getDadosConsolidadosEJ(db, selectedEjId, '2025_Q3');
 
-  // Dados consolidados da EJ selecionada
-  const dadosConsolidados = useMemo(() => {
-    return getDadosConsolidadosEJ(db, currentEJ.id_ej, currentPeriod);
-  }, [db, currentEJ.id_ej, currentPeriod]);
-
-  // Professor Orientador associado à EJ
-  const currentProfessor = useMemo(() => {
-    return dadosConsolidados.professor || (db.Usuarios_COEJ && db.Usuarios_COEJ[0]) || {
-      id_auth: 'usr_001',
-      nome: 'Prof. Dr. Geraldo Ferreira',
-      ies: currentEJ.ies || 'Universidade Federal Fluminense (UFF)',
-      titulacao: 'Doutor em Engenharia de Produção',
-      departamento: 'Departamento de Engenharia'
-    };
-  }, [dadosConsolidados, db, currentEJ]);
-
-  // Salvar Parecer / Atualização do Relatório
-  const handleSaveReport = (updatedRelatorio: any) => {
-    const updatedRelatorios = (db.Relatorios_Trimestrais || []).map((r: any) => 
-      r.id_relatorio === updatedRelatorio.id_relatorio ? updatedRelatorio : r
-    );
-    if (!updatedRelatorios.some((r: any) => r.id_relatorio === updatedRelatorio.id_relatorio)) {
-      updatedRelatorios.push(updatedRelatorio);
-    }
-    const newDb = { ...db, Relatorios_Trimestrais: updatedRelatorios };
-    setDb(newDb);
-    saveDatabase(newDb);
+  const handleUpdateDatabase = (newDb: any) => {
+    setDb({ ...newDb });
   };
 
-  // Atualizar Indicadores de Mercado (Caixa, Despesas, Ticket Médio)
-  const handleUpdateMercado = (updatedMercadoItem: any) => {
-    const updatedMercado = (db.Indicadores_Mercado || []).map((m: any) => 
-      m.id_relatorio === updatedMercadoItem.id_relatorio ? updatedMercadoItem : m
-    );
-    if (!updatedMercado.some((m: any) => m.id_relatorio === updatedMercadoItem.id_relatorio)) {
-      updatedMercado.push(updatedMercadoItem);
-    }
-    const newDb = { ...db, Indicadores_Mercado: updatedMercado };
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Atualizar Auditoria Jurídica / Selo EJ
-  const handleUpdateJuridico = (updatedDocumentos: any) => {
-    const updatedJuridico = (db.Auditoria_Juridica || []).map((j: any) => {
-      if (j.id_ej === currentEJ.id_ej) {
-        const regulares = updatedDocumentos.filter((d: any) => d.status === 'Regular').length;
-        return {
-          ...j,
-          documentos_selo_ej: updatedDocumentos,
-          selo_ej_conformidade: `${regulares}/13 Documentos Validados`
-        };
-      }
-      return j;
-    });
-    const newDb = { ...db, Auditoria_Juridica: updatedJuridico };
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Atualizar Indicadores Internos (CSAT, NPS, PCO, Permanência)
-  const handleUpdateInterno = (updatedInternoItem: any) => {
-    const updatedInterno = (db.Indicadores_Internos || []).map((i: any) => 
-      i.id_ej === currentEJ.id_ej ? updatedInternoItem : i
-    );
-    if (!updatedInterno.some((i: any) => i.id_ej === currentEJ.id_ej)) {
-      updatedInterno.push(updatedInternoItem);
-    }
-    const newDb = { ...db, Indicadores_Internos: updatedInterno };
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Atualizar Execução Financeira (Entradas, Saídas, Fomento IES)
-  const handleUpdateFinanceiro = (updatedFinanceiro: any) => {
-    const exists = db.Execucao_Financeira && db.Execucao_Financeira.find((ef: any) => ef.id_ej === currentEJ.id_ej);
-    let updatedList;
-    if (exists) {
-      updatedList = db.Execucao_Financeira.map((ef: any) => ef.id_ej === currentEJ.id_ej ? updatedFinanceiro : ef);
-    } else {
-      updatedList = [...(db.Execucao_Financeira || []), updatedFinanceiro];
-    }
-    const newDb = { ...db, Execucao_Financeira: updatedList };
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Salvar IESE
-  const handleSaveIESE = (updatedIESE: any) => {
-    const exists = db.IESE_Avaliacoes && db.IESE_Avaliacoes.find((i: any) => i.id_ej === updatedIESE.id_ej);
-    let updatedIESEList;
-    if (exists) {
-      updatedIESEList = db.IESE_Avaliacoes.map((i: any) => i.id_ej === updatedIESE.id_ej ? updatedIESE : i);
-    } else {
-      updatedIESEList = [...(db.IESE_Avaliacoes || []), updatedIESE];
-    }
-    const newDb = { ...db, IESE_Avaliacoes: updatedIESEList };
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Importar Dados do Portal Brasil Júnior
-  const handleImportBJData = (importedFields: any) => {
-    const relatorioId = dadosConsolidados.relatorio.id_relatorio;
-    const updatedMercado = (db.Indicadores_Mercado || []).map((m: any) => {
-      if (m.id_relatorio === relatorioId) {
-        return {
-          ...m,
-          ...importedFields
-        };
-      }
-      return m;
-    });
-
-    const updatedEJs = (db.Empresas_Juniores || []).map((e: any) => {
-      if (e.id_ej === currentEJ.id_ej && importedFields.membros_ativos) {
-        return {
-          ...e,
-          membros_ativos: importedFields.membros_ativos
-        };
-      }
-      return e;
-    });
-
-    const newDb = {
-      ...db,
-      Indicadores_Mercado: updatedMercado,
-      Empresas_Juniores: updatedEJs
-    };
-
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Salvar Perfil do Professor
-  const handleSaveProfile = (updatedProfile: any) => {
-    const updatedList = (db.Usuarios_COEJ || []).map((u: any) => 
-      u.id_auth === updatedProfile.id_auth ? updatedProfile : u
-    );
-    const newDb = { ...db, Usuarios_COEJ: updatedList };
-    setDb(newDb);
-    saveDatabase(newDb);
-  };
-
-  // Resetar Demo
-  const handleResetData = () => {
-    if (window.confirm('Deseja restaurar os dados originais da demonstração do COEJ?')) {
-      const reset = resetDatabase();
-      setDb(reset);
+  const handleResetDemo = () => {
+    if (window.confirm('Deseja restaurar os dados originais de demonstração do COEJ?')) {
+      const fresh = resetDatabase();
+      setDb({ ...fresh });
     }
   };
-
-  // Filtragem da lista de EJs
-  const ejsFiltradas = useMemo(() => {
-    if (!searchEJ.trim()) return listaEJs;
-    const s = searchEJ.toLowerCase();
-    return listaEJs.filter((ej: any) => 
-      (ej.nome || '').toLowerCase().includes(s) ||
-      (ej.ies || '').toLowerCase().includes(s) ||
-      (ej.cidade || '').toLowerCase().includes(s) ||
-      (ej.cluster || '').toLowerCase().includes(s)
-    );
-  }, [listaEJs, searchEJ]);
 
   return (
-    <div className="coej-wrapper space-y-6">
-      {/* Cabeçalho Institucional do COEJ */}
-      <div className="bg-gradient-to-r from-blue-950/70 via-slate-900/80 to-blue-900/60 border border-blue-500/30 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                <GraduationCap className="w-3.5 h-3.5" />
-                COEJ • Conselho de Orientadores
+    <div className="coej-scope">
+      <div className="coej-wrapper">
+        {/* Banner de isolamento quando Professor Orientador ou Membro/Diretor de EJ */}
+        {effectiveRestriction && (
+          <div
+            style={{
+              marginBottom: '0.85rem',
+              padding: '0.65rem 1rem',
+              borderRadius: '0.75rem',
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              fontSize: '0.78rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Lock size={15} style={{ color: '#10b981', flexShrink: 0 }} />
+              <span>
+                <strong>
+                  {effectiveRestriction === 'orientador'
+                    ? 'Painel Exclusivo do Professor Orientador (COEJ):'
+                    : 'Painel Exclusivo da Empresa Júnior (COEJ):'}
+                </strong>{' '}
+                Exibindo especificamente os dados da(s) sua(s) Empresa(s) Júnior(es) vinculada(s) ({listaEJs.map((e: any) => e.nome).join(', ')}).
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                Presidência Executiva
-              </span>
-              <span className="text-xs text-slate-400 hidden sm:inline">• Lei Federal nº 13.267/2016</span>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              Painel Integrado do Professor Orientador COEJ
-            </h2>
-            <p className="text-sm text-slate-300 max-w-3xl leading-relaxed">
-              Ambiente de governança acadêmica e prestação de contas trimestral para acompanhamento de dados das 
-              Empresas Juniores federadas da RioJunior. Permite a validação de horas de extensão curricularizada, 
-              auditoria do <strong>Selo EJ (13 documentos)</strong>, análise de ticket médio e diagnóstico de demandas 
-              de fomento institucional perante as IES.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <button
-              onClick={() => setShowProfileModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition shadow-sm"
-              title="Visualizar dados do Orientador vinculado à EJ"
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                padding: '0.15rem 0.55rem',
+                borderRadius: '999px',
+                background: 'rgba(16, 185, 129, 0.18)',
+                color: '#10b981',
+              }}
             >
-              <User className="w-4 h-4 text-blue-400" />
-              <span>Perfil do Orientador</span>
-            </button>
-
-            <button
-              onClick={() => setShowPrintModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 transition shadow-md shadow-amber-500/20"
-              title="Gerar e imprimir relatório A4 formal com fé pública"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Relatório A4 (PDF)</span>
-            </button>
-
-            <button
-              onClick={handleResetData}
-              className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800 transition"
-              title="Restaurar dados padrões de demonstração do COEJ"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Banner de Alternância de Perfil (Orientador vs Membro EJ) */}
-      <div className="no-print">
-        {userRole === 'membro_ej' ? (
-          <div className="bg-gradient-to-r from-amber-500/20 via-slate-900/90 to-amber-950/40 border border-amber-500/40 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0 border border-amber-500/40">
-                <Users2 className="text-amber-400 w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-white">
-                  MODO ATIVO: PREENCHIMENTO PELA DIRETORIA DA EMPRESA JÚNIOR ({currentEJ.nome})
-                </div>
-                <div className="text-xs text-slate-300 mt-0.5">
-                  Insira dados confidenciais de <strong>Caixa</strong> e <strong>Despesas</strong>, gerencie a lista de <strong>Desafios/Gargalos</strong>, e redija a <strong>Conclusão da EJ</strong> para homologação do Orientador.
-                </div>
-              </div>
-            </div>
-            <button 
-              onClick={() => setUserRole('orientador')}
-              className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 transition shadow"
-            >
-              Alternar para Visão do Orientador
-            </button>
-          </div>
-        ) : (
-          <div className="bg-gradient-to-r from-blue-900/30 via-slate-900/90 to-blue-950/40 border border-blue-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0 border border-blue-500/40">
-                <UserCheck className="text-blue-400 w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-white">
-                  MODO ATIVO: PROFESSOR ORIENTADOR COEJ ({currentProfessor.nome})
-                </div>
-                <div className="text-xs text-slate-300 mt-0.5">
-                  Orientador com fé pública perante a IES ({currentProfessor.ies || currentEJ.ies}) para homologar a prestação de contas, validar as horas de extensão curricular e emitir o parecer acadêmico conclusivo.
-                </div>
-              </div>
-            </div>
-            <button 
-              onClick={() => setUserRole('membro_ej')}
-              className="shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition"
-            >
-              Simular Edição pela EJ
-            </button>
+              {listaEJs.length} {listaEJs.length === 1 ? 'EJ vinculada' : 'EJs vinculadas'}
+            </span>
           </div>
         )}
-      </div>
 
-      {/* Barra de Filtros e Seleção de EJ */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-4">
-        {/* Seletor Rápido de EJs Demonstrativas e Dropdown Geral */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-              <span>Federação RioJunior</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-amber-400 font-semibold">{currentEJ.nome}</span>
-              <span>•</span>
-              <span className="text-cyan-400">{currentEJ.ies}</span>
-              <span>•</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                {currentEJ.cluster} ({dadosConsolidados.isAltaMaturidade ? 'Alta Maturidade' : 'Menor Maturidade'})
-              </span>
+        {/* Top Header */}
+        <header className="top-header">
+          <div className="header-inner">
+            <div className="brand-box">
+              <div className="brand-logo">RJ</div>
+              <div>
+                <div className="brand-title">Portal COEJ &amp; Governança</div>
+                <span className="brand-subtitle">
+                  RioJunior • Acompanhamento Trimestral, Selo EJ, Extensão &amp; Fomento IES
+                </span>
+              </div>
             </div>
-            <div className="text-xs text-slate-400">
-              Orientador: <strong className="text-white">{currentProfessor.nome}</strong> • Titulação: {currentProfessor.titulacao || 'Docente Orientador'}
+
+            <div className="role-switcher-bar">
+              {/* EJ Selector (filtrado para as EJs do professor quando em modo restrito) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {effectiveRestriction ? 'Sua EJ:' : 'EJ:'}
+                </span>
+                <select
+                  className="ej-selector"
+                  value={selectedEjId}
+                  onChange={(e) => setSelectedEjId(e.target.value)}
+                >
+                  {listaEJs.map((ej: any) => (
+                    <option key={ej.id_ej} value={ej.id_ej}>
+                      {ej.nome} ({ej.cluster} • {ej.tipo_maturidade} Maturidade)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Role Switcher interno do COEJ — visível apenas para o Time RioJunior / ADMs */}
+              {!effectiveRestriction && (
+                <div className="role-pill-group">
+                  <button
+                    className={`role-pill ${userRole === 'membro_ej' ? 'active' : ''}`}
+                    onClick={() => setUserRole('membro_ej')}
+                    title="Visão da Diretoria da EJ (Envia Relatórios e Solicita Apoio/Editais)"
+                  >
+                    <Building2 size={14} /> Membro EJ
+                  </button>
+                  <button
+                    className={`role-pill ${userRole === 'orientador' ? 'active' : ''}`}
+                    onClick={() => setUserRole('orientador')}
+                    title="Visão do Professor Orientador (Homologa Relatório, Valida Extensão e Articula IES)"
+                  >
+                    <GraduationCap size={14} /> Prof. Orientador
+                  </button>
+                  <button
+                    className={`role-pill ${userRole === 'admin_riojunior' ? 'active' : ''}`}
+                    onClick={() => setUserRole('admin_riojunior')}
+                    title="Visão Governança RioJunior (Auditoria Global e Ranking IESE)"
+                  >
+                    <ShieldCheck size={14} /> RioJunior
+                  </button>
+                  <button
+                    className={`role-pill ${userRole === 'reitor_ies' ? 'active' : ''}`}
+                    onClick={() => setUserRole('reitor_ies')}
+                    title="Visão Reitoria / Pró-Reitoria de Extensão (REUNI)"
+                  >
+                    <Landmark size={14} /> REUNI (Reitoria)
+                  </button>
+                </div>
+              )}
+
+              {!effectiveRestriction && (
+                <button className="btn btn-outline" onClick={handleResetDemo} title="Restaurar Dados Demo">
+                  <RefreshCw size={14} />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Quick Select Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-400">Atalhos COEJ:</span>
-            <button 
-              onClick={() => setSelectedEJId('ej_002')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_002' 
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
+          {/* Navigation Tabs */}
+          <div className="nav-tabs-bar">
+            <button
+              className={`nav-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('overview')}
             >
-              Nexus Jr (Cluster 2 - UFF)
+              1. Visão Geral &amp; Parecer COEJ
             </button>
-            <button 
-              onClick={() => setSelectedEJId('ej_001')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_001' 
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
+            <button
+              className={`nav-tab-btn ${activeTab === 'mercado' ? 'active' : ''}`}
+              onClick={() => setActiveTab('mercado')}
             >
-              Poli Jr (Cluster 5 - UFRJ)
+              2. Mercado &amp; Execução Financeira (Entradas/Saídas)
             </button>
-            <button 
-              onClick={() => setSelectedEJId('ej_003')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_003' 
-                  ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
+            <button
+              className={`nav-tab-btn ${activeTab === 'extensao' ? 'active' : ''}`}
+              onClick={() => setActiveTab('extensao')}
             >
-              BioInova (Aspirante - UERJ)
+              3. Impacto Acadêmico, Extensão &amp; Fomento IES
             </button>
-            <button 
-              onClick={() => setSelectedEJId('ej_004')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
-                selectedEJId === 'ej_004' 
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm' 
-                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white'
-              }`}
+            <button
+              className={`nav-tab-btn ${activeTab === 'juridico' ? 'active' : ''}`}
+              onClick={() => setActiveTab('juridico')}
             >
-              Ibmec Jr (Cluster 4 - Ibmec)
+              4. Auditoria Selo EJ (13 Docs), PCO &amp; NPS
             </button>
-          </div>
-        </div>
-
-        {/* Dropdown de Todas as 75 EJs da RioJunior com busca */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-slate-800/80">
-          <div className="md:col-span-8 flex items-center gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-1.5">
-            <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="text-xs font-semibold text-slate-400 shrink-0">Selecionar Empresa Júnior ({listaEJs.length} EJs):</span>
-            <select
-              value={selectedEJId}
-              onChange={(e) => setSelectedEJId(e.target.value)}
-              className="w-full bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer"
-            >
-              {ejsFiltradas.map((ej: any) => (
-                <option key={ej.id_ej} value={ej.id_ej} className="bg-slate-900 text-white">
-                  {ej.nome} — {ej.ies} ({ej.cluster || 'Cluster 1'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-4 flex items-center gap-2 bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-1.5">
-            <Search className="w-4 h-4 text-slate-500 shrink-0" />
-            <input 
-              type="text"
-              placeholder="Filtrar por nome, IES ou cluster..."
-              value={searchEJ}
-              onChange={(e) => setSearchEJ(e.target.value)}
-              className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none"
-            />
-            {searchEJ && (
-              <button 
-                onClick={() => setSearchEJ('')}
-                className="text-[10px] text-slate-400 hover:text-white"
+            {!effectiveRestriction && (
+              <button
+                className={`nav-tab-btn ${activeTab === 'iese' ? 'active' : ''}`}
+                onClick={() => setActiveTab('iese')}
               >
-                Limpar
+                5. Índice IESE &amp; Chancela REUNI
               </button>
             )}
           </div>
-        </div>
+        </header>
 
-        {/* Barra de Periodicidade */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Periodicidade:</span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                'Mensal', 
-                'Bimestral', 
-                'Trimestral (Q1)', 
-                'Trimestral (Q2)', 
-                'Trimestral (Q3)', 
-                'Trimestral (Q4)', 
-                'Semestral', 
-                'Anual'
-              ].map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setCurrentPeriod(period)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                    currentPeriod === period
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-slate-800/50 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="text-xs text-slate-400 text-right">
-            <span>{dadosConsolidados.mesesDecorridos} meses considerados no cálculo de eficiência produtiva</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Abas Internas do COEJ */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
-        <button 
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-            activeTab === 'dashboard'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <BarChart3 className="w-4 h-4" />
-          <span>Dashboard Adaptativo ({dadosConsolidados.isAltaMaturidade ? 'Maior Maturidade' : 'Menor Maturidade'})</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('iese')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-            activeTab === 'iese'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          <span>Edital Reconhecimento IES (IESE)</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('datafeed')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-            activeTab === 'datafeed'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <Database className="w-4 h-4" />
-          <span>Alimentação de Dados & Brasil Júnior</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('report')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
-            activeTab === 'report'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <Printer className="w-4 h-4" />
-          <span>Relatório Transparência A4 (PDF)</span>
-        </button>
-      </div>
-
-      {/* Conteúdo Dinâmico conforme a Aba Ativa */}
-      <div className="pt-2">
-        {/* 1. DASHBOARD ADAPTATIVO */}
-        {activeTab === 'dashboard' && (
-          dadosConsolidados.isAltaMaturidade ? (
-            <HighMaturityDashboard 
-              data={dadosConsolidados}
+        {/* Main Content */}
+        <main className="main-container">
+          {activeTab === 'overview' && (
+            <OverviewDashboard
+              dados={dadosAtuais}
               userRole={userRole}
-              onSaveReport={handleSaveReport}
-              onUpdateMercado={handleUpdateMercado}
-              onUpdateJuridico={handleUpdateJuridico}
-              onUpdateInterno={handleUpdateInterno}
-              onUpdateFinanceiro={handleUpdateFinanceiro}
+              onOpenFormModal={() => setShowFormModal(true)}
+              onOpenOrientadorModal={() => setShowOrientadorModal(true)}
+              onOpenPrintModal={() => setShowPrintModal(true)}
+              onOpenProfModal={() => setShowProfModal(true)}
+              onOpenEJModal={() => setShowEJModal(true)}
+              onChangeTab={setActiveTab}
             />
-          ) : (
-            <LowMaturityDashboard 
-              data={dadosConsolidados} 
+          )}
+
+          {activeTab === 'mercado' && (
+            <MercadoFinanceiroView
+              dados={dadosAtuais}
               userRole={userRole}
-              onSaveReport={handleSaveReport}
-              onUpdateMercado={handleUpdateMercado}
-              onUpdateJuridico={handleUpdateJuridico}
-              onUpdateInterno={handleUpdateInterno}
-              onUpdateFinanceiro={handleUpdateFinanceiro}
+              db={db}
+              onUpdateDb={handleUpdateDatabase}
+              onOpenFormModal={() => setShowFormModal(true)}
             />
-          )
-        )}
+          )}
 
-        {/* 2. EDITAL DE RECONHECIMENTO IES (IESE) */}
-        {activeTab === 'iese' && (
-          <IESERecognitionTab 
-            ej={currentEJ}
-            ieseAvaliacao={dadosConsolidados.iese}
-            onSaveIESE={handleSaveIESE}
-          />
-        )}
+          {activeTab === 'extensao' && (
+            <ExtensaoIESView
+              dados={dadosAtuais}
+              userRole={userRole}
+              db={db}
+              onUpdateDb={handleUpdateDatabase}
+              onOpenOrientadorModal={() => setShowOrientadorModal(true)}
+            />
+          )}
 
-        {/* 3. ALIMENTAÇÃO DE DADOS & PORTAL BJ */}
-        {activeTab === 'datafeed' && (
-          <DataFeedTab 
+          {activeTab === 'juridico' && (
+            <JuridicoInternoView
+              dados={dadosAtuais}
+              userRole={userRole}
+              db={db}
+              onUpdateDb={handleUpdateDatabase}
+            />
+          )}
+
+          {activeTab === 'iese' && !effectiveRestriction && (
+            <IESEPainelView
+              dados={dadosAtuais}
+              db={db}
+              userRole={userRole}
+              onUpdateDb={handleUpdateDatabase}
+              onSelectEj={(id: string) => setSelectedEjId(id)}
+            />
+          )}
+        </main>
+
+        {/* Modals */}
+        {showFormModal && (
+          <RelatorioFormModal
+            dados={dadosAtuais}
             db={db}
-            currentEJ={currentEJ}
-            onImportData={handleImportBJData}
+            onUpdateDb={handleUpdateDatabase}
+            onClose={() => setShowFormModal(false)}
           />
         )}
 
-        {/* 4. RELATÓRIO DE TRANSPARÊNCIA A4 (PDF) */}
-        {activeTab === 'report' && (
-          <TransparencyReportA4 
-            data={dadosConsolidados}
-            currentProfessor={currentProfessor}
-            periodo={`${selectedYear} - ${currentPeriod}`}
+        {showOrientadorModal && (
+          <OrientadorPainelModal
+            dados={dadosAtuais}
+            db={db}
+            onUpdateDb={handleUpdateDatabase}
+            onClose={() => setShowOrientadorModal(false)}
+          />
+        )}
+
+        {showPrintModal && (
+          <RelatorioInstitucionalPrintModal
+            dados={dadosAtuais}
+            onClose={() => setShowPrintModal(false)}
+          />
+        )}
+
+        {showProfModal && (
+          <CadastroProfessorModal
+            dados={dadosAtuais}
+            db={db}
+            onUpdateDb={handleUpdateDatabase}
+            onClose={() => setShowProfModal(false)}
+          />
+        )}
+
+        {showEJModal && (
+          <CadastroEJModal
+            dados={dadosAtuais}
+            db={db}
+            onUpdateDb={handleUpdateDatabase}
+            onClose={() => setShowEJModal(false)}
           />
         )}
       </div>
-
-      {/* Modal do Perfil do Orientador */}
-      {showProfileModal && (
-        <ProfessorProfileModal 
-          professor={currentProfessor}
-          linkedEJ={currentEJ}
-          onSaveProfile={handleSaveProfile}
-          onClose={() => setShowProfileModal(false)}
-        />
-      )}
-
-      {/* Modal Popup para Impressão A4 */}
-      {showPrintModal && (
-        <TransparencyReportA4 
-          data={dadosConsolidados}
-          currentProfessor={currentProfessor}
-          periodo={`${selectedYear} - ${currentPeriod}`}
-          onClose={() => setShowPrintModal(false)}
-        />
-      )}
     </div>
   );
 }

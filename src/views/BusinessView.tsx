@@ -23,6 +23,8 @@ import { CRMCardModal } from '@/components/business/CRMCardModal';
 import { CRMAssistantModal } from '@/components/business/CRMAssistantModal';
 import { CRMConfigModal } from '@/components/business/CRMConfigModal';
 import { VPNegCalculatorView } from '@/components/business/VPNegCalculatorView';
+import { useAuth } from '@/hooks/useAuth';
+import { DirectorateAccessGuard } from '@/components/DirectorateAccessGuard';
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -32,6 +34,7 @@ interface BusinessViewProps {
 }
 
 const BusinessView = ({ selectedYear }: BusinessViewProps) => {
+  const { canEditVPNeg } = useAuth();
   // Eventos & Grade de Conteudo (Venda de Pautas)
   const { eventos, loading: eventosLoading } = useEventos();
   const { vendas, loading: gradeLoading, getConfig, registrarVenda, deleteVenda } = useGradeConteudo();
@@ -129,6 +132,11 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
   }
 
   return (
+    <DirectorateAccessGuard
+      canEdit={canEditVPNeg}
+      directorateName="Vice-Presidência de Negócios (VPNeg)"
+      directorateShort="VPNeg"
+    >
     <div className="space-y-6 animate-fade-in pb-10">
       {/* View Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
@@ -588,6 +596,7 @@ const BusinessView = ({ selectedYear }: BusinessViewProps) => {
         </DialogContent>
       </Dialog>
     </div>
+    </DirectorateAccessGuard>
   );
 };
 

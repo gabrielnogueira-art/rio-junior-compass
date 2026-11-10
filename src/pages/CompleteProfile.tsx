@@ -1,146 +1,229 @@
-import { useState, useEffect } from 'react';
-import { User as UserIcon, Building2, Loader2, LogOut } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth, TIPOS_USUARIO } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, LogOut, CheckCircle2, Sparkles } from 'lucide-react';
+import { DDR_EMPRESAS_JUNIORES } from '@/data/ddrDatabase';
+import { resolveAccountByEmail, saveStoredAccountLink } from '@/utils/accountLinkResolver';
+import logoHeader from '@/assets/logo-riojunior-header.png';
 
-interface EJOption {
-  id: string;
-  nome: string;
-}
+export default function CompleteProfile() {
+  const { user, profile, loading: authLoading, refreshProfile, signOut } = useAuth();
+  const navigate = useNavigate();
 
-const CompleteProfile = () => {
-  const { user, profile, signOut, refreshProfile } = useAuth();
-  const [nome, setNome] = useState(profile?.nome ?? '');
-  const [tipoSolicitado, setTipoSolicitado] = useState('membro_ej');
+  const autoResolved = useMemo(
+    () => resolveAccountByEmail(user?.email || profile?.email, profile?.ej_id, profile?.tipo_solicitado),
+    [user?.email, profile?.email, profile?.ej_id, profile?.tipo_solicitado]
+  );
+
+  const [nome, setNome] = useState('');
+  const [tipoSolicitado, setTipoSolicitado] = useState('');
   const [ejId, setEjId] = useState('');
-  const [ejs, setEjs] = useState<EJOption[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const needsEJ = tipoSolicitado === 'diretor_ej' || tipoSolicitado === 'membro_ej';
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from('ejs')
-      .select('id, nome')
-      .order('nome')
-      .then(({ data }) => setEjs((data as EJOption[]) ?? []));
-  }, []);
+    if (!authLoading && !user) {
+      navigate('/auth', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (profile) {
+      setNome(profile.nome || autoResolved.nomeCadastrado || user?.user_metadata?.full_name || '');
+      setTipoSolicitado(
+        profile.tipo_solicitado || (autoResolved.matched ? autoResolved.tipoUsuario : '')
+      );
+      setEjId(profile.ej_id || autoResolved.ejId || '');
+      if (profile.status === 'aprovado') {
+        navigate('/', { replace: true });
+      }
+    } else if (autoResolved.matched) {
+      setNome(autoResolved.nomeCadastrado || user?.user_metadata?.full_name || '');
+      setTipoSolicitado(autoResolved.tipoUsuario);
+      setEjId(autoResolved.ejId || '');
+    }
+  }, [profile, user, autoResolved, navigate]);
+
+  const needsEj = ['professor_orientador', 'diretor_ej', 'membro_ej'].includes(tipoSolicitado);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    setError(null);
-    setLoading(true);
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        nome,
-        tipo_solicitado: tipoSolicitado,
-        ej_id: needsEJ && ejId ? ejId : null,
-      })
-      .eq('id', user.id);
-    setLoading(false);
-    if (updateError) {
-      setError('Não foi possível salvar. Tente novamente.');
+    if (!nome.trim() || !tipoSolicitado) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Preencha seu nome e o tipo de acesso.',
+        variant: 'destructive',
+      });
       return;
     }
+    if (needsEj && !ejId) {
+      toast({
+        title: 'Selecione sua EJ',
+        description: 'Este perfil exige vínculo com uma Empresa Júnior.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    const finalEjId = needsEj ? ejId : autoResolved.ejId || null;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        nome: nome.trim(),
+        tipo_solicitado: tipoSolicitado,
+        ej_id: finalEjId,
+      })
+      .eq('id', user.id);
+
+    // Registra o vínculo automático da conta com os dados cadastrados do e-mail
+    if (user.email) {
+      saveStoredAccountLink({
+        userId: user.id,
+        email: user.email,
+        tipoUsuario: (tipoSolicitado as any) || autoResolved.tipoUsuario,
+        nome: nome.trim(),
+        guilda: autoResolved.guilda,
+        cargo: autoResolved.cargo,
+        membroId: autoResolved.membroId,
+        ejId: finalEjId,
+        allowedEjIds:
+          autoResolved.allowedEjIds.length > 0
+            ? autoResolved.allowedEjIds
+            : finalEjId
+            ? [finalEjId]
+            : [],
+        linkedAt: new Date().toISOString(),
+      });
+    }
+
+    setSubmitting(false);
+
+    if (error) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      return;
+    }
+
     await refreshProfile();
+    toast({
+      title: 'Solicitação enviada e vinculada!',
+      description: autoResolved.matched
+        ? `Sua conta foi vinculada automaticamente ao cadastro (${autoResolved.resumoVinculo}). Aguarde aprovação do ADM.`
+        : 'Um administrador irá analisar seu pedido de acesso.',
+    });
+    navigate('/', { replace: true });
   };
 
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="h-14 w-14 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg">
-            RJ
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xl font-bold text-foreground leading-tight">RioJunior</span>
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">
-              Sistema de Gestão
-            </span>
-          </div>
-        </div>
+  const ejsOrdenadas = [...DDR_EMPRESAS_JUNIORES].sort((a, b) => a.nome.localeCompare(b.nome));
 
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-xl">
-          <h2 className="text-xl font-bold text-foreground mb-2">Complete seu cadastro</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Só falta nos dizer sua posição para enviarmos seu acesso para aprovação.
-          </p>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-lg shadow-xl border-border/60">
+        <CardHeader className="text-center space-y-3">
+          <div className="flex justify-center">
+            <img src={logoHeader} alt="RioJunior" className="h-14 w-auto object-contain" />
+          </div>
+          <CardTitle className="text-xl font-bold">Complete seu cadastro</CardTitle>
+          <CardDescription>
+            Informe seu vínculo com o Movimento Empresa Júnior para solicitar acesso ao painel.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {autoResolved.matched && (
+            <div className="mb-4 p-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>Cadastro prévio identificado pelo seu e-mail!</span>
+              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                O e-mail <strong>{autoResolved.email}</strong> já consta na base oficial da RioJunior. Ao solicitar e ser aprovado, sua conta ficará vinculada automaticamente a:
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <Badge className="bg-emerald-600 text-white text-[11px] gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  {autoResolved.resumoVinculo}
+                </Badge>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative">
-              <UserIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Seu nome completo"
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail da solicitação</Label>
+              <Input id="email" value={user?.email ?? ''} disabled className="bg-muted/40" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nome">Nome completo *</Label>
+              <Input
+                id="nome"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                placeholder="Seu nome completo"
+                required
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                Qual é a sua posição?
-              </label>
-              <select
-                value={tipoSolicitado}
-                onChange={(e) => setTipoSolicitado(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                {Object.entries(TIPOS_USUARIO).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Qual é a sua relação com a RioJunior? *</Label>
+              <Select value={tipoSolicitado} onValueChange={setTipoSolicitado}>
+                <SelectTrigger id="tipo">
+                  <SelectValue placeholder="Selecione uma opção" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPOS_USUARIO).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            {needsEJ && (
-              <div className="relative">
-                <Building2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <select
-                  value={ejId}
-                  onChange={(e) => setEjId(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                >
-                  <option value="">Selecione sua EJ...</option>
-                  {ejs.map((ej) => (
-                    <option key={ej.id} value={ej.id}>
-                      {ej.nome}
-                    </option>
-                  ))}
-                </select>
+            {needsEj && (
+              <div className="space-y-2">
+                <Label htmlFor="ej">Empresa Júnior vinculada *</Label>
+                <Select value={ejId} onValueChange={setEjId}>
+                  <SelectTrigger id="ej">
+                    <SelectValue placeholder="Selecione sua EJ" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {ejsOrdenadas.map((ej) => (
+                      <SelectItem key={ej.id} value={ej.id}>
+                        {ej.nome} {ej.ies ? `— ${ej.ies}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
-            {error && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-lg p-3">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading && <Loader2 size={16} className="animate-spin" />}
-              Enviar para aprovação
-            </button>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={signOut} className="gap-2">
+                <LogOut className="h-4 w-4" /> Sair
+              </Button>
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...
+                  </>
+                ) : (
+                  'Solicitar acesso e vincular conta'
+                )}
+              </Button>
+            </div>
           </form>
-
-          <button
-            onClick={signOut}
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors w-full justify-center"
-          >
-            <LogOut size={16} />
-            Sair da conta
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default CompleteProfile;
+}
